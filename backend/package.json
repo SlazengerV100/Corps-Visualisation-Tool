@@ -1,0 +1,16 @@
+{
+  "name": "backend",
+  "type": "module",
+  "version": "0.0.0",
+  "description": "Visualisation tool for analysing The Salvation Army Corps statistics.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "nodemon": "^3.1.10"
+  }
+}
