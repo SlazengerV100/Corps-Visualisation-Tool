@@ -35,7 +35,6 @@ app.get('/api/attendance', (req, res) => {
             }
         })
         .on('end', () => {
-            console.log(`Results: ${JSON.stringify(results.slice(0, 5), null, 2)}`)
             res.json(results)
         })
         .on('error', (err) => {
