@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useTheme } from '@mui/material/styles'
 import * as d3 from 'd3'
 
 const BarChart = () => {
+    const theme = useTheme()
     const serverUrl = import.meta.env.VITE_SERVER_URL
     const [data, setData] = useState([])
     const chartRef = useRef(null)
@@ -45,10 +47,10 @@ const BarChart = () => {
             .attr("width", width)
             .attr("height", height)
             .attr("viewBox", [0, 0, width, height])
-            .attr("style", "max-width: 100%; height: auto; font: 10px sans-serif;")
+            .attr("style", `max-width: 100%; height: auto; font: 10px ${theme.typography.fontFamily};`)
 
         svg.append("g")
-            .attr("fill", "steelblue")
+            .attr("fill", theme.palette.primary.main)
             .selectAll("rect")
             .data(data)
             .join("rect")
@@ -76,11 +78,19 @@ const BarChart = () => {
         svg.append("g")
             .attr("transform", `translate(0,${marginTop})`)
             .call(d3.axisTop(x))
+            .call(g => {
+                g.selectAll("text")
+                    .style("font-family", theme.typography.fontFamily)
+            })
             .call(g => g.select(".domain").remove())
 
         svg.append("g")
             .attr("transform", `translate(${marginLeft},0)`)
             .call(d3.axisLeft(y).tickSizeOuter(0))
+            .call(g => {
+                g.selectAll("text")
+                    .style("font-family", theme.typography.fontFamily)
+            })
 
         // Clear and append chart
         chartRef.current.innerHTML = ""
