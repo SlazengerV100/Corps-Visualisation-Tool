@@ -41,3 +41,21 @@ app.get('/api/attendance', (req, res) => {
             res.status(500).json({ error: 'Failed to read CSV file', details: err.message })
         })
 })
+
+app.get('/api/test/bubbleChart/:year', (req, res) => {
+    const year = req.params.year
+    const filePath = `${DATA_FOLDER}\\TEST_Corps_2024.json`
+
+    fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) {
+            res.status(500).json({ error: 'Failed to read JSON file', details: err.message })
+            return
+        }
+        try {
+            const json = JSON.parse(data)
+            res.json(json)
+        } catch (parseErr) {
+            res.status(500).json({ error: 'Invalid JSON format', details: parseErr.message })
+        }
+    })
+})
