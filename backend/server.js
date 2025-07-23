@@ -44,11 +44,11 @@ app.get('/api/attendance', (req, res) => {
 
 app.get('/api/test/bubbleChart/:year', (req, res) => {
     const year = req.params.year
-    const filePath = `${DATA_FOLDER}\\TEST_Corps_2024.json`
+    const filePath = `${DATA_FOLDER}\\test\\TEST_Corps_${year}.json`
 
     fs.readFile(filePath, 'utf8', (err, data) => {
         if (err) {
-            res.status(500).json({ error: 'Failed to read JSON file', details: err.message })
+            res.status(404).json({ error: `No data for ${year}` })
             return
         }
         try {
