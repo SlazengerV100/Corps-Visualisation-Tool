@@ -1,49 +1,25 @@
 import * as React from 'react'
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useTheme } from '@mui/material/styles'
-import CircularProgress from '@mui/material/CircularProgress'
 import Box from '@mui/material/Box'
 import * as d3 from 'd3'
 
-export default function BubbleChart() {
-    const serverUrl = import.meta.env.VITE_SERVER_URL
-    const year = 2024
-    const [yearData, setYearData] = useState(null)
-    const [loading, setLoading] = useState(true)
+export default function BubbleChart({year, yearData}) {
     const svgRef = useRef()
     const theme = useTheme()
 
-    const width = 1200
-    const height = 800
-    const margin = width / 10
+    const width = 900
+    const height = 600
+    const margin = width / 8
 
     const xScale = d3.scaleLinear().domain([0, 100]).range([0, width - 2 * margin])
     const yScale = d3.scaleLinear().domain([0, 100]).range([height - 2 * margin, 0])
     const radiusScale = d3.scaleSqrt().domain([0, 50]).range([0, 25])
     const colourScale = d3.scaleOrdinal(d3.schemeTableau10)
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await fetch(`${serverUrl}/api/test/bubbleChart/${year}`)
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`)
-                }
-                const data = await response.json()
-                setYearData(data)
-            } catch (error) {
-                console.error('Failed to fetch bubble chart data:', error)
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        fetchData()
-    }, [serverUrl, year])
-
     // Draw and update chart
     useEffect(() => {
-        if (!yearData || yearData.length === 0) return
+        d3.select(svgRef.current).selectAll("*").remove()
 
         const svg = d3.select(svgRef.current)
             .attr('width', width)
@@ -61,6 +37,15 @@ export default function BubbleChart() {
             .attr('y2', yScale(0))
             .attr('stroke', 'black')
 
+        // Add matrix X line
+        plot.append('line')
+            .attr('x1', xScale(0))
+            .attr('y1', yScale(50))
+            .attr('x2', xScale(100))
+            .attr('y2', yScale(50))
+            .attr('stroke', 'black')
+            .attr('opacity', '5%')
+
         // Add left Y axis (line only)
         plot.append('line')
             .attr('x1', xScale(0))
@@ -68,6 +53,15 @@ export default function BubbleChart() {
             .attr('x2', xScale(0))
             .attr('y2', yScale(100))
             .attr('stroke', 'black')
+
+        // Add matrix Y line
+        plot.append('line')
+            .attr('x1', xScale(50))
+            .attr('y1', yScale(0))
+            .attr('x2', xScale(50))
+            .attr('y2', yScale(100))
+            .attr('stroke', 'black')
+            .attr('opacity', '5%')
 
         // Axis Labels
         // X-axis: "Not growing" and "Growing"
@@ -102,10 +96,14 @@ export default function BubbleChart() {
             .attr('x', xScale(50))
             .attr('y', yScale(50))
             .attr('text-anchor', 'middle')
+            .attr('alignment-baseline', 'middle')
             .attr('fill', 'black')
             .attr('font-size', '1000%')
             .attr('opacity', '10%')
+            .style('user-select', 'none')
             .text(year)
+
+        if (!yearData || yearData.length === 0) return
 
         // DATA JOIN
         const circles = plot.selectAll('circle')
@@ -124,15 +122,7 @@ export default function BubbleChart() {
             .attr('fill', (d, i) => colourScale(i))
             .attr('stroke', theme.palette.background.paper)
             .attr('stroke-width', 1.5)
-    }, [yearData, theme])
-
-    if (loading) {
-        return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-                <CircularProgress />
-            </Box>
-        )
-    }
+    }, [yearData, year, theme])
 
     return (
         <Box sx={{ overflow: 'auto' }}>
