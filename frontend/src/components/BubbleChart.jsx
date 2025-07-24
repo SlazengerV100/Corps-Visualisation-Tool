@@ -34,6 +34,7 @@ export default function BubbleChart({ year, yearData, corps }) {
             .attr('x2', xScale(100))
             .attr('y2', yScale(0))
             .attr('stroke', 'black')
+            .attr('stroke-width', 3)
 
         // Add matrix X line
         plot.append('line')
@@ -42,7 +43,7 @@ export default function BubbleChart({ year, yearData, corps }) {
             .attr('x2', xScale(100))
             .attr('y2', yScale(50))
             .attr('stroke', 'black')
-            .attr('opacity', '5%')
+            .attr('opacity', '20%')
 
         // Add left Y axis (line only)
         plot.append('line')
@@ -51,6 +52,7 @@ export default function BubbleChart({ year, yearData, corps }) {
             .attr('x2', xScale(0))
             .attr('y2', yScale(100))
             .attr('stroke', 'black')
+            .attr('stroke-width', 3)
 
         // Add matrix Y line
         plot.append('line')
@@ -59,7 +61,7 @@ export default function BubbleChart({ year, yearData, corps }) {
             .attr('x2', xScale(50))
             .attr('y2', yScale(100))
             .attr('stroke', 'black')
-            .attr('opacity', '5%')
+            .attr('opacity', '20%')
 
         // Axis Labels
         // X-axis: "Not growing" and "Growing"
@@ -101,6 +103,16 @@ export default function BubbleChart({ year, yearData, corps }) {
             .style('user-select', 'none')
             .text(year)
 
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0) // Initially hidden
+            .style("position", "absolute")
+            .style("background-color", "white")
+            .style("border", "1px solid #ccc")
+            .style("padding", "8px")
+            .style("border-radius", "4px")
+            .style("pointer-events", "none");
+
         if (!yearData || yearData.length === 0) return
 
         // DATA JOIN
@@ -125,8 +137,28 @@ export default function BubbleChart({ year, yearData, corps }) {
             .attr('cy', d => yScale(d.sustainability))
             .attr('r', d => radiusScale(d.size))
             .attr('fill', d => colourScale(d.name))
-            .attr('stroke', theme.palette.background.paper)
+            .attr('stroke', 'black')
             .attr('stroke-width', 1.5)
+            .on('mouseover', function(event, d) {
+                d3.select(this)
+                    .attr('stroke-width', 3);
+
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+
+                tooltip.html(`<strong>${d.name}</strong><br/>Size: ${d.size}`)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+            .on('mouseout', () => {
+                d3.select(this)
+                    .attr('stroke-width', 1.5);
+
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            });
     }, [yearData, year, corps, theme])
 
     return (
