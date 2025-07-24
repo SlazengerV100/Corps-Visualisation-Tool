@@ -7,7 +7,7 @@ import OverviewPage from './components/OverviewPage.jsx';
 
 const theme = createTheme({
     typography: {
-        fontFamily: '"Fira Sans", sans-serif',
+        fontFamily: '"Fira Sans", sans-serif'
     }
 })
 

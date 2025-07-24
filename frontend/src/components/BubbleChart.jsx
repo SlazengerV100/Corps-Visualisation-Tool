@@ -1,10 +1,9 @@
-import * as React from 'react'
 import { useEffect, useRef } from 'react'
 import { useTheme } from '@mui/material/styles'
 import Box from '@mui/material/Box'
 import * as d3 from 'd3'
 
-export default function BubbleChart({year, yearData}) {
+export default function BubbleChart({ year, yearData, corps }) {
     const svgRef = useRef()
     const theme = useTheme()
 
@@ -15,7 +14,6 @@ export default function BubbleChart({year, yearData}) {
     const xScale = d3.scaleLinear().domain([0, 100]).range([0, width - 2 * margin])
     const yScale = d3.scaleLinear().domain([0, 100]).range([height - 2 * margin, 0])
     const radiusScale = d3.scaleSqrt().domain([0, 50]).range([0, 25])
-    const colourScale = d3.scaleOrdinal(d3.schemeTableau10)
 
     // Draw and update chart
     useEffect(() => {
@@ -106,8 +104,15 @@ export default function BubbleChart({year, yearData}) {
         if (!yearData || yearData.length === 0) return
 
         // DATA JOIN
+        const visibleCorps = corps?.filter(c => c.selected).map(c => c.name) || []
+        const filteredData = yearData.filter(d => visibleCorps.includes(d.name))
+
+        const colourScale = d3.scaleOrdinal()
+            .domain(corps.map(c => c.name))
+            .range(d3.schemeTableau10)
+
         const circles = plot.selectAll('circle')
-            .data(yearData, d => d.name)
+            .data(filteredData, d => d.name)
 
         // EXIT
         circles.exit().remove()
@@ -119,10 +124,10 @@ export default function BubbleChart({year, yearData}) {
             .attr('cx', d => xScale(d.growth))
             .attr('cy', d => yScale(d.sustainability))
             .attr('r', d => radiusScale(d.size))
-            .attr('fill', (d, i) => colourScale(i))
+            .attr('fill', d => colourScale(d.name))
             .attr('stroke', theme.palette.background.paper)
             .attr('stroke-width', 1.5)
-    }, [yearData, year, theme])
+    }, [yearData, year, corps, theme])
 
     return (
         <Box sx={{ overflow: 'auto' }}>
