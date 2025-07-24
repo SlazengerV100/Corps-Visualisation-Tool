@@ -1,4 +1,3 @@
-import * as React from 'react'
 import { useState, useEffect, useRef } from 'react'
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
