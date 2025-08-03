@@ -1,7 +1,7 @@
-import AppBar from './AppBar.jsx'
-import BubbleChart from './BubbleChart.jsx'
-import AnimationPanel from './AnimationPanel.jsx'
-import CheckboxSelectorPanel from './CheckboxSelectorPanel.jsx'
+import AppBar from '../components/common/AppBar.jsx'
+import BubbleChart from '../components/overview/BubbleChart.jsx'
+import AnimationPanel from '../components/overview/AnimationPanel.jsx'
+import CheckboxSelectorPanel from '../components/common/CheckboxSelectorPanel.jsx'
 import Box from '@mui/material/Box'
 import Grid from '@mui/material/Grid'
 import {useEffect, useState} from 'react'
@@ -60,7 +60,6 @@ export default function OverviewPage() {
 
     return (
         <Box>
-            <AppBar />
             <Box sx={{ flexGrow: 1, padding: 4 }}>
                 <Grid container>
                     <Grid size={{ xs: 12, md: 9 }}>
