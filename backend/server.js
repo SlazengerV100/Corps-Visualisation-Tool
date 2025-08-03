@@ -60,6 +60,13 @@ app.get('/api/test/bubbleChart/:year', (req, res) => {
     })
 })
 
+app.get('/api/corps', (req, res) => {
+    const filePath = `${DATA_FOLDER}\\test\\TEST_Corps_${year}.json`
+
+
+    res.json(churchesData);
+});
+
 app.get('/api/corps/:year', (req, res) => {
     const year = req.params.year
     const filePath = `${DATA_FOLDER}\\test\\TEST_Corps_${year}.json`
