@@ -3,7 +3,7 @@ import '@fontsource/fira-sans/400.css';
 import '@fontsource/fira-sans/700.css';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import OverviewPage from './components/OverviewPage.jsx';
+import OverviewPage from './pages/OverviewPage.jsx';
 
 const theme = createTheme({
     typography: {
