@@ -60,7 +60,6 @@ export default function OverviewPage() {
 
     return (
         <Box>
-            <AppBar />
             <Box sx={{ flexGrow: 1, padding: 4 }}>
                 <Grid container>
                     <Grid size={{ xs: 12, md: 9 }}>
