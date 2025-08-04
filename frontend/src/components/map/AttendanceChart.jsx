@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 
-const AttendanceChart = ({ data, width = 460, height = 300 }) => {
+const AttendanceChart = ({ data, height = 300 }) => {
   const svgRef = useRef();
 
   useEffect(() => {
@@ -10,9 +10,14 @@ const AttendanceChart = ({ data, width = 460, height = 300 }) => {
     // Clear any existing chart
     d3.select(svgRef.current).selectAll('*').remove();
 
+    // Create SVG
+    const svg = d3.select(svgRef.current)
+        .attr('width', '100%')
+        .attr('height', height);
+
     // Set margins
     const margin = { top: 20, right: 30, bottom: 30, left: 40 };
-    const innerWidth = width - margin.left - margin.right;
+    const innerWidth = svg.node().getBoundingClientRect().width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
     // Create scales
@@ -30,11 +35,6 @@ const AttendanceChart = ({ data, width = 460, height = 300 }) => {
       .x((d, i) => x(i + 1))
       .y(d => y(d.attendance))
       .curve(d3.curveMonotoneX);
-
-    // Create SVG
-    const svg = d3.select(svgRef.current)
-      .attr('width', width)
-      .attr('height', height);
 
     // Create chart group
     const g = svg.append('g')
@@ -127,7 +127,7 @@ const AttendanceChart = ({ data, width = 460, height = 300 }) => {
     return () => {
       d3.select('body').selectAll('.tooltip').remove();
     };
-  }, [data, width, height]);
+  }, [data, height]);
 
   return <svg ref={svgRef}></svg>;
 };
