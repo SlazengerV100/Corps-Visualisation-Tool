@@ -28,10 +28,10 @@ const TrendIcon = ({ trend }) => {
   }
 };
 
-const ChurchDetails = ({ church }) => {
+const CorpsDetails = ({ corps }) => {
   const [timeRange, setTimeRange] = useState('pastMonth');
 
-  if (!church) {
+  if (!corps) {
     return (
       <Paper sx={{ 
         p: 3, 
@@ -39,7 +39,7 @@ const ChurchDetails = ({ church }) => {
         width: '30vw'
       }}>
         <Typography variant="h6">
-          Select a church on the map to view details
+          Select a corps on the map to view details
         </Typography>
       </Paper>
     );
@@ -66,13 +66,13 @@ const ChurchDetails = ({ church }) => {
       overflowY: 'auto'
     }}>
       <Typography variant="h4" gutterBottom>
-        {church.name}
+        {corps.name}
       </Typography>
       <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-        {church.area}
+        {corps.area}
       </Typography>
       <Typography variant="body1" paragraph>
-        {church.address}
+        {corps.address}
       </Typography>
 
       <Divider sx={{ my: 2 }} />
@@ -97,7 +97,7 @@ const ChurchDetails = ({ church }) => {
 
       <Box sx={{ height: 300, width: '100%' }}>
         <AttendanceChart 
-          data={church.historicalAttendance[timeRange]}
+          data={corps.historicalAttendance[timeRange]}
           width={600}
           height={300}
         />
@@ -111,10 +111,10 @@ const ChurchDetails = ({ church }) => {
             primary={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <span>Weekly Attendance</span>
-                <TrendIcon trend={church.metrics.trends.weeklyAttendance} />
+                <TrendIcon trend={corps.metrics.trends.weeklyAttendance} />
               </Box>
             }
-            secondary={church.metrics.weeklyAttendance}
+            secondary={corps.metrics.weeklyAttendance}
           />
         </ListItem>
         <ListItem>
@@ -122,10 +122,10 @@ const ChurchDetails = ({ church }) => {
             primary={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <span>Tithes and Offerings</span>
-                <TrendIcon trend={church.metrics.trends.tithesAndOfferings} />
+                <TrendIcon trend={corps.metrics.trends.tithesAndOfferings} />
               </Box>
             }
-            secondary={formatCurrency(church.metrics.tithesAndOfferings)}
+            secondary={formatCurrency(corps.metrics.tithesAndOfferings)}
           />
         </ListItem>
         <ListItem>
@@ -133,10 +133,10 @@ const ChurchDetails = ({ church }) => {
             primary={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <span>Staff Members</span>
-                <TrendIcon trend={church.metrics.trends.staffMembers} />
+                <TrendIcon trend={corps.metrics.trends.staffMembers} />
               </Box>
             }
-            secondary={church.metrics.staffMembers}
+            secondary={corps.metrics.staffMembers}
           />
         </ListItem>
         <ListItem>
@@ -144,10 +144,10 @@ const ChurchDetails = ({ church }) => {
             primary={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <span>Volunteers</span>
-                <TrendIcon trend={church.metrics.trends.volunteerCount} />
+                <TrendIcon trend={corps.metrics.trends.volunteerCount} />
               </Box>
             }
-            secondary={church.metrics.volunteerCount}
+            secondary={corps.metrics.volunteerCount}
           />
         </ListItem>
         <ListItem>
@@ -155,10 +155,10 @@ const ChurchDetails = ({ church }) => {
             primary={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <span>Youth Members</span>
-                <TrendIcon trend={church.metrics.trends.youthMembers} />
+                <TrendIcon trend={corps.metrics.trends.youthMembers} />
               </Box>
             }
-            secondary={church.metrics.youthMembers}
+            secondary={corps.metrics.youthMembers}
           />
         </ListItem>
         <ListItem>
@@ -166,10 +166,10 @@ const ChurchDetails = ({ church }) => {
             primary={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <span>Kid's Church Attendance</span>
-                <TrendIcon trend={church.metrics.trends.kidsChurchAttendance} />
+                <TrendIcon trend={corps.metrics.trends.kidsChurchAttendance} />
               </Box>
             }
-            secondary={church.metrics.kidsChurchAttendance}
+            secondary={corps.metrics.kidsChurchAttendance}
           />
         </ListItem>
       </List>
@@ -177,4 +177,4 @@ const ChurchDetails = ({ church }) => {
   );
 };
 
-export default ChurchDetails; 
+export default CorpsDetails;

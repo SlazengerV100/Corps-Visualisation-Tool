@@ -21,14 +21,14 @@ const AttendanceChart = ({ data, width = 460, height = 300 }) => {
       .range([0, innerWidth]);
 
     const y = d3.scaleLinear()
-      .domain([0, d3.max(data)])
+      .domain([0, d3.max(data, d => d.attendance)])
       .nice()
       .range([innerHeight, 0]);
 
     // Create line generator
     const line = d3.line()
       .x((d, i) => x(i + 1))
-      .y(d => y(d))
+      .y(d => y(d.attendance))
       .curve(d3.curveMonotoneX);
 
     // Create SVG
@@ -78,7 +78,7 @@ const AttendanceChart = ({ data, width = 460, height = 300 }) => {
       .append('circle')
       .attr('class', 'dot')
       .attr('cx', (d, i) => x(i + 1))
-      .attr('cy', d => y(d))
+      .attr('cy', d => y(d.attendance))
       .attr('r', 4)
       .attr('fill', '#8884d8');
 
@@ -98,7 +98,7 @@ const AttendanceChart = ({ data, width = 460, height = 300 }) => {
       tooltip.transition()
         .duration(200)
         .style('opacity', .9);
-      tooltip.html(`Attendance: ${d}`)
+      tooltip.html(`Attendance: ${d.attendance}`)
         .style('left', (event.pageX + 10) + 'px')
         .style('top', (event.pageY - 28) + 'px');
     })

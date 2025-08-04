@@ -61,7 +61,7 @@ app.get('/api/test/bubbleChart/:year', (req, res) => {
 })
 
 app.get('/api/corps', (req, res) => {
-    const filePath = `${DATA_FOLDER}\\test\\churchData.json`
+    const filePath = `${DATA_FOLDER}\\test\\TEST_Corps.json`
 
     fs.readFile(filePath, 'utf8', (err, data) => {
         if (err) {
@@ -70,10 +70,7 @@ app.get('/api/corps', (req, res) => {
         }
         try {
             const json = JSON.parse(data)
-
-            // Extract only the name fields
-            const names = json.map(entry => entry.name)
-            res.json(names)
+            res.json(json)
         } catch (parseErr) {
             res.status(500).json({ error: 'Invalid JSON format', details: parseErr.message })
         }
