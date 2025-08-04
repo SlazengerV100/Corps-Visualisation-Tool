@@ -60,6 +60,23 @@ app.get('/api/test/bubbleChart/:year', (req, res) => {
     })
 })
 
+app.get('/api/corps', (req, res) => {
+    const filePath = `${DATA_FOLDER}\\test\\TEST_Corps.json`
+
+    fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) {
+            res.status(404).json({ error: `No data` })
+            return
+        }
+        try {
+            const json = JSON.parse(data)
+            res.json(json)
+        } catch (parseErr) {
+            res.status(500).json({ error: 'Invalid JSON format', details: parseErr.message })
+        }
+    })
+});
+
 app.get('/api/corps/:year', (req, res) => {
     const year = req.params.year
     const filePath = `${DATA_FOLDER}\\test\\TEST_Corps_${year}.json`
