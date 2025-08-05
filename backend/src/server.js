@@ -97,3 +97,40 @@ app.get('/api/test/corps/:year', (req, res) => {
         }
     })
 })
+
+app.get('/api/corps/:corpsId/attendance/byMonth/2024', (req, res) => {
+    const id = parseInt(req.params.corpsId)
+    const filePath = `${DATA_FOLDER}\\Territory_Corps_Indicators_Mths_23_24.csv`
+    const results = []
+    const toMonthNumber = (periodCode) => {
+        if (!/^M\d{4}$/.test(periodCode)) {
+            return -1
+        }
+        const monthPart = periodCode.slice(-2)
+        const month = parseInt(monthPart, 10)
+        if (month < 1 || month > 12) {
+            return -1
+        }
+        return month
+    }
+
+    fs.createReadStream(filePath)
+        .pipe(csv())
+        .on('data', (data) => {
+            if (data.end_year === '2023/24' && data.indicator === '01-Main Worship' && parseInt(data.centre_id) === id) {
+                const period = toMonthNumber(data.period_code)
+                if (!(period < 0)) {
+                    results.push({
+                        month: period,
+                        attendance: parseFloat(data.averages)
+                    })
+                }
+            }
+        })
+        .on('end', () => {
+            res.json(results)
+        })
+        .on('error', (err) => {
+            res.status(500).json({ error: 'Failed to read CSV file', details: err.message })
+        })
+})
