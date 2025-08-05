@@ -34,7 +34,7 @@ export default function OverviewPage() {
     useEffect(() => {
         const fetchCorpsData = async () => {
             try {
-                const response = await fetch(`${serverUrl}/api/corps/${year}`)
+                const response = await fetch(`${serverUrl}/api/test/corps/${year}`)
                 if (!response.ok) {
                     setCorps([])
                     return

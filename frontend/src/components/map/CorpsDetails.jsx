@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -29,7 +29,28 @@ const TrendIcon = ({ trend }) => {
 };
 
 const CorpsDetails = ({ corps }) => {
-  const [timeRange, setTimeRange] = useState('pastMonth');
+  const serverUrl = import.meta.env.VITE_SERVER_URL
+  const [timeRange, setTimeRange] = useState('pastYear');
+  const [attendanceData, setAttendanceData] = useState([])
+
+  useEffect(() => {
+    const fetchAttendanceData = async () => {
+      if (!corps) return
+      try {
+        const response = await fetch(`${serverUrl}/api/corps/${corps.id}/attendance/byMonth/2024`)
+        if (!response.ok) {
+          setAttendanceData([])
+          return
+        }
+        const data = await response.json()
+        setAttendanceData(data)
+      } catch (error) {
+        console.error(`Failed to fetch corps data`)
+        setAttendanceData([])
+      }
+    }
+    fetchAttendanceData()
+  }, [serverUrl, corps])
 
   if (!corps) {
     return (
@@ -57,6 +78,13 @@ const CorpsDetails = ({ corps }) => {
       setTimeRange(newTimeRange);
     }
   };
+
+  const averageWeeklyAttendance = (numbers) => {
+    if (!Array.isArray(numbers)) {
+      throw new Error("Input must be a non-empty array of numbers.")
+    }
+    return numbers.reduce((a, b) => a + b, 0) / numbers.length;
+  }
 
   return (
     <Paper sx={{ 
@@ -97,7 +125,7 @@ const CorpsDetails = ({ corps }) => {
 
       <Box sx={{ height: 300, width: '100%' }}>
         <AttendanceChart 
-          data={corps.historicalAttendance[timeRange]}
+          data={attendanceData}
           width={600}
           height={300}
         />
@@ -111,10 +139,10 @@ const CorpsDetails = ({ corps }) => {
             primary={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <span>Weekly Attendance</span>
-                <TrendIcon trend={corps.metrics.trends.weeklyAttendance} />
+                <TrendIcon trend='up' />
               </Box>
             }
-            secondary={corps.metrics.weeklyAttendance}
+            secondary={averageWeeklyAttendance(attendanceData.map(d => d.attendance))}
           />
         </ListItem>
         <ListItem>

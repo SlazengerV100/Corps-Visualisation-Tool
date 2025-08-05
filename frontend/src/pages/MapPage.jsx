@@ -12,7 +12,7 @@ export default function MapPage() {
     useEffect(() => {
         const fetchCorpsData = async () => {
             try {
-                const response = await fetch(`${serverUrl}/api/corps`)
+                const response = await fetch(`${serverUrl}/api/test/corps`)
                 if (!response.ok) {
                     setCorpsData([])
                     return
