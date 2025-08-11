@@ -56,8 +56,7 @@ const CorpsDetails = ({ corps }) => {
     return (
       <Paper sx={{ 
         p: 3, 
-        height: 'calc(100vh - 16px)', // Adjust for padding
-        width: '30vw'
+        height: '100%'
       }}>
         <Typography variant="h6">
           Select a corps on the map to view details
@@ -87,12 +86,7 @@ const CorpsDetails = ({ corps }) => {
   }
 
   return (
-    <Paper sx={{ 
-      p: 3, 
-      height: 'calc(100vh - 16px)', // Adjust for padding
-      width: '30vw', 
-      overflowY: 'auto'
-    }}>
+    <Box>
       <Typography variant="h4" gutterBottom>
         {corps.name}
       </Typography>
@@ -137,7 +131,7 @@ const CorpsDetails = ({ corps }) => {
         <ListItem>
           <ListItemText
             primary={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ display: 'flex', gap: 1 }}>
                 <span>Weekly Attendance</span>
                 <TrendIcon trend='up' />
               </Box>
@@ -201,7 +195,7 @@ const CorpsDetails = ({ corps }) => {
           />
         </ListItem>
       </List>
-    </Paper>
+    </Box>
   );
 };
 

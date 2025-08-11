@@ -11,7 +11,7 @@ export default function ButtonAppBar() {
 
     return (
         <Box>
-            <AppBar position="static">
+            <AppBar>
                 <Toolbar sx={{ display: 'flex', gap: 2 }}>
                     <img
                         src="https://www.salvationarmy.org.nz/wp-content/uploads/2024/06/cropped-cropped-tsa-redshield-icon-512-32x32.png"
@@ -25,7 +25,7 @@ export default function ButtonAppBar() {
                         Corps Analytics
                     </Typography>
 
-                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', ml: 2 }}>
+                    <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
                         <Button
                             component={Link}
                             to="/"

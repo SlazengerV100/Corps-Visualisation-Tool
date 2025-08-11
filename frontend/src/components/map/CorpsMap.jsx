@@ -11,7 +11,7 @@ const CorpsMap = ({corpsData, onCorpsSelect}) => {
         <MapContainer
             center={nzCenter}
             zoom={6}
-            style={{height: '100vh', width: '100%'}}
+            style={{ height: '100%' }}
         >
             <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
