@@ -25,7 +25,7 @@ function App() {
                 <Router>
                     <AppBar />
                     <Toolbar />
-                    <Box component="main" sx={{ flexGrow: 1 }}>
+                    <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
                         <Routes>
                             <Route path="/" element={<OverviewPage />} />
                             <Route path="/map" element={<MapPage />} />
