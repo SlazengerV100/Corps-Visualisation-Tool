@@ -55,8 +55,7 @@ const CorpsDetails = ({ corps }) => {
   if (!corps) {
     return (
       <Paper sx={{ 
-        p: 3, 
-        height: '100%'
+        p: 3
       }}>
         <Typography variant="h6">
           Select a corps on the map to view details
@@ -86,7 +85,10 @@ const CorpsDetails = ({ corps }) => {
   }
 
   return (
-    <Box>
+    <Paper
+        sx={{
+            p: 3
+        }}>
       <Typography variant="h4" gutterBottom>
         {corps.name}
       </Typography>
@@ -195,7 +197,7 @@ const CorpsDetails = ({ corps }) => {
           />
         </ListItem>
       </List>
-    </Box>
+    </Paper>
   );
 };
 
