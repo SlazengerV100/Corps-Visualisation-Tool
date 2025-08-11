@@ -1,5 +1,5 @@
 import * as React from 'react'
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 import Box from '@mui/material/Box'
 import CorpsMap from "../components/map/CorpsMap.jsx";
 import CorpsDetails from "../components/map/CorpsDetails.jsx";
@@ -28,11 +28,29 @@ export default function MapPage() {
     }, [serverUrl])
 
     return (
-        <Box sx={{ display: 'flex', height: 'calc(100vh - 16px)' }}>
-            <Box sx={{ flex: 1 }}>
-                <CorpsMap corpsData={corpsData} onCorpsSelect={setSelectedCorps} />
+        <Box
+            sx={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                height: '100%'
+            }}
+        >
+            <Box
+                sx={{
+                    flex: 1,
+                    display: 'flex',
+                    overflow: 'hidden',
+                }}
+            >
+                <Box sx={{ flex: 3 }}>
+                    <CorpsMap corpsData={corpsData} onCorpsSelect={setSelectedCorps} />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                    <CorpsDetails corps={selectedCorps} />
+                </Box>
             </Box>
-            <CorpsDetails corps={selectedCorps} />
         </Box>
     )
 }
