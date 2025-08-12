@@ -3,6 +3,7 @@ import dotenv from 'dotenv'
 import cors from 'cors'
 import fs from 'fs'
 import csv from 'csv-parser'
+import path from 'path'
 
 dotenv.config()
 
@@ -75,7 +76,7 @@ app.get('/api/test/corps', (req, res) => {
             res.status(500).json({ error: 'Invalid JSON format', details: parseErr.message })
         }
     })
-});
+})
 
 app.get('/api/test/corps/:year', (req, res) => {
     const year = req.params.year
@@ -133,4 +134,58 @@ app.get('/api/corps/:corpsId/attendance/byMonth/2024', (req, res) => {
         .on('error', (err) => {
             res.status(500).json({ error: 'Failed to read CSV file', details: err.message })
         })
+})
+
+function getCsvFileName(year) {
+    const numericYear = parseInt(year, 10)
+    if (isNaN(numericYear)) {
+        return null
+    }
+
+    const startYear = (numericYear % 2 === 0) ? numericYear - 1 : numericYear
+    const endYear = startYear + 1
+
+    const startYY = String(startYear).slice(-2)
+    const endYY = String(endYear).slice(-2)
+
+    return `Territory_Corps_Indicators_Yr${startYY}_${endYY}.csv`
+}
+
+app.get('/api/corps/growth/:centreId/2024', (req, res) => {
+    const { centreId, year } = req.params
+    const fileName = getCsvFileName(year)
+
+    if (!fileName) {
+        return res.status(400).json({ error: 'Invalid year provided' })
+    }
+
+    const filePath = path.join(DATA_FOLDER, fileName)
+    const results = []
+
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: `Data file for year ${year} not found.` })
+    }
+
+    try {
+        fs.createReadStream(filePath)
+            .pipe(csv())
+            .on('data', (data) => {
+                if (data.centre_id === centreId && data.end_year === '2023/24') {
+                    results.push({
+                        name: data.indicator,
+                        value: parseFloat(data.averages)
+                    })
+                }
+            })
+            .on('end', () => {
+                res.json(results)
+            })
+            .on('error', (err) => {
+                console.error(`Error reading CSV file: ${err.message}`)
+                res.status(500).json({ error: 'Failed to read CSV file', details: err.message })
+            })
+    } catch (err) {
+        console.error(`An unexpected error occurred: ${err.message}`)
+        res.status(500).json({ error: 'An unexpected server error occurred.' })
+    }
 })
