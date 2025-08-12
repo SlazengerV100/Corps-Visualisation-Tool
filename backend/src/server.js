@@ -152,7 +152,8 @@ function getCsvFileName(year) {
 }
 
 app.get('/api/corps/growth/:centreId/2024', (req, res) => {
-    const { centreId, year } = req.params
+    const { centreId } = req.params
+    const year = 2024
     const fileName = getCsvFileName(year)
 
     if (!fileName) {
