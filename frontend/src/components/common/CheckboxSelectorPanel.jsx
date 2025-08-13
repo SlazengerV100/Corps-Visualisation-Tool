@@ -4,13 +4,18 @@ import FormGroup from '@mui/material/FormGroup'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Checkbox from '@mui/material/Checkbox'
 
-export default function CheckboxSelectorPanel({ corps, setCorps }) {
+export default function CheckboxSelectorPanel({ corps, selectedCorps, setSelectedCorps }) {
     const handleToggle = (name) => {
-        setCorps(prevCorps =>
-            prevCorps.map(c =>
-                c.name === name ? { ...c, selected: !c.selected } : c
-            )
-        )
+        setSelectedCorps(prevSelected => {
+            const isCurrentlySelected = prevSelected.includes(name)
+            if (isCurrentlySelected) {
+                // Remove from selected corps
+                return prevSelected.filter(corpsName => corpsName !== name)
+            } else {
+                // Add to selected corps
+                return [...prevSelected, name]
+            }
+        })
     }
 
     return (
@@ -21,7 +26,7 @@ export default function CheckboxSelectorPanel({ corps, setCorps }) {
                         key={c.name}
                         control={
                             <Checkbox
-                                checked={c.selected}
+                                checked={selectedCorps.includes(c.name)}
                                 onChange={() => handleToggle(c.name)}
                             />
                         }
