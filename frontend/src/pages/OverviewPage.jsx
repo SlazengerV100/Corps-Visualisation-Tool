@@ -1,6 +1,4 @@
-import AppBar from '../components/common/AppBar.jsx'
 import BubbleChart from '../components/overview/BubbleChart.jsx'
-import WeightingInputPanel from '../components/overview/WeightingInputPanel.jsx'
 import AnimationPanel from '../components/overview/AnimationPanel.jsx'
 import CheckboxSelectorPanel from '../components/common/CheckboxSelectorPanel.jsx'
 import Box from '@mui/material/Box'
@@ -61,19 +59,64 @@ export default function OverviewPage() {
     }, [serverUrl, year])
 
     return (
-        <Box>
-            <Box sx={{ flexGrow: 1, padding: 4 }}>
-                <Grid container>
-                    <Grid size={{ xs: 12, md: 9 }}>
-                        <BubbleChart year={year} yearData={yearData} corps={corps} selectedCorps={selectedCorps}/>
-                        <Box mt={4}>
-                            <AnimationPanel year={year} setYear={setYear} />
-                        </Box>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 3}}>
-                        <CheckboxSelectorPanel corps={corps} selectedCorps={selectedCorps} setSelectedCorps={setSelectedCorps} />
-                    </Grid>
-                </Grid>
+        <Box sx={{ 
+            height: '100%', 
+            width: '100%', 
+            display: 'flex', 
+            flexDirection: 'row',
+            overflow: 'hidden'
+        }}>
+            {/* Main content area - takes remaining space */}
+            <Box sx={{ 
+                flex: 1, 
+                display: 'flex', 
+                flexDirection: 'column',
+                minWidth: 0 // Allows flex item to shrink below content size
+            }}>
+                {/* BubbleChart - takes most of the available space */}
+                <Box sx={{ 
+                    flex: 1, 
+                    minHeight: 0, // Allows flex item to shrink
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <BubbleChart 
+                        year={year} 
+                        yearData={yearData} 
+                        corps={corps} 
+                        selectedCorps={selectedCorps}
+                    />
+                </Box>
+                
+                {/* AnimationPanel - takes minimum space needed */}
+                <Box sx={{ 
+                    flexShrink: 0, // Prevents shrinking
+                    padding: 2
+                }}>
+                    <AnimationPanel year={year} setYear={setYear} />
+                </Box>
+            </Box>
+            
+            {/* CheckboxSelectorPanel - fixed width, full height, right-aligned */}
+            <Box sx={{ 
+                flexShrink: 0, // Prevents shrinking
+                height: '100%',
+                borderLeft: '1px solid #e0e0e0',
+                backgroundColor: '#fafafa'
+            }}>
+                <Box sx={{ 
+                    height: '100%',
+                    overflow: 'auto',
+                    padding: 2,
+                    minWidth: 'fit-content'
+                }}>
+                    <CheckboxSelectorPanel 
+                        corps={corps} 
+                        selectedCorps={selectedCorps} 
+                        setSelectedCorps={setSelectedCorps} 
+                    />
+                </Box>
             </Box>
         </Box>
     )

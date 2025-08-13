@@ -5,24 +5,54 @@ import * as d3 from 'd3'
 
 export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
     const svgRef = useRef()
+    const containerRef = useRef()
     const theme = useTheme()
     const [bubbleHistory, setBubbleHistory] = useState({}) // Store previous positions for selected corps
     const prevYearRef = useRef(year)
     const prevSelectedCorpsRef = useRef(selectedCorps)
+    const [dimensions, setDimensions] = useState({ width: 900, height: 600 })
 
-    const width = 900
-    const height = 600
-    const margin = width / 8
+    // Calculate responsive dimensions
+    useEffect(() => {
+        const updateDimensions = () => {
+            if (containerRef.current) {
+                const rect = containerRef.current.getBoundingClientRect()
+                const padding = 40 // Minimum padding
+                const width = Math.max(rect.width - padding, 400) // Minimum width
+                const height = Math.max(rect.height - padding, 300) // Minimum height
+                setDimensions({ width, height })
+            }
+        }
 
-    const xScale = d3.scaleLinear().domain([0, 100]).range([0, width - 2 * margin])
-    const yScale = d3.scaleLinear().domain([0, 100]).range([height - 2 * margin, 0])
-    const radiusScale = d3.scaleSqrt().domain([0, 50]).range([0, 25])
+        updateDimensions()
+        window.addEventListener('resize', updateDimensions)
+        return () => window.removeEventListener('resize', updateDimensions)
+    }, [])
+
+    // Calculate dynamic margin based on text width
+    const calculateMargin = () => {
+        // Create a temporary SVG to measure text width
+        const tempSvg = d3.select('body').append('svg').style('visibility', 'hidden')
+        const tempText = tempSvg.append('text').text('Unsustainable')
+        const textWidth = tempText.node().getBBox().width
+        tempSvg.remove()
+        
+        // Add some padding for the text positioning
+        const textPadding = 15
+        const minMargin = 80 // Minimum margin for other elements
+        return Math.max(textWidth + textPadding, minMargin)
+    }
+    
+    const margin = calculateMargin()
+    const xScale = d3.scaleLinear().domain([0, 100]).range([0, dimensions.width - 2 * margin])
+    const yScale = d3.scaleLinear().domain([0, 100]).range([dimensions.height - 2 * margin, 0])
+    const radiusScale = d3.scaleSqrt().domain([0, 50]).range([0, Math.min(dimensions.width, dimensions.height) / 24])
 
     // Draw axes, labels, and matrix lines once
     useEffect(() => {
         const svg = d3.select(svgRef.current)
-            .attr('width', width)
-            .attr('height', height)
+            .attr('width', dimensions.width)
+            .attr('height', dimensions.height)
 
         svg.selectAll('.plot-area').remove()
 
@@ -82,14 +112,14 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
 
         // Y-axis: "Sustainable" and "Unsustainable"
         plot.append('text')
-            .attr('x', xScale(0) - 10)
+            .attr('x', -10) // Position relative to the plot area (not the scaled position)
             .attr('y', yScale(100))
             .attr('text-anchor', 'end')
             .attr('alignment-baseline', 'text-top')
             .text('Sustainable')
 
         plot.append('text')
-            .attr('x', xScale(0) - 10)
+            .attr('x', -10) // Position relative to the plot area (not the scaled position)
             .attr('y', yScale(0))
             .attr('text-anchor', 'end')
             .attr('alignment-baseline', 'text-bottom')
@@ -103,7 +133,7 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
             .attr('text-anchor', 'middle')
             .attr('alignment-baseline', 'middle')
             .attr('fill', 'black')
-            .attr('font-size', '1000%')
+            .attr('font-size', `${dimensions.width * 0.15}px`)
             .attr('opacity', '10%')
             .style('user-select', 'none')
             .text(year)
@@ -122,7 +152,7 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
         // Store tooltip reference
         svgRef.current.tooltip = tooltip
 
-    }, []) // Empty dependency array - only run once
+    }, [dimensions]) // Re-run when dimensions change
 
         // Update year text and handle bubble history on year/yearData changes
     useEffect(() => {
@@ -225,7 +255,7 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
             })
         })
 
-    }, [year, yearData])
+    }, [year, yearData, dimensions])
 
     // Handle selectedCorps changes
     useEffect(() => {
@@ -373,10 +403,19 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
                     .style("opacity", 0)
             })
 
-    }, [corps, yearData, selectedCorps])
+    }, [corps, yearData, selectedCorps, dimensions])
 
     return (
-        <Box sx={{ overflow: 'auto' }}>
+        <Box 
+            ref={containerRef}
+            sx={{ 
+                width: '100%', 
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}
+        >
             <svg ref={svgRef}/>
         </Box>
     )
