@@ -4,6 +4,26 @@ import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import { Link, useLocation } from 'react-router-dom'
+import { styled } from '@mui/material/styles'
+
+// Custom navigation button component using MUI theme
+const NavButton = styled(Button)(({ theme, active }) => ({
+    fontFamily: 'inherit',
+    border: active 
+        ? `1px solid ${theme.palette.common.white}` // Full opacity white border
+        : '1px solid transparent',
+    borderRadius: theme.shape.borderRadius,
+    transition: theme.transitions.create(['border-color', 'background-color'], {
+        duration: theme.transitions.duration.short
+    }),
+    '&:hover': {
+        backgroundColor: theme.palette.action.hover
+    },
+    '&:active': {
+        backgroundColor: theme.palette.action.selected,
+        borderColor: theme.palette.common.white
+    }
+}))
 
 export default function ButtonAppBar() {
     const location = useLocation()
@@ -26,33 +46,33 @@ export default function ButtonAppBar() {
                     </Typography>
 
                     <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
-                        <Button
+                        <NavButton
                             component={Link}
                             to="/"
                             color="inherit"
-                            variant={isActive('/') ? 'outlined' : 'text'}
-                            sx={{ fontFamily: 'inherit' }}
+                            variant="text"
+                            active={isActive('/')}
                         >
                             Overview
-                        </Button>
-                        <Button
+                        </NavButton>
+                        <NavButton
                             component={Link}
                             to="/map"
                             color="inherit"
-                            variant={isActive('/map') ? 'outlined' : 'text'}
-                            sx={{ fontFamily: 'inherit' }}
+                            variant="text"
+                            active={isActive('/map')}
                         >
                             Map
-                        </Button>
-                        <Button
+                        </NavButton>
+                        <NavButton
                             component={Link}
                             to="/demographics"
                             color="inherit"
-                            variant={isActive('/demographics') ? 'outlined' : 'text'}
-                            sx={{ fontFamily: 'inherit' }}
+                            variant="text"
+                            active={isActive('/demographics')}
                         >
                             Demographics
-                        </Button>
+                        </NavButton>
                     </Box>
                 </Toolbar>
             </AppBar>
