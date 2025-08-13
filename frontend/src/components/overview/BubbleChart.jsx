@@ -3,7 +3,7 @@ import { useTheme } from '@mui/material/styles'
 import Box from '@mui/material/Box'
 import * as d3 from 'd3'
 
-export default function BubbleChart({ year, yearData, corps }) {
+export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
     const svgRef = useRef()
     const theme = useTheme()
 
@@ -115,9 +115,9 @@ export default function BubbleChart({ year, yearData, corps }) {
 
         if (!yearData || yearData.length === 0) return
 
-        // DATA JOIN
-        const visibleCorps = corps?.filter(c => c.selected).map(c => c.name) || []
-        const filteredData = yearData.filter(d => visibleCorps.includes(d.name))
+        // DATA JOIN - Show all corps all the time
+        const allCorpsNames = corps?.map(c => c.name) || []
+        const filteredData = yearData.filter(d => allCorpsNames.includes(d.name))
 
         const colourScale = d3.scaleOrdinal()
             .domain(corps.map(c => c.name))
@@ -139,6 +139,14 @@ export default function BubbleChart({ year, yearData, corps }) {
             .attr('fill', d => colourScale(d.name))
             .attr('stroke', 'black')
             .attr('stroke-width', 1.5)
+            .attr('opacity', d => {
+                // If there are selected corps, set opacity to 20% for unselected ones
+                if (selectedCorps && selectedCorps.length > 0) {
+                    return selectedCorps.includes(d.name) ? 1 : 0.2
+                }
+                // If no corps are selected, show all at full opacity
+                return 1
+            })
             .on('mouseover', function(event, d) {
                 d3.select(this)
                     .attr('stroke-width', 3);
@@ -159,7 +167,7 @@ export default function BubbleChart({ year, yearData, corps }) {
                     .duration(500)
                     .style("opacity", 0);
             });
-    }, [yearData, year, corps, theme])
+    }, [yearData, year, corps, selectedCorps, theme])
 
     return (
         <Box sx={{ overflow: 'auto' }}>
