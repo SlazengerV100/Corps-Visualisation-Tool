@@ -124,14 +124,14 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
 
     }, []) // Empty dependency array - only run once
 
-    // Update year text and handle bubble history on year/yearData changes
+        // Update year text and handle bubble history on year/yearData changes
     useEffect(() => {
         if (!yearData || yearData.length === 0) return
 
         const plot = d3.select(svgRef.current).select('.plot-area')
-        
+
         // Update year text
-        plot.select('#year-text').text(year)
+        d3.select(svgRef.current).select('#year-text').text(year)
 
         // Update bubble history for selected corps
         const selectedCorpsData = yearData.filter(d => selectedCorps.includes(d.name))
@@ -173,27 +173,18 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
         setBubbleHistory(newHistory)
         prevYearRef.current = year
 
-    }, [year, yearData])
-
-    // Handle selectedCorps changes - redraw all bubbles
-    useEffect(() => {
-        if (!yearData || yearData.length === 0) return
-
-        const plot = d3.select(svgRef.current).select('.plot-area')
-        const tooltip = svgRef.current.tooltip
-
-        // Clear all existing bubbles and lines
-        plot.selectAll('.bubble').remove()
-        plot.selectAll('.connecting-line').remove()
-        plot.selectAll('.historical-bubble').remove()
-
+        // Draw historical lines and bubbles when year changes
         const colourScale = d3.scaleOrdinal()
             .domain(corps.map(c => c.name))
             .range(d3.schemeTableau10)
 
+        // Clear existing historical elements
+        plot.selectAll('.connecting-line').remove()
+        plot.selectAll('.historical-bubble').remove()
+
         // Draw connecting lines for selected corps
         selectedCorps.forEach(corpName => {
-            const history = bubbleHistory[corpName] || []
+            const history = newHistory[corpName] || []
             if (history.length >= 2) {
                 const sortedHistory = history.sort((a, b) => a.year - b.year)
                 
@@ -203,6 +194,7 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
                     
                     plot.append('line')
                         .attr('class', 'connecting-line')
+                        .attr('data-corp', corpName)
                         .attr('x1', start.x)
                         .attr('y1', start.y)
                         .attr('x2', end.x)
@@ -216,11 +208,12 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
 
         // Draw historical bubbles for selected corps
         selectedCorps.forEach(corpName => {
-            const history = bubbleHistory[corpName] || []
+            const history = newHistory[corpName] || []
             history.forEach((position) => {
                 if (position.year !== year) {
                     plot.append('circle')
                         .attr('class', 'historical-bubble')
+                        .attr('data-corp', corpName)
                         .attr('cx', position.x)
                         .attr('cy', position.y)
                         .attr('r', radiusScale(position.data.size))
@@ -232,16 +225,90 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
             })
         })
 
-        // Handle corps deselection
+    }, [year, yearData])
+
+    // Handle selectedCorps changes
+    useEffect(() => {
+        if (!yearData || yearData.length === 0) return
+
+        const plot = d3.select(svgRef.current).select('.plot-area')
         const previouslySelectedCorps = prevSelectedCorpsRef.current || []
+        
+        // Handle corps deselection - remove historical elements for deselected corps
         const deselectedCorps = previouslySelectedCorps.filter(corp => !selectedCorps.includes(corp))
         if (deselectedCorps.length > 0) {
+            // Remove historical bubbles and lines for deselected corps
+            deselectedCorps.forEach(corpName => {
+                plot.selectAll('.historical-bubble').filter((d, i, nodes) => {
+                    const circle = d3.select(nodes[i])
+                    return circle.attr('data-corp') === corpName
+                }).remove()
+                
+                plot.selectAll('.connecting-line').filter((d, i, nodes) => {
+                    const line = d3.select(nodes[i])
+                    return line.attr('data-corp') === corpName
+                }).remove()
+            })
+
+            // Remove history for deselected corps
             const newHistory = { ...bubbleHistory }
             deselectedCorps.forEach(corpName => {
                 delete newHistory[corpName]
             })
             setBubbleHistory(newHistory)
         }
+
+        // Handle corps selection
+        const newlySelectedCorps = selectedCorps.filter(corp => !previouslySelectedCorps.includes(corp))
+        const hadPreviousSelection = previouslySelectedCorps.length > 0
+
+        if (newlySelectedCorps.length > 0) {
+            // Add current position to history for newly selected corps
+            const newHistory = { ...bubbleHistory }
+            newlySelectedCorps.forEach(corpName => {
+                const corpData = yearData.find(d => d.name === corpName)
+                if (corpData) {
+                    if (!newHistory[corpName]) {
+                        newHistory[corpName] = []
+                    }
+                    
+                    const currentPosition = {
+                        year: year,
+                        x: xScale(corpData.growth),
+                        y: yScale(corpData.sustainability),
+                        data: corpData
+                    }
+
+                    // Check if we already have this year's data
+                    const existingIndex = newHistory[corpName].findIndex(pos => pos.year === year)
+                    if (existingIndex === -1) {
+                        // Add new position
+                        newHistory[corpName].push(currentPosition)
+                    } else {
+                        // Update existing position
+                        newHistory[corpName][existingIndex] = currentPosition
+                    }
+                }
+            })
+            setBubbleHistory(newHistory)
+
+            if (hadPreviousSelection) {
+                // If there were corps selected before, only redraw the new corps bubble with 100% opacity
+                newlySelectedCorps.forEach(corpName => {
+                    const currentBubble = plot.selectAll('.current-bubble').filter((d, i, nodes) => {
+                        const circle = d3.select(nodes[i])
+                        return circle.attr('data-corp') === corpName
+                    })
+                    currentBubble.attr('opacity', 1)
+                })
+            } else {
+                // If there were no corps selected before, redraw all circles with new opacity
+                plot.selectAll('.current-bubble').attr('opacity', d => {
+                    return selectedCorps.includes(d.name) ? 1 : 0.2
+                })
+            }
+        }
+
         prevSelectedCorpsRef.current = selectedCorps
 
     }, [selectedCorps])
@@ -272,6 +339,7 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
             .append('circle')
             .attr('class', 'current-bubble')
             .merge(circles)
+            .attr('data-corp', d => d.name)
             .attr('cx', d => xScale(d.growth))
             .attr('cy', d => yScale(d.sustainability))
             .attr('r', d => radiusScale(d.size))
