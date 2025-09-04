@@ -22,7 +22,8 @@ server.on('error', (error) => {
     console.error('Server error:', error)
 })
 
-app.get('/api/attendance', (req, res) => {
+// Not being used
+app.get('/api/test/attendance', (req, res) => {
     const results = []
 
     fs.createReadStream(`${DATA_FOLDER}\\Territory_Corps_Indicators_Yr23_24.csv`)
@@ -99,94 +100,185 @@ app.get('/api/test/corps/:year', (req, res) => {
     })
 })
 
-app.get('/api/corps/:corpsId/attendance/byMonth/2024', (req, res) => {
-    const id = parseInt(req.params.corpsId)
-    const filePath = `${DATA_FOLDER}\\Territory_Corps_Indicators_Mths_23_24.csv`
-    const results = []
-    const toMonthNumber = (periodCode) => {
-        if (!/^M\d{4}$/.test(periodCode)) {
-            return -1
+// Helper function to get all metric data for a specific corps and year
+function getMetricData(centreId, year) {
+    return new Promise((resolve, reject) => {
+        const numericYear = parseInt(year, 10)
+        if (isNaN(numericYear) || numericYear < 2000) {
+            reject({ status: 400, error: 'Invalid year' })
+            return
         }
-        const monthPart = periodCode.slice(-2)
-        const month = parseInt(monthPart, 10)
-        if (month < 1 || month > 12) {
-            return -1
-        }
-        return month
-    }
 
-    fs.createReadStream(filePath)
-        .pipe(csv())
-        .on('data', (data) => {
-            if (data.end_year === '2023/24' && data.indicator === '01-Main Worship' && parseInt(data.centre_id) === id) {
-                const period = toMonthNumber(data.period_code)
-                if (!(period < 0)) {
-                    results.push({
-                        month: period,
-                        attendance: parseFloat(data.averages)
-                    })
-                }
-            }
-        })
-        .on('end', () => {
+        const expectedEndYear = `${numericYear - 1}/${String(numericYear).slice(-2)}`
+        const fileName = 'Territory_Indicators_Yr2000_2025.csv'
+        const filePath = path.join(DATA_FOLDER, fileName)
+        const results = []
+
+        if (!fs.existsSync(filePath)) {
+            reject({ status: 404, error: `No data file found for year ${numericYear}` })
+            return
+        }
+
+        try {
+            fs.createReadStream(filePath)
+                .pipe(csv())
+                .on('data', (data) => {
+                    if (data.centre_id === centreId && data.end_year === expectedEndYear) {
+                        results.push({
+                            indicator: data.indicator,
+                            value: parseFloat(data.averages)
+                        })
+                    }
+                })
+                .on('end', () => {
+                    if (results.length === 0) {
+                        reject({ status: 404, error: `No metrics available for corps ${centreId} in year ${numericYear}` })
+                        return
+                    }
+                    resolve(results)
+                })
+                .on('error', (err) => {
+                    console.error(`Error reading CSV file: ${err.message}`)
+                    reject({ status: 500, error: 'Failed to read CSV file', details: err.message })
+                })
+        } catch (err) {
+            console.error(`An unexpected error occurred: ${err.message}`)
+            reject({ status: 500, error: 'An unexpected server error occurred.' })
+        }
+    })
+}
+
+app.get('/api/corps/:centreId/growth/:year', (req, res) => {
+    const { centreId, year } = req.params
+    
+    getMetricData(centreId, year)
+        .then(results => {
             res.json(results)
         })
-        .on('error', (err) => {
-            res.status(500).json({ error: 'Failed to read CSV file', details: err.message })
+        .catch(err => {
+            res.status(err.status).json({ error: err.error, details: err.details })
         })
 })
 
-function getCsvFileName(year) {
-    const numericYear = parseInt(year, 10)
-    if (isNaN(numericYear)) {
-        return null
-    }
+// Helper function to get monthly metric data for a specific corps and year
+function getMetricDataByMonth(centreId, year, indicator, metricName) {
+    return new Promise((resolve, reject) => {
+        const numericYear = parseInt(year, 10)
+        if (isNaN(numericYear) || numericYear < 2000) {
+            reject({ status: 400, error: 'Invalid year' })
+            return
+        }
 
-    const startYear = (numericYear % 2 === 0) ? numericYear - 1 : numericYear
-    const endYear = startYear + 1
+        const expectedEndYear = `${numericYear - 1}/${String(numericYear).slice(-2)}`
+        const fileName = 'Territory_Indicators_Mth2000_2025.csv'
+        const filePath = path.join(DATA_FOLDER, fileName)
+        const results = []
+        
+        const toMonthNumber = (periodCode) => {
+            if (!/^M\d{4}$/.test(periodCode)) {
+                return -1
+            }
+            const monthPart = periodCode.slice(-2)
+            const month = parseInt(monthPart, 10)
+            if (month < 1 || month > 12) {
+                return -1
+            }
+            return month
+        }
 
-    const startYY = String(startYear).slice(-2)
-    const endYY = String(endYear).slice(-2)
+        if (!fs.existsSync(filePath)) {
+            reject({ status: 404, error: `No data file found for year ${numericYear}` })
+            return
+        }
 
-    return `Territory_Corps_Indicators_Yr${startYY}_${endYY}.csv`
+        try {
+            fs.createReadStream(filePath)
+                .pipe(csv())
+                .on('data', (data) => {
+                    if (data.end_year === expectedEndYear && data.indicator === indicator && parseInt(data.centre_id) === parseInt(centreId)) {
+                        const period = toMonthNumber(data.period_code)
+                        if (!(period < 0)) {
+                            results.push({
+                                month: period,
+                                attendance: parseFloat(data.averages)
+                            })
+                        }
+                    }
+                })
+                .on('end', () => {
+                    if (results.length === 0) {
+                        reject({ status: 404, error: `${metricName} metric is not available for corps ${centreId} in year ${numericYear}` })
+                        return
+                    }
+                    resolve(results)
+                })
+                .on('error', (err) => {
+                    console.error(`Error reading CSV file: ${err.message}`)
+                    reject({ status: 500, error: 'Failed to read CSV file', details: err.message })
+                })
+        } catch (err) {
+            console.error(`An unexpected error occurred: ${err.message}`)
+            reject({ status: 500, error: 'An unexpected server error occurred.' })
+        }
+    })
 }
 
-app.get('/api/corps/growth/:centreId/2024', (req, res) => {
-    const { centreId } = req.params
-    const year = 2024
-    const fileName = getCsvFileName(year)
+app.get('/api/corps/:centreId/attendance/byMonth/:year', (req, res) => {
+    const { centreId, year } = req.params
+    
+    getMetricDataByMonth(centreId, year, '01-Congregational Worship', 'Attendance')
+        .then(results => {
+            res.json(results)
+        })
+        .catch(err => {
+            res.status(err.status).json({ error: err.error, details: err.details })
+        })
+})
 
-    if (!fileName) {
-        return res.status(400).json({ error: 'Invalid year provided' })
-    }
+app.get('/api/corps/:centreId/firstTimeDecisions/byMonth/:year', (req, res) => {
+    const { centreId, year } = req.params
+    
+    getMetricDataByMonth(centreId, year, '03A-First Time Decisions', 'First Time Decisions')
+        .then(results => {
+            res.json(results)
+        })
+        .catch(err => {
+            res.status(err.status).json({ error: err.error, details: err.details })
+        })
+})
 
-    const filePath = path.join(DATA_FOLDER, fileName)
-    const results = []
+app.get('/api/corps/:centreId/kidsChurch/byMonth/:year', (req, res) => {
+    const { centreId, year } = req.params
+    
+    getMetricDataByMonth(centreId, year, '04-Kids Church', 'Kids Church')
+        .then(results => {
+            res.json(results)
+        })
+        .catch(err => {
+            res.status(err.status).json({ error: err.error, details: err.details })
+        })
+})
 
-    if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ error: `Data file for year ${year} not found.` })
-    }
+app.get('/api/corps/:centreId/youthDiscipleship/byMonth/:year', (req, res) => {
+    const { centreId, year } = req.params
+    
+    getMetricDataByMonth(centreId, year, '05-Youth Discipleship', 'Youth Discipleship')
+        .then(results => {
+            res.json(results)
+        })
+        .catch(err => {
+            res.status(err.status).json({ error: err.error, details: err.details })
+        })
+})
 
-    try {
-        fs.createReadStream(filePath)
-            .pipe(csv())
-            .on('data', (data) => {
-                if (data.centre_id === centreId && data.end_year === '2023/24') {
-                    results.push({
-                        name: data.indicator,
-                        value: parseFloat(data.averages)
-                    })
-                }
-            })
-            .on('end', () => {
-                res.json(results)
-            })
-            .on('error', (err) => {
-                console.error(`Error reading CSV file: ${err.message}`)
-                res.status(500).json({ error: 'Failed to read CSV file', details: err.message })
-            })
-    } catch (err) {
-        console.error(`An unexpected error occurred: ${err.message}`)
-        res.status(500).json({ error: 'An unexpected server error occurred.' })
-    }
+app.get('/api/corps/:centreId/prayerMeetings/byMonth/:year', (req, res) => {
+    const { centreId, year } = req.params
+    
+    getMetricDataByMonth(centreId, year, '06-Prayer Meetings', 'Prayer Meetings')
+        .then(results => {
+            res.json(results)
+        })
+        .catch(err => {
+            res.status(err.status).json({ error: err.error, details: err.details })
+        })
 })
