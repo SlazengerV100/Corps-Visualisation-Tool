@@ -100,8 +100,26 @@ app.get('/api/test/corps/:year', (req, res) => {
     })
 })
 
+function updateCurrentCorps(current, metricName, value) {
+    switch (metricName) {
+        case '01-Congregational Worship':
+            current.metrics.congregationalWorship = value
+            break
+        case '03A-First Time Decisions':
+            current.metrics.firstTimeDecisions = value
+            break
+        case '04-Kids Church':
+            current.metrics.kidsChurch = value
+            break
+        case '05-Youth Discipleship':
+            current.metrics.youthDiscipleship = value
+            break
+    }
+    return current
+}
+
 // Helper function to get all metric data for a specific corps and year
-function getMetricData(centreId, year) {
+function getMetricData(year) {
     return new Promise((resolve, reject) => {
         const numericYear = parseInt(year, 10)
         if (isNaN(numericYear) || numericYear < 2000) {
@@ -119,23 +137,38 @@ function getMetricData(centreId, year) {
             return
         }
 
+        let current = {}
+
         try {
             fs.createReadStream(filePath)
                 .pipe(csv())
                 .on('data', (data) => {
-                    if (data.centre_id === centreId && data.end_year === expectedEndYear) {
-                        results.push({
-                            indicator: data.indicator,
-                            value: parseFloat(data.averages)
-                        })
+                    if (data.end_year === expectedEndYear) {
+                        if (current.id === data.centre_id) {
+                            current = updateCurrentCorps(current, data.indicator, parseFloat(data.averages))
+                        } else {
+                            results.push(current)
+                            current = {
+                                id: data.centre_id,
+                                name: data.centre_name,
+                                metrics: {
+                                    congregationalWorship: null,
+                                    firstTimeDecisions: null,
+                                    kidsChurch: null,
+                                    youthDiscipleship: null
+                                }
+                            }
+                            current = updateCurrentCorps(current, data.indicator, parseFloat(data.averages))
+                        }
                     }
                 })
                 .on('end', () => {
-                    if (results.length === 0) {
-                        reject({ status: 404, error: `No metrics available for corps ${centreId} in year ${numericYear}` })
+                    const newResults = results.slice(1)
+                    if (newResults.length === 0) {
+                        reject({ status: 404, error: `No metrics available for year ${numericYear}` })
                         return
                     }
-                    resolve(results)
+                    resolve(newResults)
                 })
                 .on('error', (err) => {
                     console.error(`Error reading CSV file: ${err.message}`)
@@ -148,11 +181,22 @@ function getMetricData(centreId, year) {
     })
 }
 
-app.get('/api/corps/:centreId/growth/:year', (req, res) => {
-    const { centreId, year } = req.params
+function getBand(congregationalWorship) {
+    if (congregationalWorship <= 50) return 30
+    if (congregationalWorship <= 100) return 40
+    if (congregationalWorship <= 150) return 50
+    if (congregationalWorship <= 200) return 60
     
-    getMetricData(centreId, year)
+    // For values above 200, return 70
+    return 70
+}
+
+app.get('/api/corps/growth/:year', (req, res) => {
+    const year = req.params.year
+    
+    getMetricData(year)
         .then(results => {
+            
             res.json(results)
         })
         .catch(err => {
