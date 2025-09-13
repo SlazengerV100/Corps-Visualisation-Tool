@@ -270,15 +270,3 @@ app.get('/api/corps/:centreId/youthDiscipleship/byMonth/:year', (req, res) => {
             res.status(err.status).json({ error: err.error, details: err.details })
         })
 })
-
-app.get('/api/corps/:centreId/prayerMeetings/byMonth/:year', (req, res) => {
-    const { centreId, year } = req.params
-    
-    getMetricDataByMonth(centreId, year, '06-Prayer Meetings', 'Prayer Meetings')
-        .then(results => {
-            res.json(results)
-        })
-        .catch(err => {
-            res.status(err.status).json({ error: err.error, details: err.details })
-        })
-})
