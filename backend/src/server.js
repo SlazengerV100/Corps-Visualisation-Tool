@@ -581,8 +581,15 @@ function getMetricDataByMonth(centreId, year, indicator, metricName) {
                     if (data.end_year === expectedEndYear && data.indicator === indicator && parseInt(data.centre_code) === parseInt(centreId)) {
                         const period = toMonthNumber(data.period_code)
                         if (!(period < 0)) {
+                            // Calculate the actual year based on financial year logic
+                            // For financial year 2025 (July 2024 - June 2025):
+                            // Months 7-12 are in the previous calendar year
+                            // Months 1-6 are in the current calendar year
+                            const actualYear = period >= 7 ? numericYear - 1 : numericYear
+                            
                             results.push({
                                 month: period,
+                                year: actualYear,
                                 attendance: parseFloat(data.averages)
                             })
                         }

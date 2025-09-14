@@ -20,6 +20,9 @@ const AttendanceChart = ({ data, height = 300 }) => {
     const innerWidth = svg.node().getBoundingClientRect().width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
+    // Determine if data is monthly or yearly based on data structure
+    const isMonthlyData = data.some(d => d.month !== undefined);
+    
     // Create scales
     const x = d3.scaleLinear()
       .domain([1, data.length])
@@ -29,6 +32,19 @@ const AttendanceChart = ({ data, height = 300 }) => {
       .domain([0, d3.max(data, d => d.attendance)])
       .nice()
       .range([innerHeight, 0]);
+
+    // Create x-axis labels based on data type
+    const xAxisLabels = data.map((d, i) => {
+      if (isMonthlyData) {
+        // For monthly data, show just month names
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return monthNames[d.month - 1] || `M${d.month}`;
+      } else {
+        // For yearly data, show financial year
+        return d.financialYear || d.year?.toString() || `Y${i + 1}`;
+      }
+    });
 
     // Create line generator
     const line = d3.line()
@@ -49,12 +65,16 @@ const AttendanceChart = ({ data, height = 300 }) => {
         .tickFormat('')
       );
 
-    // Add x-axis
-    g.append('g')
+    // Add x-axis with custom labels
+    const xAxis = g.append('g')
       .attr('transform', `translate(0,${innerHeight})`)
       .call(d3.axisBottom(x)
         .ticks(Math.min(data.length, 10))
-        .tickSize(0))
+        .tickSize(0)
+        .tickFormat((d, i) => {
+          const index = Math.round(d) - 1;
+          return xAxisLabels[index] || '';
+        }))
       .call(g => g.select('.domain').attr('stroke-opacity', 0.2));
 
     // Add y-axis
@@ -98,7 +118,17 @@ const AttendanceChart = ({ data, height = 300 }) => {
       tooltip.transition()
         .duration(200)
         .style('opacity', .9);
-      tooltip.html(`Attendance: ${d.attendance}`)
+      
+      let tooltipText = `Attendance: ${d.attendance}`;
+      if (isMonthlyData) {
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        tooltipText = `${monthNames[d.month - 1]} ${d.year}: ${d.attendance}`;
+      } else {
+        tooltipText = `FY ${d.financialYear}: ${d.attendance}`;
+      }
+      
+      tooltip.html(tooltipText)
         .style('left', (event.pageX + 10) + 'px')
         .style('top', (event.pageY - 28) + 'px');
     })
