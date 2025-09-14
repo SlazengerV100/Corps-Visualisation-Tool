@@ -119,7 +119,7 @@ function updateCurrentCorps(metrics, metricName, value, yearType) {
 }
 
 // Helper function to get all metric data for a specific corps and year
-function getMetricData(year) {
+function getGrowthData(year) {
     return new Promise((resolve, reject) => {
         const numericYear = parseInt(year, 10)
         if (isNaN(numericYear) || numericYear < 2000) {
@@ -200,6 +200,69 @@ function getMetricData(year) {
     })
 }
 
+// Helper function to get surplus/deficit data for a specific year
+function getSurplusDeficitData(year) {
+    return new Promise((resolve, reject) => {
+        const numericYear = parseInt(year, 10)
+        if (isNaN(numericYear) || numericYear < 2000) {
+            reject({ status: 400, error: 'Invalid year' })
+            return
+        }
+
+        // Convert year to the format used in CSV (e.g., 2025 -> 25GLA)
+        const yearColumn = `${String(numericYear).slice(-2)}GLA`
+        const fileName = 'Surplus-Deficit Summary.csv'
+        const filePath = path.join(DATA_FOLDER, fileName)
+        const results = []
+
+        if (!fs.existsSync(filePath)) {
+            reject({ status: 404, error: `No surplus/deficit data file found for year ${numericYear}` })
+            return
+        }
+
+        try {
+            fs.createReadStream(filePath)
+                .pipe(csv())
+                .on('data', (data) => {
+                    // Check if the year column exists and has data
+                    if (data[yearColumn] !== undefined && data[yearColumn] !== '') {
+                        results.push({
+                            location: data["﻿Location"],
+                            locationDescription: data['Location Description'],
+                            surplusDeficit: parseFloat(data[yearColumn]) || 0
+                        })
+                    }
+                })
+                .on('end', () => {
+                    if (results.length === 0) {
+                        reject({ status: 404, error: `No surplus/deficit data available for year ${numericYear}` })
+                        return
+                    }
+                    resolve(results)
+                })
+                .on('error', (err) => {
+                    console.error(`Error reading CSV file: ${err.message}`)
+                    reject({ status: 500, error: 'Failed to read CSV file', details: err.message })
+                })
+        } catch (err) {
+            console.error(`An unexpected error occurred: ${err.message}`)
+            reject({ status: 500, error: 'An unexpected server error occurred.' })
+        }
+    })
+}
+
+app.get('/api/corps/sustainability/:year', (req, res) => {
+    const year = req.params.year
+    
+    getSurplusDeficitData(year)
+        .then(results => {
+            res.json(results)
+        })
+        .catch(err => {
+            res.status(err.status).json({ error: err.error, details: err.details })
+        })
+})
+
 const maxBand = 70, minBand = 30, maxCongregation = 200, benchmark = 0.1, minCongregation = 25, maxPointsChange = 15
 
 function getBand(congregationalWorship) {
@@ -238,7 +301,7 @@ function calculateGrowth(metrics) {
 app.get('/api/corps/growth/:year', (req, res) => {
     const year = req.params.year
     
-    getMetricData(year)
+    getGrowthData(year)
         .then(results => {
             res.json(results.map(r => {
                 return {
@@ -248,6 +311,18 @@ app.get('/api/corps/growth/:year', (req, res) => {
                     size: r.metrics.congregationalWorship.currentYear
                 }
             }))
+        })
+        .catch(err => {
+            res.status(err.status).json({ error: err.error, details: err.details })
+        })
+})
+
+app.get('/api/surplus-deficit/:year', (req, res) => {
+    const year = req.params.year
+    
+    getSurplusDeficitData(year)
+        .then(results => {
+            res.json(results)
         })
         .catch(err => {
             res.status(err.status).json({ error: err.error, details: err.details })
