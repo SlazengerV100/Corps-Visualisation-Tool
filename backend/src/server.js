@@ -244,7 +244,8 @@ app.get('/api/corps/growth/:year', (req, res) => {
                 return {
                     id: r.id,
                     name: r.name,
-                    growth: calculateGrowth(r.metrics)
+                    growth: calculateGrowth(r.metrics),
+                    size: r.metrics.congregationalWorship.currentYear
                 }
             }))
         })

@@ -15,13 +15,17 @@ export default function OverviewPage() {
     useEffect(() => {
         const fetchYearData = async () => {
             try {
-                const response = await fetch(`${serverUrl}/api/test/bubbleChart/${year}`)
+                const response = await fetch(`${serverUrl}/api/corps/growth/${year}`)
                 if (!response.ok) {
                     setYearData(null)
                     return
                 }
                 const data = await response.json()
-                setYearData(data)
+                const dataWithSustainability = data.map(corp => ({
+                    ...corp,
+                    sustainability: 50 // Placeholder value until sustainability API is implemented
+                }))
+                setYearData(dataWithSustainability)
             } catch (error) {
                 console.error(`Failed to fetch data for ${year}`)
                 setYearData(null)
@@ -34,16 +38,16 @@ export default function OverviewPage() {
     useEffect(() => {
         const fetchCorpsData = async () => {
             try {
-                const response = await fetch(`${serverUrl}/api/test/corps/${year}`)
+                const response = await fetch(`${serverUrl}/api/corps/growth/${year}`)
                 if (!response.ok) {
                     setCorps([])
                     return
                 }
                 const data = await response.json()
-                const updated = data.map(name => {
-                    const existing = corps.find(c => c.name === name)
+                const updated = data.map(corp => {
+                    const existing = corps.find(c => c.name === corp.name)
                     return {
-                        name,
+                        name: corp.name,
                         selected: existing ? existing.selected : false
                     }
                 })
@@ -51,7 +55,7 @@ export default function OverviewPage() {
                 setCorps(updated)
             } catch (error) {
                 console.error(`Failed to fetch corps data for ${year}`)
-                setYearData(null)
+                setCorps([])
             }
         }
 

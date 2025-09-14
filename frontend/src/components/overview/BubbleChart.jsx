@@ -46,7 +46,7 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
     const margin = calculateMargin()
     const xScale = d3.scaleLinear().domain([0, 100]).range([0, dimensions.width - 2 * margin])
     const yScale = d3.scaleLinear().domain([0, 100]).range([dimensions.height - 2 * margin, 0])
-    const radiusScale = d3.scaleSqrt().domain([0, 50]).range([0, Math.min(dimensions.width, dimensions.height) / 24])
+    const radiusScale = d3.scaleLinear().domain([0, 250]).range([0, Math.min(dimensions.width, dimensions.height) / 16])
 
     // Draw axes, labels, and matrix lines once
     useEffect(() => {
@@ -390,7 +390,7 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
                     .duration(200)
                     .style("opacity", .9)
 
-                tooltip.html(`<strong>${d.name}</strong><br/>Size: ${d.size}`)
+                tooltip.html(`<strong>${d.name}</strong><br/>Size: ${d.size}<br/>Growth: ${d.growth}<br/>Sustainability: ${d.sustainability}`)
                     .style("left", (event.pageX + 10) + "px")
                     .style("top", (event.pageY - 28) + "px")
             })
