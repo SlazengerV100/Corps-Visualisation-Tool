@@ -274,24 +274,47 @@ function getTithingData(year) {
                 .pipe(csv())
                 .on('data', (data) => {
                     const mPeriod = data.M_period
-                    const yearSuffix = String(numericYear).slice(-2)
+                    const currentYearSuffix = String(numericYear).slice(-2)
+                    const prevYearSuffix = String(numericYear - 1).slice(-2)
 
-                    if (mPeriod.startsWith(`M${yearSuffix}`)) {
-                        const code = data.code
-                        const name = data.name
-                        const location = data["﻿location"]
-                        const value = parseFloat(data.mth_value) || 0
-                        
+                    const code = data.code
+                    const name = data.name
+                    const location = data["﻿location"]
+                    const value = parseFloat(data.mth_value) || 0
+
+                    // Check if this is current year data
+                    if (mPeriod.startsWith(`M${currentYearSuffix}`)) {
                         if (results.has(code)) {
-                            // Add to existing total
-                            results.get(code).tithing += value
+                            // Add to existing current year total
+                            results.get(code).tithing.currentYear += value
                         } else {
-                            // Create new entry
+                            // Create new entry with current year data
                             results.set(code, {
                                 id: code,
                                 name: name,
                                 location: location,
-                                tithing: value
+                                tithing: {
+                                    currentYear: value,
+                                    prevYear: 0
+                                }
+                            })
+                        }
+                    }
+                    // Check if this is previous year data
+                    else if (mPeriod.startsWith(`M${prevYearSuffix}`)) {
+                        if (results.has(code)) {
+                            // Add to existing previous year total
+                            results.get(code).tithing.prevYear += value
+                        } else {
+                            // Create new entry with previous year data
+                            results.set(code, {
+                                id: code,
+                                name: name,
+                                location: location,
+                                tithing: {
+                                    currentYear: 0,
+                                    prevYear: value
+                                }
                             })
                         }
                     }
@@ -345,8 +368,10 @@ function getSustainabilityData(year) {
                         id: tithingItem.id,
                         location: tithingItem.location,
                         name: tithingItem.name,
-                        tithing: tithingItem.tithing,
-                        surplusDeficit: surplusDeficit
+                        metrics: {
+                            tithing: tithingItem.tithing,
+                            surplusDeficit: surplusDeficit
+                        }
                     })
                 }
             })
@@ -377,13 +402,21 @@ app.get('/api/corps/sustainability/:year', (req, res) => {
         })
 })
 
-const maxBand = 70, minBand = 30, maxCongregation = 200, benchmark = 0.1, minCongregation = 25, maxPointsChange = 15
+const maxBand = 70, minBand = 30, minCongregation = 25, maxCongregation = 200, benchmark = 0.1, maxPointsChange = 15, minTithingPerPerson = 500, maxTithingPerPerson = 2000
 
-function getBand(congregationalWorship) {
+function getGrowthBand(congregationalWorship) {
     const difference = maxBand - minBand
     if (congregationalWorship <= minCongregation) return minBand
     if (congregationalWorship > maxCongregation) return maxBand
     const value = (congregationalWorship - minCongregation) / (maxCongregation - minCongregation)
+    return minBand + difference * value
+}
+
+function getSustainabilityBand(tithingPerPerson) {
+    const difference = maxBand - minBand
+    if (tithingPerPerson <= minTithingPerPerson) return minBand
+    if (tithingPerPerson > maxTithingPerPerson) return maxBand
+    const value = (tithingPerPerson - minTithingPerPerson) / (maxTithingPerPerson - minTithingPerPerson)
     return minBand + difference * value
 }
 
@@ -396,12 +429,21 @@ function calculateNominalChange(prevYear, currentYear) {
     return value
 }
 
+function calculateNominalSustainability(prevYear, currentYear) {
+    const nominalChange = currentYear - prevYear
+    const maxSize = maxCongregation * maxTithingPerPerson * benchmark
+    const value = nominalChange / maxSize * maxPointsChange
+    if (value > maxPointsChange) return maxPointsChange
+    if (value < -maxPointsChange) return -maxPointsChange 
+    return value
+}
+
 function calculatePercentageChange(prevYear, currentYear) {
     return (currentYear - prevYear) / prevYear
 }
 
 function calculateGrowth(metrics) {
-    let growth = getBand(metrics.congregationalWorship.currentYear)
+    let growth = getGrowthBand(metrics.congregationalWorship.currentYear)
     growth += calculateNominalChange(metrics.congregationalWorship.prevYear, metrics.congregationalWorship.currentYear)
     const percentage = calculatePercentageChange(metrics.congregationalWorship.prevYear, metrics.congregationalWorship.currentYear)
     if (percentage >= benchmark) {
@@ -410,6 +452,13 @@ function calculateGrowth(metrics) {
         growth = growth * (1 + percentage)
     }
     return Math.round(growth)
+}
+
+function calculateSustainability(metrics, size) {
+    const tithingPerPersonCurrentYear = metrics.tithing.currentYear / size
+    let sustainability = getSustainabilityBand(tithingPerPersonCurrentYear)
+    sustainability += calculateNominalSustainability(metrics.tithing.prevYear, metrics.tithing.currentYear)
+    return sustainability
 }
 
 app.get('/api/corps/growth/:year', (req, res) => {
@@ -429,6 +478,49 @@ app.get('/api/corps/growth/:year', (req, res) => {
         .catch(err => {
             res.status(err.status).json({ error: err.error, details: err.details })
         })
+})
+
+app.get('/api/corps/bubbleChart/:year', (req, res) => {
+    const year = req.params.year
+    
+    // Get both growth and sustainability data in parallel
+    Promise.all([
+        getGrowthData(year),
+        getSustainabilityData(year)
+    ])
+    .then(([growthData, sustainabilityData]) => {
+        // Create a map of sustainability data by id for efficient lookup
+        const sustainabilityMap = new Map()
+        sustainabilityData.forEach(item => {
+            sustainabilityMap.set(item.id, item)
+        })
+
+        // Combine the data by matching on id
+        const combinedResults = []
+        growthData.forEach(growthItem => {
+            const sustainabilityItem = sustainabilityMap.get(growthItem.id)
+            if (sustainabilityItem !== undefined) {
+                const size = growthItem.metrics.congregationalWorship.currentYear
+                combinedResults.push({
+                    id: growthItem.id,
+                    name: growthItem.name,
+                    growth: calculateGrowth(growthItem.metrics),
+                    sustainability: calculateSustainability(sustainabilityItem.metrics, size),
+                    size: size
+                })
+            }
+        })
+
+        if (combinedResults.length === 0) {
+            res.status(404).json({ error: `No combined data available for year ${year}` })
+            return
+        }
+
+        res.json(combinedResults)
+    })
+    .catch(err => {
+        res.status(err.status).json({ error: err.error, details: err.details })
+    })
 })
 
 // Helper function to get monthly metric data for a specific corps and year
