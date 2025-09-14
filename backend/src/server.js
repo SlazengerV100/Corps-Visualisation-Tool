@@ -144,7 +144,7 @@ function getGrowthData(year) {
             fs.createReadStream(filePath)
                 .pipe(csv())
                 .on('data', (data) => {
-                    if (current.id === data.centre_id) {
+                    if (current.id === data.centre_code) {
                         if (data.end_year === prevEndYear) {
                             current.metrics = updateCurrentCorps(current.metrics, data.indicator, parseFloat(data.averages), 'prevYear')
                         } else if (data.end_year === expectedEndYear) {
@@ -153,7 +153,7 @@ function getGrowthData(year) {
                     } else {
                         results.push(current)
                         current = {
-                            id: data.centre_id,
+                            id: data.centre_code,
                             name: data.centre_name,
                             metrics: {
                                 congregationalWorship: {
@@ -315,22 +315,60 @@ function getTithingData(year) {
     })
 }
 
+// Helper function to get combined tithing and surplus/deficit data for a specific year
+function getSustainabilityData(year) {
+    return new Promise((resolve, reject) => {
+        const numericYear = parseInt(year, 10)
+        if (isNaN(numericYear) || numericYear < 2000) {
+            reject({ status: 400, error: 'Invalid year' })
+            return
+        }
+
+        // Get both datasets in parallel
+        Promise.all([
+            getTithingData(year),
+            getSurplusDeficitData(year)
+        ])
+        .then(([tithingData, surplusDeficitData]) => {
+            // Create a map of surplus/deficit data by location for efficient lookup
+            const surplusDeficitMap = new Map()
+            surplusDeficitData.forEach(item => {
+                surplusDeficitMap.set(item.location, item.surplusDeficit)
+            })
+
+            // Combine the data by matching on location
+            const combinedResults = []
+            tithingData.forEach(tithingItem => {
+                const surplusDeficit = surplusDeficitMap.get(tithingItem.location)
+                if (surplusDeficit !== undefined) {
+                    combinedResults.push({
+                        id: tithingItem.id,
+                        location: tithingItem.location,
+                        name: tithingItem.name,
+                        tithing: tithingItem.tithing,
+                        surplusDeficit: surplusDeficit
+                    })
+                }
+            })
+
+            if (combinedResults.length === 0) {
+                reject({ status: 404, error: `No combined data available for year ${numericYear}` })
+                return
+            }
+
+            resolve(combinedResults)
+        })
+        .catch(err => {
+            // If either promise rejects, pass the error along
+            reject(err)
+        })
+    })
+}
+
 app.get('/api/corps/sustainability/:year', (req, res) => {
     const year = req.params.year
     
-    getSurplusDeficitData(year)
-        .then(results => {
-            res.json(results)
-        })
-        .catch(err => {
-            res.status(err.status).json({ error: err.error, details: err.details })
-        })
-})
-
-app.get('/api/corps/tithing/:year', (req, res) => {
-    const year = req.params.year
-    
-    getTithingData(year)
+    getSustainabilityData(year)
         .then(results => {
             res.json(results)
         })
@@ -393,18 +431,6 @@ app.get('/api/corps/growth/:year', (req, res) => {
         })
 })
 
-app.get('/api/surplus-deficit/:year', (req, res) => {
-    const year = req.params.year
-    
-    getSurplusDeficitData(year)
-        .then(results => {
-            res.json(results)
-        })
-        .catch(err => {
-            res.status(err.status).json({ error: err.error, details: err.details })
-        })
-})
-
 // Helper function to get monthly metric data for a specific corps and year
 function getMetricDataByMonth(centreId, year, indicator, metricName) {
     return new Promise((resolve, reject) => {
@@ -440,7 +466,7 @@ function getMetricDataByMonth(centreId, year, indicator, metricName) {
             fs.createReadStream(filePath)
                 .pipe(csv())
                 .on('data', (data) => {
-                    if (data.end_year === expectedEndYear && data.indicator === indicator && parseInt(data.centre_id) === parseInt(centreId)) {
+                    if (data.end_year === expectedEndYear && data.indicator === indicator && parseInt(data.centre_code) === parseInt(centreId)) {
                         const period = toMonthNumber(data.period_code)
                         if (!(period < 0)) {
                             results.push({
