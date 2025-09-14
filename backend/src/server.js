@@ -71,19 +71,27 @@ app.get('/api/corps/map', (req, res) => {
         fs.createReadStream(filePath)
             .pipe(csv())
             .on('data', (data) => {
-                results.push({
-                    id: data.code,
-                    name: data.name,
-                    area: data.division_name,
-                    address: data.address1,
-                    city: data.city,
-                    latitude: parseFloat(data.latitude) || null,
-                    longitude: parseFloat(data.longitude) || null
-                })
+                const lat = parseFloat(data.latitude)
+                const lng = parseFloat(data.longitude)
+                
+                // Only include corps with valid coordinates
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    results.push({
+                        id: data.code,
+                        name: data.name,
+                        area: data.division_name,
+                        address: data.address1,
+                        city: data.city,
+                        lat: lat,
+                        lng: lng
+                    })
+                } else {
+                    console.warn(`Invalid coordinates for corps ${data.name} (${data.code}): lat=${data.latitude}, lng=${data.longitude}`)
+                }
             })
             .on('end', () => {
                 if (results.length === 0) {
-                    res.status(404).json({ error: 'No New Zealand corps found in the data' })
+                    res.status(404).json({ error: 'No corps with valid coordinates found in the data' })
                     return
                 }
                 res.json(results)

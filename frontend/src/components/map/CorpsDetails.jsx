@@ -4,29 +4,10 @@ import {
   Typography,
   Paper,
   Divider,
-  List,
-  ListItem,
-  ListItemText,
   ToggleButtonGroup,
   ToggleButton,
 } from '@mui/material';
-import {
-  TrendingUp,
-  TrendingDown,
-  TrendingFlat,
-} from '@mui/icons-material';
 import AttendanceChart from './AttendanceChart.jsx';
-
-const TrendIcon = ({ trend }) => {
-  switch (trend) {
-    case 'up':
-      return <TrendingUp color="success" />;
-    case 'down':
-      return <TrendingDown color="error" />;
-    default:
-      return <TrendingFlat color="info" />;
-  }
-};
 
 const CorpsDetails = ({ corps }) => {
   const serverUrl = import.meta.env.VITE_SERVER_URL
@@ -64,25 +45,11 @@ const CorpsDetails = ({ corps }) => {
     );
   }
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-NZ', {
-      style: 'currency',
-      currency: 'NZD',
-    }).format(amount);
-  };
-
   const handleTimeRangeChange = (event, newTimeRange) => {
     if (newTimeRange !== null) {
       setTimeRange(newTimeRange);
     }
   };
-
-  const averageWeeklyAttendance = (numbers) => {
-    if (!Array.isArray(numbers)) {
-      throw new Error("Input must be a non-empty array of numbers.")
-    }
-    return numbers.reduce((a, b) => a + b, 0) / numbers.length;
-  }
 
   return (
     <Paper
@@ -97,6 +64,9 @@ const CorpsDetails = ({ corps }) => {
       </Typography>
       <Typography variant="body1" paragraph>
         {corps.address}
+      </Typography>
+      <Typography variant="body1" paragraph>
+        {corps.city}
       </Typography>
 
       <Divider sx={{ my: 2 }} />
@@ -126,77 +96,6 @@ const CorpsDetails = ({ corps }) => {
           height={300}
         />
       </Box>
-
-      <Divider sx={{ my: 2 }} />
-
-      <List>
-        <ListItem>
-          <ListItemText
-            primary={
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <span>Weekly Attendance</span>
-                <TrendIcon trend='up' />
-              </Box>
-            }
-            secondary={averageWeeklyAttendance(attendanceData.map(d => d.attendance))}
-          />
-        </ListItem>
-        <ListItem>
-          <ListItemText
-            primary={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span>Tithes and Offerings</span>
-                <TrendIcon trend={corps.metrics.trends.tithesAndOfferings} />
-              </Box>
-            }
-            secondary={formatCurrency(corps.metrics.tithesAndOfferings)}
-          />
-        </ListItem>
-        <ListItem>
-          <ListItemText
-            primary={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span>Staff Members</span>
-                <TrendIcon trend={corps.metrics.trends.staffMembers} />
-              </Box>
-            }
-            secondary={corps.metrics.staffMembers}
-          />
-        </ListItem>
-        <ListItem>
-          <ListItemText
-            primary={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span>Volunteers</span>
-                <TrendIcon trend={corps.metrics.trends.volunteerCount} />
-              </Box>
-            }
-            secondary={corps.metrics.volunteerCount}
-          />
-        </ListItem>
-        <ListItem>
-          <ListItemText
-            primary={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span>Youth Members</span>
-                <TrendIcon trend={corps.metrics.trends.youthMembers} />
-              </Box>
-            }
-            secondary={corps.metrics.youthMembers}
-          />
-        </ListItem>
-        <ListItem>
-          <ListItemText
-            primary={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span>Kid's Church Attendance</span>
-                <TrendIcon trend={corps.metrics.trends.kidsChurchAttendance} />
-              </Box>
-            }
-            secondary={corps.metrics.kidsChurchAttendance}
-          />
-        </ListItem>
-      </List>
     </Paper>
   );
 };

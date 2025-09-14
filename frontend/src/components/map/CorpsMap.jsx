@@ -20,7 +20,7 @@ const CorpsMap = ({corpsData, onCorpsSelect}) => {
             {corpsData.map((corps) => (
                 <Marker
                     key={corps.id}
-                    position={[corps.location.lat, corps.location.lng]}
+                    position={[corps.lat, corps.lng]}
                     eventHandlers={{
                         click: () => onCorpsSelect(corps),
                     }}
@@ -30,6 +30,7 @@ const CorpsMap = ({corpsData, onCorpsSelect}) => {
                             <h3>{corps.name}</h3>
                             <p>{corps.area}</p>
                             <p>{corps.address}</p>
+                            <p>{corps.city}</p>
                         </div>
                     </Popup>
                 </Marker>
