@@ -2,7 +2,6 @@ import BubbleChart from '../components/overview/BubbleChart.jsx'
 import AnimationPanel from '../components/overview/AnimationPanel.jsx'
 import CheckboxSelectorPanel from '../components/common/CheckboxSelectorPanel.jsx'
 import Box from '@mui/material/Box'
-import Grid from '@mui/material/Grid'
 import {useEffect, useState} from 'react'
 
 export default function OverviewPage() {
@@ -15,17 +14,13 @@ export default function OverviewPage() {
     useEffect(() => {
         const fetchYearData = async () => {
             try {
-                const response = await fetch(`${serverUrl}/api/corps/growth/${year}`)
+                const response = await fetch(`${serverUrl}/api/corps/bubbleChart/${year}`)
                 if (!response.ok) {
                     setYearData(null)
                     return
                 }
                 const data = await response.json()
-                const dataWithSustainability = data.map(corp => ({
-                    ...corp,
-                    sustainability: 50 // Placeholder value until sustainability API is implemented
-                }))
-                setYearData(dataWithSustainability)
+                setYearData(data)
             } catch (error) {
                 console.error(`Failed to fetch data for ${year}`)
                 setYearData(null)
@@ -60,7 +55,7 @@ export default function OverviewPage() {
         }
 
         fetchCorpsData()
-    }, [serverUrl, year])
+    }, [serverUrl])
 
     return (
         <Box sx={{ 

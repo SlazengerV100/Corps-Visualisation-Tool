@@ -32,7 +32,7 @@ const Slider = styled(MUISlider)(({ theme }) => ({
 }))
 
 export default function AnimationPanel({year, setYear}) {
-    const MIN_YEAR = 2000
+    const MIN_YEAR = 2010
     const MAX_YEAR = 2025
     const animationSpeed = 1000 // ms
 
