@@ -9,7 +9,6 @@ import Toolbar from '@mui/material/Toolbar'
 import AppBar from './components/common/AppBar.jsx'
 import OverviewPage from './pages/OverviewPage.jsx'
 import MapPage from './pages/MapPage.jsx'
-import DemographicsPage from './pages/DemographicsPage.jsx'
 
 const theme = createTheme({
     typography: {
@@ -29,7 +28,6 @@ function App() {
                         <Routes>
                             <Route path="/" element={<OverviewPage />} />
                             <Route path="/map" element={<MapPage />} />
-                            <Route path="/demographics" element={<DemographicsPage />} />
                         </Routes>
                     </Box>
                 </Router>
