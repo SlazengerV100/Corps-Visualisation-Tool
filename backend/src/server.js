@@ -103,16 +103,16 @@ app.get('/api/test/corps/:year', (req, res) => {
 function updateCurrentCorps(current, metricName, value) {
     switch (metricName) {
         case '01-Congregational Worship':
-            current.metrics.congregationalWorship = value
+            current.congregationalWorship = value
             break
         case '03A-First Time Decisions':
-            current.metrics.firstTimeDecisions = value
+            current.firstTimeDecisions = value
             break
         case '04-Kids Church':
-            current.metrics.kidsChurch = value
+            current.kidsChurch = value
             break
         case '05-Youth Discipleship':
-            current.metrics.youthDiscipleship = value
+            current.youthDiscipleship = value
             break
     }
     return current
@@ -128,6 +128,7 @@ function getMetricData(year) {
         }
 
         const expectedEndYear = `${numericYear - 1}/${String(numericYear).slice(-2)}`
+        const prevEndYear = `${numericYear - 2}/${String(numericYear - 1).slice(-2)}`
         const fileName = 'Territory_Indicators_Yr2000_2025.csv'
         const filePath = path.join(DATA_FOLDER, fileName)
         const results = []
@@ -143,22 +144,36 @@ function getMetricData(year) {
             fs.createReadStream(filePath)
                 .pipe(csv())
                 .on('data', (data) => {
-                    if (data.end_year === expectedEndYear) {
-                        if (current.id === data.centre_id) {
-                            current = updateCurrentCorps(current, data.indicator, parseFloat(data.averages))
-                        } else {
-                            results.push(current)
-                            current = {
-                                id: data.centre_id,
-                                name: data.centre_name,
-                                metrics: {
+                    if (current.id === data.centre_id) {
+                        if (data.end_year === prevEndYear) {
+                            current.metrics.prevYear = updateCurrentCorps(current.metrics.prevYear, data.indicator, parseFloat(data.averages))
+                        } else if (data.end_year === expectedEndYear) {
+                            current.metrics.currentYear = updateCurrentCorps(current.metrics.currentYear, data.indicator, parseFloat(data.averages))
+                        }
+                    } else {
+                        results.push(current)
+                        current = {
+                            id: data.centre_id,
+                            name: data.centre_name,
+                            metrics: {
+                                prevYear: {
+                                    congregationalWorship: null,
+                                    firstTimeDecisions: null,
+                                    kidsChurch: null,
+                                    youthDiscipleship: null
+                                },
+                                currentYear: {
                                     congregationalWorship: null,
                                     firstTimeDecisions: null,
                                     kidsChurch: null,
                                     youthDiscipleship: null
                                 }
                             }
-                            current = updateCurrentCorps(current, data.indicator, parseFloat(data.averages))
+                        }
+                        if (data.end_year === prevEndYear) {
+                            current.metrics.prevYear = updateCurrentCorps(current.metrics.prevYear, data.indicator, parseFloat(data.averages))
+                        } else if (data.end_year === expectedEndYear) {
+                            current.metrics.currentYear = updateCurrentCorps(current.metrics.currentYear, data.indicator, parseFloat(data.averages))
                         }
                     }
                 })
@@ -191,12 +206,16 @@ function getBand(congregationalWorship) {
     return 70
 }
 
+function calculateGrowth(metrics) {
+    let growth = getBand(metrics.congregationalWorship)
+    return growth
+}
+
 app.get('/api/corps/growth/:year', (req, res) => {
     const year = req.params.year
     
     getMetricData(year)
         .then(results => {
-            
             res.json(results)
         })
         .catch(err => {
