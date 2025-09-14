@@ -14,7 +14,42 @@ app.use(cors())
 const PORT = process.env.PORT || 8080
 const DATA_FOLDER = process.env.DATA_FOLDER
 
-const server = app.listen(PORT, () => {
+// In-memory data storage maps for each year (2010-2025)
+const growthDataCache = new Map()
+const tithingDataCache = new Map()
+const surplusDeficitDataCache = new Map()
+const sustainabilityDataCache = new Map()
+
+// Initialize processing method
+async function initializeProcessing() {
+    console.log('Starting server data initialization...')
+    
+    for (let year = 2010; year <= 2025; year++) {
+        try {
+            console.log(`Processing data for year ${year}...`)
+            
+            // Run the four data processing functions in order
+            const growthData = await getGrowthData(year.toString())
+            const tithingData = await getTithingData(year.toString())
+            const surplusDeficitData = await getSurplusDeficitData(year.toString())
+            const sustainabilityData = await getSustainabilityData(year.toString())
+            
+            // Store results in maps
+            growthDataCache.set(year, growthData)
+            tithingDataCache.set(year, tithingData)
+            surplusDeficitDataCache.set(year, surplusDeficitData)
+            sustainabilityDataCache.set(year, sustainabilityData)
+        } catch (error) {
+            console.error(`Error processing data for year ${year}:`, error)
+            // Continue with other years even if one fails
+        }
+    }
+    
+    console.log('Server data initialization complete!')
+}
+
+const server = app.listen(PORT, async () => {
+    await initializeProcessing()
     console.log(`Server running on http://localhost:${PORT}`)
 })
 
@@ -391,15 +426,20 @@ function getSustainabilityData(year) {
 }
 
 app.get('/api/corps/sustainability/:year', (req, res) => {
-    const year = req.params.year
+    const year = parseInt(req.params.year, 10)
     
-    getSustainabilityData(year)
-        .then(results => {
-            res.json(results)
-        })
-        .catch(err => {
-            res.status(err.status).json({ error: err.error, details: err.details })
-        })
+    if (isNaN(year) || year < 2010 || year > 2025) {
+        res.status(400).json({ error: 'Invalid year. Must be between 2010 and 2025.' })
+        return
+    }
+    
+    const cachedData = sustainabilityDataCache.get(year)
+    if (!cachedData) {
+        res.status(404).json({ error: `No sustainability data available for year ${year}` })
+        return
+    }
+    
+    res.json(cachedData)
 })
 
 const maxBand = 70, minBand = 30, minCongregation = 25, maxCongregation = 200, benchmark = 0.1, maxPointsChange = 15, minTithingPerPerson = 500, maxTithingPerPerson = 2000
@@ -462,65 +502,73 @@ function calculateSustainability(metrics, size) {
 }
 
 app.get('/api/corps/growth/:year', (req, res) => {
-    const year = req.params.year
+    const year = parseInt(req.params.year, 10)
     
-    getGrowthData(year)
-        .then(results => {
-            res.json(results.map(r => {
-                return {
-                    id: r.id,
-                    name: r.name,
-                    growth: calculateGrowth(r.metrics),
-                    size: r.metrics.congregationalWorship.currentYear
-                }
-            }))
-        })
-        .catch(err => {
-            res.status(err.status).json({ error: err.error, details: err.details })
-        })
+    if (isNaN(year) || year < 2010 || year > 2025) {
+        res.status(400).json({ error: 'Invalid year. Must be between 2010 and 2025.' })
+        return
+    }
+    
+    const cachedData = growthDataCache.get(year)
+    if (!cachedData) {
+        res.status(404).json({ error: `No growth data available for year ${year}` })
+        return
+    }
+    
+    res.json(cachedData.map(r => {
+        return {
+            id: r.id,
+            name: r.name,
+            growth: calculateGrowth(r.metrics),
+            size: r.metrics.congregationalWorship.currentYear
+        }
+    }))
 })
 
 app.get('/api/corps/bubbleChart/:year', (req, res) => {
-    const year = req.params.year
+    const year = parseInt(req.params.year, 10)
     
-    // Get both growth and sustainability data in parallel
-    Promise.all([
-        getGrowthData(year),
-        getSustainabilityData(year)
-    ])
-    .then(([growthData, sustainabilityData]) => {
-        // Create a map of sustainability data by id for efficient lookup
-        const sustainabilityMap = new Map()
-        sustainabilityData.forEach(item => {
-            sustainabilityMap.set(item.id, item)
-        })
+    if (isNaN(year) || year < 2010 || year > 2025) {
+        res.status(400).json({ error: 'Invalid year. Must be between 2010 and 2025.' })
+        return
+    }
+    
+    const growthData = growthDataCache.get(year)
+    const sustainabilityData = sustainabilityDataCache.get(year)
+    
+    if (!growthData || !sustainabilityData) {
+        res.status(404).json({ error: `No combined data available for year ${year}` })
+        return
+    }
+    
+    // Create a map of sustainability data by id for efficient lookup
+    const sustainabilityMap = new Map()
+    sustainabilityData.forEach(item => {
+        sustainabilityMap.set(item.id, item)
+    })
 
-        // Combine the data by matching on id
-        const combinedResults = []
-        growthData.forEach(growthItem => {
-            const sustainabilityItem = sustainabilityMap.get(growthItem.id)
-            if (sustainabilityItem !== undefined) {
-                const size = growthItem.metrics.congregationalWorship.currentYear
-                combinedResults.push({
-                    id: growthItem.id,
-                    name: growthItem.name,
-                    growth: calculateGrowth(growthItem.metrics),
-                    sustainability: calculateSustainability(sustainabilityItem.metrics, size),
-                    size: size
-                })
-            }
-        })
-
-        if (combinedResults.length === 0) {
-            res.status(404).json({ error: `No combined data available for year ${year}` })
-            return
+    // Combine the data by matching on id
+    const combinedResults = []
+    growthData.forEach(growthItem => {
+        const sustainabilityItem = sustainabilityMap.get(growthItem.id)
+        if (sustainabilityItem !== undefined) {
+            const size = growthItem.metrics.congregationalWorship.currentYear
+            combinedResults.push({
+                id: growthItem.id,
+                name: growthItem.name,
+                growth: calculateGrowth(growthItem.metrics),
+                sustainability: calculateSustainability(sustainabilityItem.metrics, size),
+                size: size
+            })
         }
+    })
 
-        res.json(combinedResults)
-    })
-    .catch(err => {
-        res.status(err.status).json({ error: err.error, details: err.details })
-    })
+    if (combinedResults.length === 0) {
+        res.status(404).json({ error: `No combined data available for year ${year}` })
+        return
+    }
+
+    res.json(combinedResults)
 })
 
 // Helper function to get monthly metric data for a specific corps and year
