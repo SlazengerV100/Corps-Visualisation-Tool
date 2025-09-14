@@ -251,10 +251,86 @@ function getSurplusDeficitData(year) {
     })
 }
 
+// Helper function to get tithing data for a specific year
+function getTithingData(year) {
+    return new Promise((resolve, reject) => {
+        const numericYear = parseInt(year, 10)
+        if (isNaN(numericYear) || numericYear < 2000) {
+            reject({ status: 400, error: 'Invalid year' })
+            return
+        }
+
+        const fileName = 'Territorial_Tithing_2000_2025.csv'
+        const filePath = path.join(DATA_FOLDER, fileName)
+        const results = new Map() // Use Map to aggregate data by code
+
+        if (!fs.existsSync(filePath)) {
+            reject({ status: 404, error: `No tithing data file found for year ${numericYear}` })
+            return
+        }
+
+        try {
+            fs.createReadStream(filePath)
+                .pipe(csv())
+                .on('data', (data) => {
+                    const mPeriod = data.M_period
+                    const yearSuffix = String(numericYear).slice(-2)
+
+                    if (mPeriod.startsWith(`M${yearSuffix}`)) {
+                        const code = data.code
+                        const name = data.name
+                        const location = data["﻿location"]
+                        const value = parseFloat(data.mth_value) || 0
+                        
+                        if (results.has(code)) {
+                            // Add to existing total
+                            results.get(code).tithing += value
+                        } else {
+                            // Create new entry
+                            results.set(code, {
+                                id: code,
+                                name: name,
+                                location: location,
+                                tithing: value
+                            })
+                        }
+                    }
+                })
+                .on('end', () => {
+                    const finalResults = Array.from(results.values())
+                    if (finalResults.length === 0) {
+                        reject({ status: 404, error: `No tithing data available for year ${numericYear}` })
+                        return
+                    }
+                    resolve(finalResults)
+                })
+                .on('error', (err) => {
+                    console.error(`Error reading CSV file: ${err.message}`)
+                    reject({ status: 500, error: 'Failed to read CSV file', details: err.message })
+                })
+        } catch (err) {
+            console.error(`An unexpected error occurred: ${err.message}`)
+            reject({ status: 500, error: 'An unexpected server error occurred.' })
+        }
+    })
+}
+
 app.get('/api/corps/sustainability/:year', (req, res) => {
     const year = req.params.year
     
     getSurplusDeficitData(year)
+        .then(results => {
+            res.json(results)
+        })
+        .catch(err => {
+            res.status(err.status).json({ error: err.error, details: err.details })
+        })
+})
+
+app.get('/api/corps/tithing/:year', (req, res) => {
+    const year = req.params.year
+    
+    getTithingData(year)
         .then(results => {
             res.json(results)
         })
