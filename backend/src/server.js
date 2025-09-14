@@ -100,22 +100,22 @@ app.get('/api/test/corps/:year', (req, res) => {
     })
 })
 
-function updateCurrentCorps(current, metricName, value) {
+function updateCurrentCorps(metrics, metricName, value, yearType) {
     switch (metricName) {
         case '01-Congregational Worship':
-            current.congregationalWorship = value
+            metrics.congregationalWorship[yearType] = value
             break
         case '03A-First Time Decisions':
-            current.firstTimeDecisions = value
+            metrics.firstTimeDecisions[yearType] = value
             break
         case '04-Kids Church':
-            current.kidsChurch = value
+            metrics.kidsChurch[yearType] = value
             break
         case '05-Youth Discipleship':
-            current.youthDiscipleship = value
+            metrics.youthDiscipleship[yearType] = value
             break
     }
-    return current
+    return metrics
 }
 
 // Helper function to get all metric data for a specific corps and year
@@ -146,9 +146,9 @@ function getMetricData(year) {
                 .on('data', (data) => {
                     if (current.id === data.centre_id) {
                         if (data.end_year === prevEndYear) {
-                            current.metrics.prevYear = updateCurrentCorps(current.metrics.prevYear, data.indicator, parseFloat(data.averages))
+                            current.metrics = updateCurrentCorps(current.metrics, data.indicator, parseFloat(data.averages), 'prevYear')
                         } else if (data.end_year === expectedEndYear) {
-                            current.metrics.currentYear = updateCurrentCorps(current.metrics.currentYear, data.indicator, parseFloat(data.averages))
+                            current.metrics = updateCurrentCorps(current.metrics, data.indicator, parseFloat(data.averages), 'currentYear')
                         }
                     } else {
                         results.push(current)
@@ -156,24 +156,28 @@ function getMetricData(year) {
                             id: data.centre_id,
                             name: data.centre_name,
                             metrics: {
-                                prevYear: {
-                                    congregationalWorship: null,
-                                    firstTimeDecisions: null,
-                                    kidsChurch: null,
-                                    youthDiscipleship: null
+                                congregationalWorship: {
+                                    currentYear: null,
+                                    prevYear: null
                                 },
-                                currentYear: {
-                                    congregationalWorship: null,
-                                    firstTimeDecisions: null,
-                                    kidsChurch: null,
-                                    youthDiscipleship: null
+                                firstTimeDecisions: {
+                                    currentYear: null,
+                                    prevYear: null
+                                },
+                                kidsChurch: {
+                                    currentYear: null,
+                                    prevYear: null
+                                },
+                                youthDiscipleship: {
+                                    currentYear: null,
+                                    prevYear: null
                                 }
                             }
                         }
                         if (data.end_year === prevEndYear) {
-                            current.metrics.prevYear = updateCurrentCorps(current.metrics.prevYear, data.indicator, parseFloat(data.averages))
+                            current.metrics = updateCurrentCorps(current.metrics, data.indicator, parseFloat(data.averages), 'prevYear')
                         } else if (data.end_year === expectedEndYear) {
-                            current.metrics.currentYear = updateCurrentCorps(current.metrics.currentYear, data.indicator, parseFloat(data.averages))
+                            current.metrics = updateCurrentCorps(current.metrics, data.indicator, parseFloat(data.averages), 'currentYear')
                         }
                     }
                 })
@@ -196,19 +200,39 @@ function getMetricData(year) {
     })
 }
 
+const maxBand = 70, minBand = 30, maxCongregation = 200, benchmark = 0.1, minCongregation = 25, maxPointsChange = 15
+
 function getBand(congregationalWorship) {
-    if (congregationalWorship <= 50) return 30
-    if (congregationalWorship <= 100) return 40
-    if (congregationalWorship <= 150) return 50
-    if (congregationalWorship <= 200) return 60
-    
-    // For values above 200, return 70
-    return 70
+    const difference = maxBand - minBand
+    if (congregationalWorship <= minCongregation) return minBand
+    if (congregationalWorship > maxCongregation) return maxBand
+    const value = (congregationalWorship - minCongregation) / (maxCongregation - minCongregation)
+    return minBand + difference * value
+}
+
+function calculateNominalChange(prevYear, currentYear) {
+    const nominalChange = currentYear - prevYear
+    const maxSize = maxCongregation * benchmark
+    const value = nominalChange / maxSize * maxPointsChange
+    if (value > maxPointsChange) return maxPointsChange
+    if (value < -maxPointsChange) return -maxPointsChange 
+    return value
+}
+
+function calculatePercentageChange(prevYear, currentYear) {
+    return (currentYear - prevYear) / prevYear
 }
 
 function calculateGrowth(metrics) {
-    let growth = getBand(metrics.congregationalWorship)
-    return growth
+    let growth = getBand(metrics.congregationalWorship.currentYear)
+    growth += calculateNominalChange(metrics.congregationalWorship.prevYear, metrics.congregationalWorship.currentYear)
+    const percentage = calculatePercentageChange(metrics.congregationalWorship.prevYear, metrics.congregationalWorship.currentYear)
+    if (percentage >= benchmark) {
+        growth += maxPointsChange
+    } else {
+        growth = growth * (1 + percentage)
+    }
+    return Math.round(growth)
 }
 
 app.get('/api/corps/growth/:year', (req, res) => {
@@ -216,7 +240,13 @@ app.get('/api/corps/growth/:year', (req, res) => {
     
     getMetricData(year)
         .then(results => {
-            res.json(results)
+            res.json(results.map(r => {
+                return {
+                    id: r.id,
+                    name: r.name,
+                    growth: calculateGrowth(r.metrics)
+                }
+            }))
         })
         .catch(err => {
             res.status(err.status).json({ error: err.error, details: err.details })
