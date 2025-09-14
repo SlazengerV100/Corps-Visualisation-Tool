@@ -57,82 +57,45 @@ server.on('error', (error) => {
     console.error('Server error:', error)
 })
 
-// Not being used
-app.get('/api/test/attendance', (req, res) => {
+app.get('/api/corps/map', (req, res) => {
+    const fileName = 'Corps address list.csv'
+    const filePath = path.join(DATA_FOLDER, fileName)
     const results = []
 
-    fs.createReadStream(`${DATA_FOLDER}\\Territory_Corps_Indicators_Yr23_24.csv`)
-        .pipe(csv())
-        .on('data', (data) => {
-            if (data.end_year === '2023/24' && data.indicator === '01-Main Worship') {
+    if (!fs.existsSync(filePath)) {
+        res.status(404).json({ error: `No data file found: ${fileName}` })
+        return
+    }
+
+    try {
+        fs.createReadStream(filePath)
+            .pipe(csv())
+            .on('data', (data) => {
                 results.push({
-                    centre_name: data.centre_name,
-                    attendance: parseFloat(data.averages)
+                    id: data.code,
+                    name: data.name,
+                    area: data.division_name,
+                    address: data.address1,
+                    city: data.city,
+                    latitude: parseFloat(data.latitude) || null,
+                    longitude: parseFloat(data.longitude) || null
                 })
-            }
-        })
-        .on('end', () => {
-            res.json(results)
-        })
-        .on('error', (err) => {
-            res.status(500).json({ error: 'Failed to read CSV file', details: err.message })
-        })
-})
-
-app.get('/api/test/bubbleChart/:year', (req, res) => {
-    const year = req.params.year
-    const filePath = `${DATA_FOLDER}\\test\\TEST_Corps_${year}.json`
-
-    fs.readFile(filePath, 'utf8', (err, data) => {
-        if (err) {
-            res.status(404).json({ error: `No data for ${year}` })
-            return
-        }
-        try {
-            const json = JSON.parse(data)
-            res.json(json)
-        } catch (parseErr) {
-            res.status(500).json({ error: 'Invalid JSON format', details: parseErr.message })
-        }
-    })
-})
-
-app.get('/api/test/corps', (req, res) => {
-    const filePath = `${DATA_FOLDER}\\test\\TEST_Corps.json`
-
-    fs.readFile(filePath, 'utf8', (err, data) => {
-        if (err) {
-            res.status(404).json({ error: `No data` })
-            return
-        }
-        try {
-            const json = JSON.parse(data)
-            res.json(json)
-        } catch (parseErr) {
-            res.status(500).json({ error: 'Invalid JSON format', details: parseErr.message })
-        }
-    })
-})
-
-app.get('/api/test/corps/:year', (req, res) => {
-    const year = req.params.year
-    const filePath = `${DATA_FOLDER}\\test\\TEST_Corps_${year}.json`
-
-    fs.readFile(filePath, 'utf8', (err, data) => {
-        if (err) {
-            res.status(404).json({ error: `No data for ${year}` })
-            return
-        }
-        try {
-            const json = JSON.parse(data)
-
-            // Extract only the name fields
-            const names = json.map(entry => entry.name)
-            res.json(names)
-        } catch (parseErr) {
-            res.status(500).json({ error: 'Invalid JSON format', details: parseErr.message })
-        }
-    })
+            })
+            .on('end', () => {
+                if (results.length === 0) {
+                    res.status(404).json({ error: 'No New Zealand corps found in the data' })
+                    return
+                }
+                res.json(results)
+            })
+            .on('error', (err) => {
+                console.error(`Error reading CSV file: ${err.message}`)
+                res.status(500).json({ error: 'Failed to read CSV file', details: err.message })
+            })
+    } catch (err) {
+        console.error(`An unexpected error occurred: ${err.message}`)
+        res.status(500).json({ error: 'An unexpected server error occurred.' })
+    }
 })
 
 function updateCurrentCorps(metrics, metricName, value, yearType) {
@@ -424,6 +387,7 @@ function getSustainabilityData(year) {
         })
     })
 }
+
 
 app.get('/api/corps/sustainability/:year', (req, res) => {
     const year = parseInt(req.params.year, 10)
