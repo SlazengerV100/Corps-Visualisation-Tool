@@ -414,6 +414,23 @@ app.get('/api/corps/sustainability/:year', (req, res) => {
     res.json(cachedData)
 })
 
+app.get('/api/corps/metrics/:year', (req, res) => {
+    const year = parseInt(req.params.year, 10)
+    
+    if (isNaN(year) || year < 2010 || year > 2025) {
+        res.status(400).json({ error: 'Invalid year. Must be between 2010 and 2025.' })
+        return
+    }
+    
+    const cachedData = growthDataCache.get(year)
+    if (!cachedData) {
+        res.status(404).json({ error: `No metrics data available for year ${year}` })
+        return
+    }
+    
+    res.json(cachedData)
+})
+
 const maxBand = 70, minBand = 30, minCongregation = 25, maxCongregation = 200, benchmark = 0.1, maxPointsChange = 15, minTithingPerPerson = 500, maxTithingPerPerson = 2000
 
 function getGrowthBand(congregationalWorship) {
@@ -544,7 +561,7 @@ app.get('/api/corps/bubbleChart/:year', (req, res) => {
 })
 
 // Helper function to get monthly metric data for a specific corps and year
-function getMetricDataByMonth(centreId, year, indicator, metricName) {
+function getMetricDataByMonth(centreId, year, metric) {
     return new Promise((resolve, reject) => {
         const numericYear = parseInt(year, 10)
         if (isNaN(numericYear) || numericYear < 2000) {
@@ -578,7 +595,7 @@ function getMetricDataByMonth(centreId, year, indicator, metricName) {
             fs.createReadStream(filePath)
                 .pipe(csv())
                 .on('data', (data) => {
-                    if (data.end_year === expectedEndYear && data.indicator === indicator && parseInt(data.centre_code) === parseInt(centreId)) {
+                    if (data.end_year === expectedEndYear && data.indicator === metric && parseInt(data.centre_code) === parseInt(centreId)) {
                         const period = toMonthNumber(data.period_code)
                         if (!(period < 0)) {
                             // Calculate the actual year based on financial year logic
@@ -590,14 +607,14 @@ function getMetricDataByMonth(centreId, year, indicator, metricName) {
                             results.push({
                                 month: period,
                                 year: actualYear,
-                                attendance: parseFloat(data.averages)
+                                metric: parseFloat(data.averages)
                             })
                         }
                     }
                 })
                 .on('end', () => {
                     if (results.length === 0) {
-                        reject({ status: 404, error: `${metricName} metric is not available for corps ${centreId} in year ${numericYear}` })
+                        reject({ status: 404, error: `${metric} metric is not available for corps ${centreId} in year ${numericYear}` })
                         return
                     }
                     resolve(results)
@@ -613,10 +630,10 @@ function getMetricDataByMonth(centreId, year, indicator, metricName) {
     })
 }
 
-app.get('/api/corps/:centreId/attendance/byMonth/:year', (req, res) => {
+app.get('/api/corps/:centreId/congregationalWorship/byMonth/:year', (req, res) => {
     const { centreId, year } = req.params
     
-    getMetricDataByMonth(centreId, year, '01-Congregational Worship', 'Attendance')
+    getMetricDataByMonth(centreId, year, '01-Congregational Worship')
         .then(results => {
             res.json(results)
         })
@@ -628,7 +645,7 @@ app.get('/api/corps/:centreId/attendance/byMonth/:year', (req, res) => {
 app.get('/api/corps/:centreId/firstTimeDecisions/byMonth/:year', (req, res) => {
     const { centreId, year } = req.params
     
-    getMetricDataByMonth(centreId, year, '03A-First Time Decisions', 'First Time Decisions')
+    getMetricDataByMonth(centreId, year, '03A-First Time Decisions')
         .then(results => {
             res.json(results)
         })
@@ -640,7 +657,7 @@ app.get('/api/corps/:centreId/firstTimeDecisions/byMonth/:year', (req, res) => {
 app.get('/api/corps/:centreId/kidsChurch/byMonth/:year', (req, res) => {
     const { centreId, year } = req.params
     
-    getMetricDataByMonth(centreId, year, '04-Kids Church', 'Kids Church')
+    getMetricDataByMonth(centreId, year, '04-Kids Church')
         .then(results => {
             res.json(results)
         })
@@ -652,7 +669,7 @@ app.get('/api/corps/:centreId/kidsChurch/byMonth/:year', (req, res) => {
 app.get('/api/corps/:centreId/youthDiscipleship/byMonth/:year', (req, res) => {
     const { centreId, year } = req.params
     
-    getMetricDataByMonth(centreId, year, '05-Youth Discipleship', 'Youth Discipleship')
+    getMetricDataByMonth(centreId, year, '05-Youth Discipleship')
         .then(results => {
             res.json(results)
         })

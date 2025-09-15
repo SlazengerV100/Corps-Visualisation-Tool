@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 
-const AttendanceChart = ({ data, height = 300 }) => {
+const MetricChart = ({ data, height = 300 }) => {
   const svgRef = useRef();
 
   useEffect(() => {
@@ -29,7 +29,7 @@ const AttendanceChart = ({ data, height = 300 }) => {
       .range([0, innerWidth]);
 
     const y = d3.scaleLinear()
-      .domain([0, d3.max(data, d => d.attendance)])
+      .domain([0, d3.max(data, d => d.value)])
       .nice()
       .range([innerHeight, 0]);
 
@@ -49,7 +49,7 @@ const AttendanceChart = ({ data, height = 300 }) => {
     // Create line generator
     const line = d3.line()
       .x((d, i) => x(i + 1))
-      .y(d => y(d.attendance))
+      .y(d => y(d.value))
       .curve(d3.curveMonotoneX);
 
     // Create chart group
@@ -91,16 +91,19 @@ const AttendanceChart = ({ data, height = 300 }) => {
       .attr('stroke-width', 2)
       .attr('d', line);
 
-    // Add dots
+    // Add dots (ensure they're above the line)
     const dots = g.selectAll('.dot')
       .data(data)
       .enter()
       .append('circle')
       .attr('class', 'dot')
       .attr('cx', (d, i) => x(i + 1))
-      .attr('cy', d => y(d.attendance))
-      .attr('r', 4)
-      .attr('fill', '#8884d8');
+      .attr('cy', d => y(d.value))
+      .attr('r', 6)
+      .attr('fill', '#8884d8')
+      .attr('stroke', 'white')
+      .attr('stroke-width', 2)
+      .style('cursor', 'pointer');
 
     // Add tooltip functionality
     const tooltip = d3.select('body')
@@ -111,31 +114,94 @@ const AttendanceChart = ({ data, height = 300 }) => {
       .style('padding', '5px')
       .style('border', '1px solid #ccc')
       .style('border-radius', '4px')
+      .style('opacity', 0)
+      .style('width', '0px')
+      .style('height', '0px')
+      .style('overflow', 'hidden')
       .style('pointer-events', 'none')
-      .style('opacity', 0);
+      .style('z-index', 1000);
 
-    dots.on('mouseover', (event, d) => {
-      tooltip.transition()
-        .duration(200)
-        .style('opacity', .9);
-      
-      let tooltipText = `Attendance: ${d.attendance}`;
+    // Add hover effects to dots
+    dots.on('mouseenter', function(event, d) {
+      d3.select(this)
+        .transition()
+        .duration(150)
+        .attr('r', 8)
+        .attr('fill', '#5a67d8');
+    })
+    .on('mouseleave', function(event, d) {
+      d3.select(this)
+        .transition()
+        .duration(150)
+        .attr('r', 6)
+        .attr('fill', '#8884d8');
+    })
+    .on('mouseover', (event, d) => {
+      let tooltipTextContent = `Value: ${d.value}`;
       if (isMonthlyData) {
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        tooltipText = `${monthNames[d.month - 1]} ${d.year}: ${d.attendance}`;
+        tooltipTextContent = `${monthNames[d.month - 1]} ${d.year}: ${d.value}`;
       } else {
-        tooltipText = `FY ${d.financialYear}: ${d.attendance}`;
+        tooltipTextContent = `${d.financialYear}: ${d.value}`;
       }
       
-      tooltip.html(tooltipText)
-        .style('left', (event.pageX + 10) + 'px')
-        .style('top', (event.pageY - 28) + 'px');
+      // Set tooltip text
+      tooltip.html(tooltipTextContent);
+      
+      // Get tooltip dimensions after setting content
+      const tooltipNode = tooltip.node();
+      const tooltipRect = tooltipNode.getBoundingClientRect();
+      
+      // Get chart container dimensions
+      const chartRect = svg.node().getBoundingClientRect();
+      
+      // Calculate smart positioning
+      let left = event.pageX + 10;
+      let top = event.pageY - 28;
+      
+      // Check if tooltip would extend beyond right edge of chart
+      if (left + tooltipRect.width > chartRect.right) {
+        left = event.pageX - tooltipRect.width - 10;
+      }
+      
+      // Check if tooltip would extend beyond left edge of chart
+      if (left < chartRect.left) {
+        left = chartRect.left + 10;
+      }
+      
+      // Check if tooltip would extend beyond top edge of chart
+      if (top < chartRect.top) {
+        top = event.pageY + 10;
+      }
+      
+      // Check if tooltip would extend beyond bottom edge of chart
+      if (top + tooltipRect.height > chartRect.bottom) {
+        top = event.pageY - tooltipRect.height - 10;
+      }
+      
+      // Position tooltip
+      tooltip
+        .style('left', left + 'px')
+        .style('top', top + 'px')
+        .style('width', 'auto')
+        .style('height', 'auto');
+      
+      // Show tooltip
+      tooltip.transition()
+        .duration(200)
+        .style('opacity', .9);
     })
     .on('mouseout', () => {
       tooltip.transition()
         .duration(500)
-        .style('opacity', 0);
+        .style('opacity', 0)
+        .on('end', () => {
+          // Reset dimensions after opacity transition completes
+          tooltip
+            .style('width', '0px')
+            .style('height', '0px');
+        });
     });
 
     // Animation
@@ -162,4 +228,4 @@ const AttendanceChart = ({ data, height = 300 }) => {
   return <svg ref={svgRef}></svg>;
 };
 
-export default AttendanceChart; 
+export default MetricChart; 

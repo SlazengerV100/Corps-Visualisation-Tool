@@ -7,54 +7,76 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
-import AttendanceChart from './AttendanceChart.jsx';
+import MetricChart from './MetricChart.jsx';
 
 const CorpsDetails = ({ corps }) => {
   const serverUrl = import.meta.env.VITE_SERVER_URL
   const [timeRange, setTimeRange] = useState('pastYear');
-  const [attendanceData, setAttendanceData] = useState([])
+  const [selectedMetric, setSelectedMetric] = useState('congregationalWorship');
+  const [metricData, setMetricData] = useState([])
   const [isLoading, setIsLoading] = useState(false)
+
+  const availableMetrics = [
+    { value: 'congregationalWorship', label: 'Congregational Worship' },
+    { value: 'firstTimeDecisions', label: 'First Time Decisions' },
+    { value: 'kidsChurch', label: 'Kid\'s Church' },
+    { value: 'youthDiscipleship', label: 'Youth Discipleship' }
+  ]
 
   const fetchMonthlyData = async (year) => {
     try {
-      const response = await fetch(`${serverUrl}/api/corps/${corps.id}/attendance/byMonth/${year}`)
+      // Map metric names to metric codes
+      const metricToCode = {
+        'congregationalWorship': '01-Congregational Worship',
+        'firstTimeDecisions': '03A-First Time Decisions',
+        'kidsChurch': '04-Kids Church',
+        'youthDiscipleship': '05-Youth Discipleship'
+      }
+      
+      const metricCode = metricToCode[selectedMetric]
+      const response = await fetch(`${serverUrl}/api/corps/${corps.id}/${selectedMetric}/byMonth/${year}`)
       if (!response.ok) {
         return []
       }
       const data = await response.json()
       return data.map(item => ({
         ...item,
+        value: item.metric, // Map metric to value for consistency
         financialYear: `${year - 1}/${year.toString().slice(-2)}`,
         period: `${item.year}-${item.month.toString().padStart(2, '0')}`
       }))
     } catch (error) {
-      console.error(`Failed to fetch monthly data for ${year}`)
+      console.error(`Failed to fetch monthly metric data for ${year}`)
       return []
     }
   }
 
   const fetchYearlyData = async (year) => {
     try {
-      const response = await fetch(`${serverUrl}/api/corps/growth/${year}`)
+      const response = await fetch(`${serverUrl}/api/corps/metrics/${year}`)
       if (!response.ok) {
         return null
       }
       const data = await response.json()
       const corpsData = data.find(item => item.id === corps.id)
       return corpsData ? {
-        attendance: corpsData.size,
+        value: corpsData.metrics[selectedMetric]?.currentYear || 0,
         year: year,
         financialYear: `${year - 1}/${year.toString().slice(-2)}`,
         period: year.toString()
       } : null
     } catch (error) {
-      console.error(`Failed to fetch yearly data for ${year}`)
+      console.error(`Failed to fetch yearly metric data for ${year}`)
       return null
     }
   }
 
-  const fetchAttendanceData = async (range) => {
+  const fetchMetricData = async (range) => {
     if (!corps) return
     
     setIsLoading(true)
@@ -101,18 +123,18 @@ const CorpsDetails = ({ corps }) => {
           data = []
       }
 
-      setAttendanceData(data)
+      setMetricData(data)
     } catch (error) {
-      console.error(`Failed to fetch attendance data`)
-      setAttendanceData([])
+      console.error(`Failed to fetch metric data`)
+      setMetricData([])
     } finally {
       setIsLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchAttendanceData(timeRange)
-  }, [serverUrl, corps, timeRange])
+    fetchMetricData(timeRange)
+  }, [serverUrl, corps, timeRange, selectedMetric])
 
   if (!corps) {
     return (
@@ -153,8 +175,23 @@ const CorpsDetails = ({ corps }) => {
       <Divider sx={{ my: 2 }} />
 
       <Typography variant="h6" gutterBottom>
-        Attendance History
+        Metrics History
       </Typography>
+
+      <FormControl fullWidth sx={{ mb: 2 }}>
+        <InputLabel>Select Metric</InputLabel>
+        <Select
+          value={selectedMetric}
+          label="Select Metric"
+          onChange={(e) => setSelectedMetric(e.target.value)}
+        >
+          {availableMetrics.map((metric) => (
+            <MenuItem key={metric.value} value={metric.value}>
+              {metric.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
 
       <ToggleButtonGroup
         value={timeRange}
@@ -173,8 +210,8 @@ const CorpsDetails = ({ corps }) => {
         {isLoading ? (
           <CircularProgress />
         ) : (
-          <AttendanceChart 
-            data={attendanceData}
+          <MetricChart 
+            data={metricData}
             width={600}
             height={300}
           />
