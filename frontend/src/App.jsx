@@ -20,7 +20,26 @@ function App() {
     return (
         <ThemeProvider theme={theme}>
             <CssBaseline />
-            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+            <style>
+                {`
+                    html, body {
+                        margin: 0;
+                        padding: 0;
+                        height: 100%;
+                        overflow: hidden;
+                    }
+                    #root {
+                        height: 100%;
+                        overflow: hidden;
+                    }
+                `}
+            </style>
+            <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                height: '100vh',
+                overflow: 'hidden' // Prevent any scrollbars on the main container
+            }}>
                 <Router>
                     <AppBar />
                     <Toolbar />

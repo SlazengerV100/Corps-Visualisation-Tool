@@ -8,8 +8,8 @@ export default function OverviewPage() {
     const serverUrl = import.meta.env.VITE_SERVER_URL
     const [year, setYear] = useState(2024)
     const [yearData, setYearData] = useState(null)
-    const [corps, setCorps] = useState([])
     const [selectedCorps, setSelectedCorps] = useState([])
+    const [corps, setCorps] = useState([])
 
     useEffect(() => {
         const fetchYearData = async () => {
@@ -30,32 +30,9 @@ export default function OverviewPage() {
         fetchYearData()
     }, [serverUrl, year])
 
-    useEffect(() => {
-        const fetchCorpsData = async () => {
-            try {
-                const response = await fetch(`${serverUrl}/api/corps/growth/${year}`)
-                if (!response.ok) {
-                    setCorps([])
-                    return
-                }
-                const data = await response.json()
-                const updated = data.map(corp => {
-                    const existing = corps.find(c => c.name === corp.name)
-                    return {
-                        name: corp.name,
-                        selected: existing ? existing.selected : false
-                    }
-                })
-
-                setCorps(updated)
-            } catch (error) {
-                console.error(`Failed to fetch corps data for ${year}`)
-                setCorps([])
-            }
-        }
-
-        fetchCorpsData()
-    }, [serverUrl])
+    const handleCorpsDataLoaded = (corpsData) => {
+        setCorps(corpsData)
+    }
 
     return (
         <Box sx={{ 
@@ -83,7 +60,7 @@ export default function OverviewPage() {
                     <BubbleChart 
                         year={year} 
                         yearData={yearData} 
-                        corps={corps} 
+                        corps={corps}
                         selectedCorps={selectedCorps}
                     />
                 </Box>
@@ -101,19 +78,20 @@ export default function OverviewPage() {
             <Box sx={{ 
                 flexShrink: 0, // Prevents shrinking
                 height: '100%',
+                width: '350px', // Increased width to show dropdown chevron
                 borderLeft: '1px solid #e0e0e0',
                 backgroundColor: '#fafafa'
             }}>
                 <Box sx={{ 
                     height: '100%',
-                    overflow: 'auto',
-                    padding: 2,
-                    minWidth: 'fit-content'
+                    overflowY: 'auto', // Allow vertical scrolling
+                    overflowX: 'hidden', // Prevent horizontal scrollbar
+                    padding: 2
                 }}>
                     <CheckboxSelectorPanel 
-                        corps={corps} 
                         selectedCorps={selectedCorps} 
-                        setSelectedCorps={setSelectedCorps} 
+                        setSelectedCorps={setSelectedCorps}
+                        onCorpsDataLoaded={handleCorpsDataLoaded}
                     />
                 </Box>
             </Box>

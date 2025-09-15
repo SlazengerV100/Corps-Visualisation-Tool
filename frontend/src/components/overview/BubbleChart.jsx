@@ -46,7 +46,7 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
     const margin = calculateMargin()
     const xScale = d3.scaleLinear().domain([0, 100]).range([0, dimensions.width - 2 * margin])
     const yScale = d3.scaleLinear().domain([0, 100]).range([dimensions.height - 2 * margin, 0])
-    const radiusScale = d3.scaleLinear().domain([0, 250]).range([0, Math.min(dimensions.width, dimensions.height) / 16])
+    const radiusScale = d3.scaleLinear().domain([0, 250]).range([0, Math.min(dimensions.width, dimensions.height) / 12])
 
     // Draw axes, labels, and matrix lines once
     useEffect(() => {
