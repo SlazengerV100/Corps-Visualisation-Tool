@@ -487,7 +487,7 @@ function calculateSustainability(metrics, size) {
     const tithingPerPersonCurrentYear = metrics.tithing.currentYear / size
     let sustainability = getSustainabilityBand(tithingPerPersonCurrentYear)
     sustainability += calculateNominalSustainability(metrics.tithing.prevYear, metrics.tithing.currentYear)
-    return sustainability
+    return Math.round(sustainability)
 }
 
 app.get('/api/corps/growth/:year', (req, res) => {
