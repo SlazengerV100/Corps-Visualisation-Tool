@@ -415,6 +415,60 @@ app.get('/api/corps/sustainability/:year', (req, res) => {
     res.json(cachedData)
 })
 
+app.get('/api/corps/metrics/:year', (req, res) => {
+    const year = parseInt(req.params.year, 10)
+    
+    if (isNaN(year) || year < 2010 || year > 2025) {
+        res.status(400).json({ error: 'Invalid year. Must be between 2010 and 2025.' })
+        return
+    }
+    
+    const growthData = growthDataCache.get(year)
+    const sustainabilityData = sustainabilityDataCache.get(year)
+    
+    if (!growthData || !sustainabilityData) {
+        res.status(404).json({ error: `No metrics data available for year ${year}` })
+        return
+    }
+    
+    // Create a map of sustainability data by id for efficient lookup
+    const sustainabilityMap = new Map()
+    sustainabilityData.forEach(item => {
+        sustainabilityMap.set(item.id, item)
+    })
+
+    // Combine the data by matching on id
+    const combinedResults = []
+    growthData.forEach(growthItem => {
+        const sustainabilityItem = sustainabilityMap.get(growthItem.id)
+        if (sustainabilityItem !== undefined) {
+            const size = growthItem.metrics.congregationalWorship.currentYear
+            combinedResults.push({
+                id: growthItem.id,
+                name: growthItem.name,
+                growth: calculateGrowth(growthItem.metrics),
+                sustainability: calculateSustainability(sustainabilityItem.metrics, size),
+                size: size,
+                metrics: {
+                    congregationalWorship: growthItem.metrics.congregationalWorship,
+                    firstTimeDecisions: growthItem.metrics.firstTimeDecisions,
+                    kidsChurch: growthItem.metrics.kidsChurch,
+                    youthDiscipleship: growthItem.metrics.youthDiscipleship,
+                    tithing: sustainabilityItem.metrics.tithing,
+                    surplusDeficit: sustainabilityItem.metrics.surplusDeficit
+                }
+            })
+        }
+    })
+
+    if (combinedResults.length === 0) {
+        res.status(404).json({ error: `No combined metrics data available for year ${year}` })
+        return
+    }
+
+    res.json(combinedResults)
+})
+
 const maxBand = 70, minBand = 30, minCongregation = 25, maxCongregation = 200, benchmark = 0.1, maxPointsChange = 15, minTithingPerPerson = 500, maxTithingPerPerson = 2000
 
 function getGrowthBand(congregationalWorship) {

@@ -58,7 +58,7 @@ const CorpsDetails = ({ corps }) => {
 
   const fetchYearlyData = async (year) => {
     try {
-      const response = await fetch(`${serverUrl}/api/corps/growth/${year}`)
+      const response = await fetch(`${serverUrl}/api/corps/metrics/${year}`)
       if (!response.ok) {
         return null
       }
