@@ -257,7 +257,7 @@ function getSurplusDeficitData(year) {
     })
 }
 
-// Helper function to get tithing data for a specific year
+// Helper function to get tithing data for a specific year (current year only)
 function getTithingData(year) {
     return new Promise((resolve, reject) => {
         const numericYear = parseInt(year, 10)
@@ -281,46 +281,24 @@ function getTithingData(year) {
                 .on('data', (data) => {
                     const mPeriod = data.M_period
                     const currentYearSuffix = String(numericYear).slice(-2)
-                    const prevYearSuffix = String(numericYear - 1).slice(-2)
 
                     const code = data.code
                     const name = data.name
                     const location = data["﻿location"]
                     const value = parseFloat(data.mth_value) || 0
 
-                    // Check if this is current year data
+                    // Check if this is current year data only
                     if (mPeriod.startsWith(`M${currentYearSuffix}`)) {
                         if (results.has(code)) {
                             // Add to existing current year total
-                            results.get(code).tithing.currentYear += value
+                            results.get(code).tithing += value
                         } else {
                             // Create new entry with current year data
                             results.set(code, {
                                 id: code,
                                 name: name,
                                 location: location,
-                                tithing: {
-                                    currentYear: value,
-                                    prevYear: 0
-                                }
-                            })
-                        }
-                    }
-                    // Check if this is previous year data
-                    else if (mPeriod.startsWith(`M${prevYearSuffix}`)) {
-                        if (results.has(code)) {
-                            // Add to existing previous year total
-                            results.get(code).tithing.prevYear += value
-                        } else {
-                            // Create new entry with previous year data
-                            results.set(code, {
-                                id: code,
-                                name: name,
-                                location: location,
-                                tithing: {
-                                    currentYear: 0,
-                                    prevYear: value
-                                }
+                                tithing: value
                             })
                         }
                     }
@@ -353,29 +331,40 @@ function getSustainabilityData(year) {
             return
         }
 
-        // Get both datasets in parallel
+        // Get both current year and previous year tithing data, plus surplus/deficit data
         Promise.all([
             getTithingData(year),
+            getTithingData(year - 1),
             getSurplusDeficitData(year)
         ])
-        .then(([tithingData, surplusDeficitData]) => {
-            // Create a map of surplus/deficit data by location for efficient lookup
+        .then(([currentYearTithingData, prevYearTithingData, surplusDeficitData]) => {
+            // Create maps for efficient lookup
             const surplusDeficitMap = new Map()
             surplusDeficitData.forEach(item => {
                 surplusDeficitMap.set(item.location, item.surplusDeficit)
             })
 
+            const prevYearTithingMap = new Map()
+            prevYearTithingData.forEach(item => {
+                prevYearTithingMap.set(item.id, item.tithing)
+            })
+
             // Combine the data by matching on location
             const combinedResults = []
-            tithingData.forEach(tithingItem => {
+            currentYearTithingData.forEach(tithingItem => {
                 const surplusDeficit = surplusDeficitMap.get(tithingItem.location)
+                const prevYearTithing = prevYearTithingMap.get(tithingItem.id) || 0
+                
                 if (surplusDeficit !== undefined) {
                     combinedResults.push({
                         id: tithingItem.id,
                         location: tithingItem.location,
                         name: tithingItem.name,
                         metrics: {
-                            tithing: tithingItem.tithing,
+                            tithing: {
+                                currentYear: tithingItem.tithing,
+                                prevYear: prevYearTithing
+                            },
                             surplusDeficit: surplusDeficit
                         }
                     })
