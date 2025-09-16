@@ -17,7 +17,7 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
         const updateDimensions = () => {
             if (containerRef.current) {
                 const rect = containerRef.current.getBoundingClientRect()
-                const padding = 40 // Minimum padding
+                const padding = 10 // Minimum padding
                 const width = Math.max(rect.width - padding, 400) // Minimum width
                 const height = Math.max(rect.height - padding, 300) // Minimum height
                 setDimensions({ width, height })
@@ -29,24 +29,14 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
         return () => window.removeEventListener('resize', updateDimensions)
     }, [])
 
-    // Calculate dynamic margin based on text width
-    const calculateMargin = () => {
-        // Create a temporary SVG to measure text width
-        const tempSvg = d3.select('body').append('svg').style('visibility', 'hidden')
-        const tempText = tempSvg.append('text').text('Unsustainable')
-        const textWidth = tempText.node().getBBox().width
-        tempSvg.remove()
-        
-        // Add some padding for the text positioning
-        const textPadding = 15
-        const minMargin = 80 // Minimum margin for other elements
-        return Math.max(textWidth + textPadding, minMargin)
-    }
-    
-    const margin = calculateMargin()
-    const xScale = d3.scaleLinear().domain([0, 100]).range([0, dimensions.width - 2 * margin])
-    const yScale = d3.scaleLinear().domain([0, 100]).range([dimensions.height - 2 * margin, 0])
-    const radiusScale = d3.scaleLinear().domain([0, 250]).range([0, Math.min(dimensions.width, dimensions.height) / 12])
+    // Constant margins
+    const margin = { left: 125, right: 20, top: 20, bottom: 30 }
+    const innerWidth = dimensions.width - margin.left - margin.right
+    const innerHeight = dimensions.height - margin.top - margin.bottom
+
+    const xScale = d3.scaleLinear().domain([0, 100]).range([0, innerWidth])
+    const yScale = d3.scaleLinear().domain([0, 100]).range([innerHeight, 0])
+    const radiusScale = d3.scaleLinear().domain([0, 250]).range([0, Math.min(innerWidth, innerHeight) / 12])
 
     // Draw axes, labels, and matrix lines once
     useEffect(() => {
@@ -58,7 +48,7 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
 
         const plot = svg.append('g')
             .attr('class', 'plot-area')
-            .attr('transform', `translate(${margin}, ${margin})`)
+            .attr('transform', `translate(${margin.left}, ${margin.top})`)
 
         // Add bottom X axis (line only)
         plot.append('line')
