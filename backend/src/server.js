@@ -57,7 +57,7 @@ server.on('error', (error) => {
     console.error('Server error:', error)
 })
 
-app.get('/api/corps/map', (req, res) => {
+app.get('/api/corps', (req, res) => {
     const fileName = 'Corps address list.csv'
     const filePath = path.join(DATA_FOLDER, fileName)
     const results = []
@@ -415,23 +415,6 @@ app.get('/api/corps/sustainability/:year', (req, res) => {
     res.json(cachedData)
 })
 
-app.get('/api/corps/metrics/:year', (req, res) => {
-    const year = parseInt(req.params.year, 10)
-    
-    if (isNaN(year) || year < 2010 || year > 2025) {
-        res.status(400).json({ error: 'Invalid year. Must be between 2010 and 2025.' })
-        return
-    }
-    
-    const cachedData = growthDataCache.get(year)
-    if (!cachedData) {
-        res.status(404).json({ error: `No metrics data available for year ${year}` })
-        return
-    }
-    
-    res.json(cachedData)
-})
-
 const maxBand = 70, minBand = 30, minCongregation = 25, maxCongregation = 200, benchmark = 0.1, maxPointsChange = 15, minTithingPerPerson = 500, maxTithingPerPerson = 2000
 
 function getGrowthBand(congregationalWorship) {
@@ -505,14 +488,7 @@ app.get('/api/corps/growth/:year', (req, res) => {
         return
     }
     
-    res.json(cachedData.map(r => {
-        return {
-            id: r.id,
-            name: r.name,
-            growth: calculateGrowth(r.metrics),
-            size: r.metrics.congregationalWorship.currentYear
-        }
-    }))
+    res.json(cachedData)
 })
 
 app.get('/api/corps/bubbleChart/:year', (req, res) => {
