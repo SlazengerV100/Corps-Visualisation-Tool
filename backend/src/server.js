@@ -281,14 +281,26 @@ function getTithingData(year) {
                 .on('data', (data) => {
                     const mPeriod = data.M_period
                     const currentYearSuffix = String(numericYear).slice(-2)
+                    const prevYearSuffix = String(numericYear - 1).slice(-2)
 
                     const code = data.code
                     const name = data.name
                     const location = data["﻿location"]
                     const value = parseFloat(data.mth_value) || 0
 
-                    // Check if this is current year data only
-                    if (mPeriod.startsWith(`M${currentYearSuffix}`)) {
+                    // Financial year logic: July to June of the following year
+                    // For financial year 2025: July 2024 (M2407) to June 2025 (M2506)
+                    // M_period format: M{year}{month} (e.g., M2407 for July 2024)
+                    
+                    // Extract year and month from M_period
+                    const periodYear = mPeriod.substring(1, 3) // Extract year part (e.g., "24" from "M2407")
+                    const month = parseInt(mPeriod.substring(3, 5)) // Extract month part (e.g., 7 from "M2407")
+                    
+                    const isFinancialYearData = 
+                        (periodYear === prevYearSuffix && month >= 7) || // Previous year, months 7-12
+                        (periodYear === currentYearSuffix && month <= 6)  // Current year, months 1-6
+
+                    if (isFinancialYearData) {
                         if (results.has(code)) {
                             // Add to existing current year total
                             results.get(code).tithing += value
