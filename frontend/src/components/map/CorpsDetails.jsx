@@ -25,7 +25,9 @@ const CorpsDetails = ({ corps }) => {
     { value: 'congregationalWorship', label: 'Congregational Worship' },
     { value: 'firstTimeDecisions', label: 'First Time Decisions' },
     { value: 'kidsChurch', label: 'Kid\'s Church' },
-    { value: 'youthDiscipleship', label: 'Youth Discipleship' }
+    { value: 'youthDiscipleship', label: 'Youth Discipleship' },
+    { value: 'tithing', label: 'Tithing' },
+    { value: 'surplusDeficit', label: 'Surplus/Deficit' },
   ]
 
   const fetchMonthlyData = async (year) => {

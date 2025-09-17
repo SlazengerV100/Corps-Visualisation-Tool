@@ -459,6 +459,60 @@ function getGrowthMetricDataByYear(centreId, metric) {
     })
 }
 
+// Helper function to get tithing data by year for a specific corps (using cache)
+function getTithingDataByYear(centreId) {
+    return new Promise((resolve, reject) => {
+        const yearlyData = []
+        
+        // Iterate through all years in the cache
+        for (const [year, yearData] of tithingDataCache) {
+            const corpsData = yearData.find(item => item.id === centreId)
+            if (corpsData) {
+                yearlyData.push({
+                    year: year,
+                    metric: corpsData.tithing
+                })
+            }
+        }
+        
+        if (yearlyData.length === 0) {
+            reject({ status: 404, error: `Tithing data is not available for corps ${centreId} in any year` })
+            return
+        }
+        
+        // Sort by year
+        yearlyData.sort((a, b) => a.year - b.year)
+        resolve(yearlyData)
+    })
+}
+
+// Helper function to get surplus/deficit data by year for a specific corps (using cache)
+function getSurplusDeficitDataByYear(centreId) {
+    return new Promise((resolve, reject) => {
+        const yearlyData = []
+        
+        // Iterate through all years in the cache
+        for (const [year, yearData] of surplusDeficitDataCache) {
+            const corpsData = yearData.find(item => item.location === centreId)
+            if (corpsData) {
+                yearlyData.push({
+                    year: year,
+                    metric: corpsData.surplusDeficit
+                })
+            }
+        }
+        
+        if (yearlyData.length === 0) {
+            reject({ status: 404, error: `Surplus/deficit data is not available for corps ${centreId} in any year` })
+            return
+        }
+        
+        // Sort by year
+        yearlyData.sort((a, b) => a.year - b.year)
+        resolve(yearlyData)
+    })
+}
+
 const maxBand = 70, minBand = 30, minCongregation = 25, maxCongregation = 200, benchmark = 0.1, maxPointsChange = 15, minTithingPerPerson = 500, maxTithingPerPerson = 2000
 
 function getGrowthBand(congregationalWorship) {
@@ -788,6 +842,30 @@ app.get('/api/corps/:centreId/youthDiscipleship/byYear', (req, res) => {
     const { centreId } = req.params
     
     getGrowthMetricDataByYear(centreId, '05-Youth Discipleship')
+        .then(results => {
+            res.json(results)
+        })
+        .catch(err => {
+            res.status(err.status).json({ error: err.error, details: err.details })
+        })
+})
+
+app.get('/api/corps/:centreId/tithing/byYear', (req, res) => {
+    const { centreId } = req.params
+    
+    getTithingDataByYear(centreId)
+        .then(results => {
+            res.json(results)
+        })
+        .catch(err => {
+            res.status(err.status).json({ error: err.error, details: err.details })
+        })
+})
+
+app.get('/api/corps/:centreId/surplusDeficit/byYear', (req, res) => {
+    const { centreId } = req.params
+    
+    getSurplusDeficitDataByYear(centreId)
         .then(results => {
             res.json(results)
         })
