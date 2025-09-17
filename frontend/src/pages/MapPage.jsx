@@ -33,20 +33,18 @@ export default function MapPage() {
                 flex: 1,
                 display: 'flex',
                 height: '100%',
-                overflow: 'hidden', // prevent parent scrollbars
+                overflow: 'hidden',
             }}
         >
-            {/* Left: Map stays fixed height of parent */}
-            <Box sx={{ flex: 3, height: '100%' }}>
+            <Box sx={{ flex: 2, height: '100%' }}>
                 <CorpsMap corpsData={corpsData} onCorpsSelect={setSelectedCorps} />
             </Box>
 
-            {/* Right: Details scroll internally */}
             <Box
                 sx={{
                     flex: 1,
                     height: '100%',
-                    overflowY: 'auto',  // scroll only inside this panel
+                    overflowY: 'auto',
                 }}
             >
                 <CorpsDetails corps={selectedCorps} />
