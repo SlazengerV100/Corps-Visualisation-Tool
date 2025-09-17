@@ -191,6 +191,7 @@ const CorpsDetails = ({ corps }) => {
         ) : (
           <MetricChart
             data={metricData}
+            timeRange={timeRange}
             width={600}
             height={300}
           />

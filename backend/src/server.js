@@ -28,9 +28,7 @@ async function initializeProcessing() {
     console.log('Starting server data initialization...')
     
     for (let year = MIN_YEAR_SAMIS; year <= 2025; year++) {
-        try {
-            console.log(`Processing data for year ${year}...`)
-            
+        try {            
             // Run the five data processing functions in order
             const growthData = await getGrowthData(year)
             const monthlyGrowthMetricData = await getMonthlyGrowthMetricData(year)

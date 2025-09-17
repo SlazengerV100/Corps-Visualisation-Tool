@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 
-const MetricChart = ({ data, height = 300 }) => {
+const MetricChart = ({ data, timeRange, height = 300 }) => {
   const svgRef = useRef();
 
   useEffect(() => {
@@ -16,7 +16,7 @@ const MetricChart = ({ data, height = 300 }) => {
         .attr('height', height);
 
     // Set margins
-    const margin = { top: 20, right: 30, bottom: 30, left: 40 };
+    const margin = { top: 20, right: 30, bottom: 40, left: 40 };
     const innerWidth = svg.node().getBoundingClientRect().width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
@@ -36,10 +36,18 @@ const MetricChart = ({ data, height = 300 }) => {
     // Create x-axis labels based on data type
     const xAxisLabels = data.map((d, i) => {
       if (isMonthlyData) {
-        // For monthly data, show just month names
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        return monthNames[d.month - 1] || `M${d.month}`;
+        
+        // For past year (1Y), show just month names
+        if (timeRange === 'pastYear') {
+          return monthNames[d.month - 1] || `M${d.month}`;
+        } else {
+          // For past two years and longer, show "Jul 23" format
+          const monthName = monthNames[d.month - 1] || `M${d.month}`;
+          const yearShort = d.year ? d.year.toString().slice(-2) : '';
+          return `${monthName} ${yearShort}`;
+        }
       } else {
         // For yearly data, show financial year
         return d.financialYear || d.year?.toString() || `Y${i + 1}`;
@@ -69,13 +77,20 @@ const MetricChart = ({ data, height = 300 }) => {
     const xAxis = g.append('g')
       .attr('transform', `translate(0,${innerHeight})`)
       .call(d3.axisBottom(x)
-        .ticks(Math.min(data.length, 10))
-        .tickSize(0)
+        .ticks(data.length)
         .tickFormat((d, i) => {
-          const index = Math.round(d) - 1;
-          return xAxisLabels[index] || '';
+          return xAxisLabels[i] || '';
         }))
       .call(g => g.select('.domain').attr('stroke-opacity', 0.2));
+
+    // Make labels vertical only for past two years
+    if (timeRange === 'pastTwoYears') {
+      xAxis.call(g => g.selectAll('.tick text')
+        .style('text-anchor', 'end')
+        .attr('dx', '-.8em')
+        .attr('dy', '.15em')
+        .attr('transform', 'rotate(-45)'));
+    }
 
     // Add y-axis
     g.append('g')
@@ -223,7 +238,7 @@ const MetricChart = ({ data, height = 300 }) => {
     return () => {
       d3.select('body').selectAll('.tooltip').remove();
     };
-  }, [data, height]);
+  }, [data, timeRange, height]);
 
   if (!data || data.length === 0) return <p>No data available for this metric in the selected time period.</p>
 
