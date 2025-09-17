@@ -56,26 +56,6 @@ const CorpsDetails = ({ corps }) => {
     }
   }
 
-  const fetchYearlyData = async (year) => {
-    try {
-      const response = await fetch(`${serverUrl}/api/corps/metrics/${year}`)
-      if (!response.ok) {
-        return null
-      }
-      const data = await response.json()
-      const corpsData = data.find(item => item.id === corps.id)
-      return corpsData ? {
-        value: corpsData.metrics[selectedMetric]?.currentYear || 0,
-        year: year,
-        financialYear: `${year - 1}/${year.toString().slice(-2)}`,
-        period: year.toString()
-      } : null
-    } catch (error) {
-      console.error(`Failed to fetch yearly metric data for ${year}`)
-      return null
-    }
-  }
-
   const fetchMetricData = async (range) => {
     if (!corps) return
 
@@ -84,43 +64,45 @@ const CorpsDetails = ({ corps }) => {
       let data = []
       const currentYear = new Date().getFullYear()
 
-      switch (range) {
+      let yearsToFetch;
+
+      switch (timeRange) {
         case 'pastYear':
-          // Get current year monthly data
-          data = await fetchMonthlyData(currentYear)
-          break
-
+          yearsToFetch = 1;
+          break;
         case 'pastTwoYears':
-          // Get monthly data for current year and previous year
-          const [currentYearData, prevYearData] = await Promise.all([
-            fetchMonthlyData(currentYear),
-            fetchMonthlyData(currentYear - 1)
-          ])
-          data = [...prevYearData, ...currentYearData].sort((a, b) => {
-            // Sort by year first, then by month
-            if (a.year !== b.year) {
-              return a.year - b.year
-            }
-            return a.month - b.month
-          })
-          break
-
+          yearsToFetch = 2;
+          break;
         case 'pastFiveYears':
-          // Get yearly data for past 5 years
-          const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
-          const yearlyData = await Promise.all(years.map(year => fetchYearlyData(year)))
-          data = yearlyData.filter(item => item !== null).sort((a, b) => a.year - b.year)
-          break
-
+          yearsToFetch = 5;
+          break;
+        case 'pastTenYears':
+          yearsToFetch = 10;
+          break;
         case 'allTime':
-          const allYears = Array.from({ length: currentYear - 1999 }, (_, i) => currentYear - i)
-          const allTimeData = await Promise.all(allYears.map(year => fetchYearlyData(year)))
-          data = allTimeData.filter(item => item !== null).sort((a, b) => a.year - b.year)
-          break
-
+          yearsToFetch = new Date().getFullYear() - 2000;
+          break;
         default:
-          data = []
+          yearsToFetch = 0;
       }
+
+      const fetchPromises = []
+
+      for (let i = 0; i < yearsToFetch; i++) {
+        fetchPromises.push(fetchMonthlyData(currentYear - i))
+      }
+
+      const allYearsData = await Promise.all(fetchPromises)
+
+      data = allYearsData
+        .flat()
+        .sort((a, b) => {
+          // Sort by year first, then by month
+          if (a.year !== b.year) {
+            return a.year - b.year
+          }
+          return a.month - b.month
+        })
 
       setMetricData(data)
     } catch (error) {
@@ -199,6 +181,7 @@ const CorpsDetails = ({ corps }) => {
         <ToggleButton value="pastYear">1Y</ToggleButton>
         <ToggleButton value="pastTwoYears">2Y</ToggleButton>
         <ToggleButton value="pastFiveYears">5Y</ToggleButton>
+        <ToggleButton value="pastTenYears">10Y</ToggleButton>
         <ToggleButton value="allTime">ALL TIME</ToggleButton>
       </ToggleButtonGroup>
 
