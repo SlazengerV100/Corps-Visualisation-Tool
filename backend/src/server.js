@@ -625,7 +625,7 @@ app.get('/api/corps/bubbleChart/:year', (req, res) => {
     const combinedResults = []
     growthData.forEach(growthItem => {
         const sustainabilityItem = sustainabilityMap.get(growthItem.id)
-        if (sustainabilityItem !== undefined) {
+        if (sustainabilityItem !== undefined && growthItem.metrics.congregationalWorship.currentYear > 0) {
             const size = growthItem.metrics.congregationalWorship.currentYear
             combinedResults.push({
                 id: growthItem.id,
