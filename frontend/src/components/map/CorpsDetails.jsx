@@ -151,7 +151,11 @@ const CorpsDetails = ({ corps }) => {
   }
 
   useEffect(() => {
-    fetchMetricData(timeRange)
+    if (selectedMetric === 'surplusDeficit') {
+      fetchMetricData('allTime')
+    } else {
+      fetchMetricData(timeRange)
+    }
   }, [serverUrl, corps, timeRange, selectedMetric])
 
   if (!corps) {
