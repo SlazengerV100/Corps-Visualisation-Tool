@@ -208,19 +208,21 @@ const CorpsDetails = ({ corps }) => {
         </Select>
       </FormControl>
 
-      <ToggleButtonGroup
-        value={timeRange}
-        exclusive
-        onChange={handleTimeRangeChange}
-        size="small"
-        sx={{ mb: 2 }}
-      >
-        <ToggleButton value="pastYear">1Y</ToggleButton>
-        <ToggleButton value="pastTwoYears">2Y</ToggleButton>
-        <ToggleButton value="pastFiveYears">5Y</ToggleButton>
-        <ToggleButton value="pastTenYears">10Y</ToggleButton>
-        <ToggleButton value="allTime">ALL TIME</ToggleButton>
-      </ToggleButtonGroup>
+      {selectedMetric !== 'surplusDeficit' && (
+        <ToggleButtonGroup
+          value={timeRange}
+          exclusive
+          onChange={handleTimeRangeChange}
+          size="small"
+          sx={{ mb: 2 }}
+        >
+          <ToggleButton value="pastYear">1Y</ToggleButton>
+          <ToggleButton value="pastTwoYears">2Y</ToggleButton>
+          <ToggleButton value="pastFiveYears">5Y</ToggleButton>
+          <ToggleButton value="pastTenYears">10Y</ToggleButton>
+          <ToggleButton value="allTime">ALL TIME</ToggleButton>
+        </ToggleButtonGroup>
+      )}
 
       <Box sx={{ height: 300, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {isLoading ? (
