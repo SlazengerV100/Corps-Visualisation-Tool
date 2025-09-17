@@ -521,6 +521,72 @@ function getSurplusDeficitDataByYear(location) {
     })
 }
 
+// Helper function to get tithing data by month for a specific corps and year
+function getTithingDataByMonth(centreId, year) {
+    return new Promise((resolve, reject) => {
+        const numericYear = parseInt(year, 10)
+        const currentYearSuffix = String(numericYear).slice(-2)
+        const prevYearSuffix = String(numericYear - 1).slice(-2)
+        const fileName = 'Territorial_Tithing_2000_2025.csv'
+        const filePath = path.join(DATA_FOLDER, fileName)
+        const monthlyData = []
+
+        if (!fs.existsSync(filePath)) {
+            reject({ status: 404, error: `No tithing data file found for year ${numericYear}` })
+            return
+        }
+
+        try {
+            fs.createReadStream(filePath)
+                .pipe(csv())
+                .on('data', (data) => {
+                    const mPeriod = data.M_period
+                    const code = data.code
+                    const value = parseFloat(data.mth_value) || 0
+
+                    // Only process data for the specified corps
+                    if (code === centreId) {
+                        // Extract year and month from M_period
+                        const periodYear = mPeriod.substring(1, 3) // Extract year part (e.g., "24" from "M2407")
+                        const month = parseInt(mPeriod.substring(3, 5)) // Extract month part (e.g., 7 from "M2407")
+                        
+                        // Financial year logic: July to June of the following year
+                        // For financial year 2025: July 2024 (M2407) to June 2025 (M2506)
+                        const isFinancialYearData = 
+                            (periodYear === prevYearSuffix && month >= 7) || // Previous year, months 7-12
+                            (periodYear === currentYearSuffix && month <= 6)  // Current year, months 1-6
+
+                        if (isFinancialYearData) {
+                            const actualYear = month >= 7 ? numericYear - 1 : numericYear
+                            monthlyData.push({
+                                month: month,
+                                year: actualYear,
+                                metric: value
+                            })
+                        }
+                    }
+                })
+                .on('end', () => {
+                    if (monthlyData.length === 0) {
+                        reject({ status: 404, error: `No tithing data available for corps ${centreId} in year ${numericYear}` })
+                        return
+                    }
+                    
+                    // Sort by month
+                    monthlyData.sort((a, b) => a.month - b.month)
+                    resolve(monthlyData)
+                })
+                .on('error', (err) => {
+                    console.error(`Error reading CSV file: ${err.message}`)
+                    reject({ status: 500, error: 'Failed to read CSV file', details: err.message })
+                })
+        } catch (err) {
+            console.error(`An unexpected error occurred: ${err.message}`)
+            reject({ status: 500, error: 'An unexpected server error occurred.' })
+        }
+    })
+}
+
 const maxBand = 70, minBand = 30, minCongregation = 25, maxCongregation = 200, benchmark = 0.1, maxPointsChange = 15, minTithingPerPerson = 500, maxTithingPerPerson = 2000
 
 function getGrowthBand(congregationalWorship) {
@@ -802,6 +868,18 @@ app.get('/api/corps/:centreId/youthDiscipleship/byMonth/:year', (req, res) => {
     const { centreId, year } = req.params
     
     getGrowthMetricDataByMonth(centreId, year, '05-Youth Discipleship')
+        .then(results => {
+            res.json(results)
+        })
+        .catch(err => {
+            res.status(err.status).json({ error: err.error, details: err.details })
+        })
+})
+
+app.get('/api/corps/:centreId/tithing/byMonth/:year', (req, res) => {
+    const { centreId, year } = req.params
+    
+    getTithingDataByMonth(centreId, year)
         .then(results => {
             res.json(results)
         })
