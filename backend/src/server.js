@@ -4,6 +4,7 @@ import cors from 'cors'
 import fs from 'fs'
 import csv from 'csv-parser'
 import path from 'path'
+import parse from 'date-fns/parse'
 
 dotenv.config()
 
@@ -697,6 +698,7 @@ app.get('/api/corps', (req, res) => {
                         name: data.name,
                         area: data.division_name,
                         address: data.address1,
+                        closingDate: parse(data.centre_close_date, 'dd/MM/yyyy', new Date()) || null,
                         city: data.city,
                         lat: lat,
                         lng: lng
