@@ -5,7 +5,7 @@ const MetricChart = ({ data, height = 300 }) => {
   const svgRef = useRef();
 
   useEffect(() => {
-    if (!data || data.length === 0) return;
+    if (!data || data.length === 0) return
 
     // Clear any existing chart
     d3.select(svgRef.current).selectAll('*').remove();
@@ -225,7 +225,9 @@ const MetricChart = ({ data, height = 300 }) => {
     };
   }, [data, height]);
 
-  return <svg ref={svgRef}></svg>;
+  if (!data || data.length === 0) return <p>No data available for this metric in the selected time period.</p>
+
+  return <svg ref={svgRef}></svg>
 };
 
 export default MetricChart; 
