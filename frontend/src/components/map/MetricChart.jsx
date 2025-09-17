@@ -25,39 +25,36 @@ const MetricChart = ({ data, timeRange, height = 300 }) => {
     
     // Create scales
     const x = d3.scaleLinear()
-      .domain([1, data.length])
+      .domain([0, data.length])
       .range([0, innerWidth]);
 
     const y = d3.scaleLinear()
-      .domain([0, d3.max(data, d => d.value)])
+      .domain([0, d3.max(data, d => d.metric)])
       .nice()
       .range([innerHeight, 0]);
 
     // Create x-axis labels based on data type
     const xAxisLabels = data.map((d, i) => {
-      if (isMonthlyData) {
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         
-        // For past year (1Y), show just month names
-        if (timeRange === 'pastYear') {
-          return monthNames[d.month - 1] || `M${d.month}`;
-        } else {
-          // For past two years and longer, show "Jul 23" format
-          const monthName = monthNames[d.month - 1] || `M${d.month}`;
-          const yearShort = d.year ? d.year.toString().slice(-2) : '';
-          return `${monthName} ${yearShort}`;
-        }
+      // For past year (1Y), show just month names
+      if (timeRange === 'pastYear') {
+        return monthNames[d.month - 1] || `M${d.month}`;
+      } else if (timeRange === 'pastTwoYears') {
+        // For past two years and longer, show "Jul 23" format
+        const monthName = monthNames[d.month - 1] || `M${d.month}`;
+        const yearShort = d.year ? d.year.toString().slice(-2) : '';
+        return `${monthName} ${yearShort}`;
       } else {
-        // For yearly data, show financial year
-        return d.financialYear || d.year?.toString() || `Y${i + 1}`;
+        return d.year;
       }
     });
 
     // Create line generator
     const line = d3.line()
-      .x((d, i) => x(i + 1))
-      .y(d => y(d.value))
+      .x((d, i) => x(i))
+      .y(d => y(d.metric))
       .curve(d3.curveMonotoneX);
 
     // Create chart group
@@ -77,9 +74,14 @@ const MetricChart = ({ data, timeRange, height = 300 }) => {
     const xAxis = g.append('g')
       .attr('transform', `translate(0,${innerHeight})`)
       .call(d3.axisBottom(x)
-        .ticks(data.length)
+        .ticks(isMonthlyData ? data.length : data.length * 2)
         .tickFormat((d, i) => {
-          return xAxisLabels[i] || '';
+          if (isMonthlyData) {
+            return xAxisLabels[i] || '';
+          } else {
+            if (i === 0) return '';
+            return xAxisLabels[(i - 1) / 2] || '';
+          }
         }))
       .call(g => g.select('.domain').attr('stroke-opacity', 0.2));
 
@@ -112,8 +114,8 @@ const MetricChart = ({ data, timeRange, height = 300 }) => {
       .enter()
       .append('circle')
       .attr('class', 'dot')
-      .attr('cx', (d, i) => x(i + 1))
-      .attr('cy', d => y(d.value))
+      .attr('cx', (d, i) => x(i))
+      .attr('cy', d => y(d.metric))
       .attr('r', 6)
       .attr('fill', '#8884d8')
       .attr('stroke', 'white')
@@ -152,13 +154,13 @@ const MetricChart = ({ data, timeRange, height = 300 }) => {
         .attr('fill', '#8884d8');
     })
     .on('mouseover', (event, d) => {
-      let tooltipTextContent = `Value: ${d.value}`;
+      let tooltipTextContent = `Value: ${d.metric.toFixed(2)}`;
       if (isMonthlyData) {
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        tooltipTextContent = `${monthNames[d.month - 1]} ${d.year}: ${d.value}`;
+        tooltipTextContent = `${monthNames[d.month - 1]} ${d.year}: ${d.metric.toFixed(2)}`;
       } else {
-        tooltipTextContent = `${d.financialYear}: ${d.value}`;
+        tooltipTextContent = `${d.financialYear}: ${d.metric.toFixed(2)}`;
       }
       
       // Set tooltip text

@@ -30,28 +30,32 @@ const CorpsDetails = ({ corps }) => {
 
   const fetchMonthlyData = async (year) => {
     try {
-      // Map metric names to metric codes
-      const metricToCode = {
-        'congregationalWorship': '01-Congregational Worship',
-        'firstTimeDecisions': '03A-First Time Decisions',
-        'kidsChurch': '04-Kids Church',
-        'youthDiscipleship': '05-Youth Discipleship'
-      }
-
-      const metricCode = metricToCode[selectedMetric]
       const response = await fetch(`${serverUrl}/api/corps/${corps.id}/${selectedMetric}/byMonth/${year}`)
+      if (!response.ok) {
+        return []
+      }
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error(`Failed to fetch monthly metric data for ${year}`)
+      return []
+    }
+  }
+
+  const fetchYearlyData = async () => {
+    try {
+      const response = await fetch(`${serverUrl}/api/corps/${corps.id}/${selectedMetric}/byYear`)
       if (!response.ok) {
         return []
       }
       const data = await response.json()
       return data.map(item => ({
         ...item,
-        value: item.metric, // Map metric to value for consistency
-        financialYear: `${year - 1}/${year.toString().slice(-2)}`,
-        period: `${item.year}-${item.month.toString().padStart(2, '0')}`
+        financialYear: `${item.year - 1}/${item.year.toString().slice(-2)}`,
+        year: item.year
       }))
     } catch (error) {
-      console.error(`Failed to fetch monthly metric data for ${year}`)
+      console.error(`Failed to fetch yearly metric data`)
       return []
     }
   }
@@ -62,47 +66,64 @@ const CorpsDetails = ({ corps }) => {
     setIsLoading(true)
     try {
       let data = []
-      const currentYear = new Date().getFullYear()
+      
+      // Use yearly data for 5Y, 10Y, and ALL TIME selections
+      if (timeRange === 'pastFiveYears' || timeRange === 'pastTenYears' || timeRange === 'allTime') {
+        data = await fetchYearlyData()
+        
+        // Filter data based on time range
+        const currentYear = new Date().getFullYear()
+        let yearsToInclude;
+        
+        switch (timeRange) {
+          case 'pastFiveYears':
+            yearsToInclude = 5;
+            break;
+          case 'pastTenYears':
+            yearsToInclude = 10;
+            break;
+          case 'allTime':
+            yearsToInclude = new Date().getFullYear() - 2000;
+            break;
+          default:
+            yearsToInclude = 0;
+        }
+        
+        data = data.filter(item => item.year >= currentYear - yearsToInclude + 1)
+      } else {
+        // Use monthly data for 1Y and 2Y selections
+        const currentYear = new Date().getFullYear()
+        let yearsToFetch;
 
-      let yearsToFetch;
+        switch (timeRange) {
+          case 'pastYear':
+            yearsToFetch = 1;
+            break;
+          case 'pastTwoYears':
+            yearsToFetch = 2;
+            break;
+          default:
+            yearsToFetch = 0;
+        }
 
-      switch (timeRange) {
-        case 'pastYear':
-          yearsToFetch = 1;
-          break;
-        case 'pastTwoYears':
-          yearsToFetch = 2;
-          break;
-        case 'pastFiveYears':
-          yearsToFetch = 5;
-          break;
-        case 'pastTenYears':
-          yearsToFetch = 10;
-          break;
-        case 'allTime':
-          yearsToFetch = new Date().getFullYear() - 2000;
-          break;
-        default:
-          yearsToFetch = 0;
+        const fetchPromises = []
+
+        for (let i = 0; i < yearsToFetch; i++) {
+          fetchPromises.push(fetchMonthlyData(currentYear - i))
+        }
+
+        const allYearsData = await Promise.all(fetchPromises)
+
+        data = allYearsData
+          .flat()
+          .sort((a, b) => {
+            // Sort by year first, then by month
+            if (a.year !== b.year) {
+              return a.year - b.year
+            }
+            return a.month - b.month
+          })
       }
-
-      const fetchPromises = []
-
-      for (let i = 0; i < yearsToFetch; i++) {
-        fetchPromises.push(fetchMonthlyData(currentYear - i))
-      }
-
-      const allYearsData = await Promise.all(fetchPromises)
-
-      data = allYearsData
-        .flat()
-        .sort((a, b) => {
-          // Sort by year first, then by month
-          if (a.year !== b.year) {
-            return a.year - b.year
-          }
-          return a.month - b.month
-        })
 
       setMetricData(data)
     } catch (error) {
