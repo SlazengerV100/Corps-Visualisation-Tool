@@ -22,6 +22,7 @@ const tithingDataCache = new Map()
 const surplusDeficitDataCache = new Map()
 const sustainabilityDataCache = new Map()
 const monthlyGrowthMetricsCache = new Map()
+const centreIdToLocation = new Map()
 
 // Initialize processing method
 async function initializeProcessing() {
@@ -39,6 +40,13 @@ async function initializeProcessing() {
                 const surplusDeficitData = await getSurplusDeficitData(year)
                 tithingDataCache.set(year, tithingData)
                 surplusDeficitDataCache.set(year, surplusDeficitData)
+                
+                tithingData.forEach(item => {
+                    if (!centreIdToLocation.has(item.id)) {
+                        centreIdToLocation.set(item.id, item.location)
+                    }
+                })
+                
                 if (year >= MIN_YEAR_TECHONE + 1) {
                     const sustainabilityData = await getSustainabilityData(year)
                     sustainabilityDataCache.set(year, sustainabilityData)
@@ -487,13 +495,13 @@ function getTithingDataByYear(centreId) {
 }
 
 // Helper function to get surplus/deficit data by year for a specific corps (using cache)
-function getSurplusDeficitDataByYear(centreId) {
+function getSurplusDeficitDataByYear(location) {
     return new Promise((resolve, reject) => {
         const yearlyData = []
         
         // Iterate through all years in the cache
         for (const [year, yearData] of surplusDeficitDataCache) {
-            const corpsData = yearData.find(item => item.location === centreId)
+            const corpsData = yearData.find(item => item.location === location)
             if (corpsData) {
                 yearlyData.push({
                     year: year,
@@ -503,7 +511,7 @@ function getSurplusDeficitDataByYear(centreId) {
         }
         
         if (yearlyData.length === 0) {
-            reject({ status: 404, error: `Surplus/deficit data is not available for corps ${centreId} in any year` })
+            reject({ status: 404, error: `Surplus/deficit data is not available for corps ${location} in any year` })
             return
         }
         
@@ -864,8 +872,14 @@ app.get('/api/corps/:centreId/tithing/byYear', (req, res) => {
 
 app.get('/api/corps/:centreId/surplusDeficit/byYear', (req, res) => {
     const { centreId } = req.params
+    const location = centreIdToLocation.get(centreId)
     
-    getSurplusDeficitDataByYear(centreId)
+    if (!location) {
+        res.status(404).json({ error: `No location mapping found for corps ${centreId}` })
+        return
+    }
+    
+    getSurplusDeficitDataByYear(location)
         .then(results => {
             res.json(results)
         })

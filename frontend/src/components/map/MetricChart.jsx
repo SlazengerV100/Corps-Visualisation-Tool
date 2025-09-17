@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 
-const MetricChart = ({ data, timeRange, height = 300 }) => {
+const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
   const svgRef = useRef();
 
   useEffect(() => {
@@ -24,7 +24,7 @@ const MetricChart = ({ data, timeRange, height = 300 }) => {
     const isMonthlyData = data.some(d => d.month !== undefined);
 
     const y = d3.scaleLinear()
-      .domain([0, d3.max(data, d => d.metric)])
+      .domain(selectedMetric === 'surplusDeficit' ? [d3.min(data, d => d.metric), d3.max(data, d => d.metric)] : [0, d3.max(data, d => d.metric)])
       .nice()
       .range([innerHeight, 0]);
 

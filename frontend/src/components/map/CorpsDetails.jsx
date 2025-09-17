@@ -62,6 +62,20 @@ const CorpsDetails = ({ corps }) => {
     }
   }
 
+  const fetchSurplusDeficitYearlyData = async () => {
+    try {
+      const response = await fetch(`${serverUrl}/api/corps/${corps.location}/surplusDeficit/byYear`)
+      if (!response.ok) {
+        return []
+      }
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error(`Failed to fetch surplus/deficit yearly data`)
+      return []
+    }
+  }
+
   const fetchMetricData = async (range) => {
     if (!corps) return
 
@@ -215,7 +229,7 @@ const CorpsDetails = ({ corps }) => {
           <MetricChart
             data={metricData}
             timeRange={timeRange}
-            width={600}
+            selectedMetric={selectedMetric}
             height={300}
           />
         )}
