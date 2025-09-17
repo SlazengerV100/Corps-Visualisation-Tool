@@ -12,7 +12,7 @@ import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
 import Typography from '@mui/material/Typography'
 
-export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps, onCorpsDataLoaded }) {
+export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps, onCorpsDataLoaded, year, yearData }) {
     const [corpsData, setCorpsData] = useState([])
     const [areas, setAreas] = useState({})
     const [expandedAreas, setExpandedAreas] = useState({})
@@ -115,6 +115,51 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
         return selectedCount > 0 && selectedCount < areaCorps.length
     }
 
+    const isClosed = (centreId) => {
+        if (!corpsData || !Array.isArray(corpsData)) {
+            return false
+        }
+        
+        const corps = corpsData.find(corp => corp.id === centreId)
+        if (!corps || !corps.closingDate) {
+            return false
+        }
+        
+        // Check if closing date is prior to June of the year before the year prop
+        const closingDate = new Date(corps.closingDate)
+        const cutoffDate = new Date(year, 5, 1) // June 1st of the year before the year prop (month is 0-indexed)
+        
+        return closingDate < cutoffDate
+    }
+
+    // Check if a corps has data for the current year's bubble chart
+    const hasBubbleData = (centreId) => {
+        if (!yearData || !Array.isArray(yearData)) {
+            return false
+        }
+        return yearData.some(data => data.id === centreId)
+    }
+
+    // Get the styling for a corps based on its status
+    const getCorpsStyling = (centreId) => {
+        if (isClosed(centreId)) {
+            return {
+                textDecoration: 'line-through',
+                color: 'text.secondary'
+            }
+        } else if (!hasBubbleData(centreId)) {
+            return {
+                textDecoration: 'none',
+                color: 'warning.main' // Yellow color
+            }
+        } else {
+            return {
+                textDecoration: 'none',
+                color: 'inherit'
+            }
+        }
+    }
+
     if (loading) {
         return (
             <Box sx={{ p: 2 }}>
@@ -193,7 +238,8 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
                                                             overflow: 'hidden',
                                                             textOverflow: 'ellipsis',
                                                             whiteSpace: 'nowrap',
-                                                            maxWidth: '100%'
+                                                            maxWidth: '100%',
+                                                            ...getCorpsStyling(corp.id)
                                                         }}
                                                     >
                                                         {corp.name}

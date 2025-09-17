@@ -92,6 +92,8 @@ export default function OverviewPage() {
                         selectedCorps={selectedCorps} 
                         setSelectedCorps={setSelectedCorps}
                         onCorpsDataLoaded={handleCorpsDataLoaded}
+                        year={year}
+                        yearData={yearData}
                     />
                 </Box>
             </Box>

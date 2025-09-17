@@ -203,13 +203,14 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
         .attr('fill', '#8884d8');
     })
     .on('mouseover', (event, d) => {
-      let tooltipTextContent = `Value: ${d.metric.toFixed(2)}`;
+      const metricTextValue = selectedMetric === 'firstTimeDecisions' ? d.metric : d.metric.toFixed(2)
+      let tooltipTextContent = `Value: ${metricTextValue}`;
       if (isMonthlyData) {
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        tooltipTextContent = `${monthNames[d.month - 1]} ${d.year}: ${d.metric.toFixed(2)}`;
+        tooltipTextContent = `${monthNames[d.month - 1]} ${d.year}: ${metricTextValue}`;
       } else {
-        tooltipTextContent = `${d.financialYear}: ${d.metric.toFixed(2)}`;
+        tooltipTextContent = `${d.financialYear}: ${metricTextValue}`;
       }
       
       // Set tooltip text
