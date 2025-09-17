@@ -28,9 +28,8 @@ const CorpsMap = ({corpsData, onCorpsSelect}) => {
                     <Popup>
                         <div style={{ fontFamily: theme.typography.fontFamily }}>
                             <h3>{corps.name}</h3>
-                            <p>{corps.area}</p>
-                            <p>{corps.address}</p>
-                            <p>{corps.city}</p>
+                            <h4>{corps.area}</h4>
+                            <p>{corps.address}, {corps.city}</p>
                         </div>
                     </Popup>
                 </Marker>

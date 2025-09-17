@@ -165,10 +165,7 @@ const CorpsDetails = ({ corps }) => {
         {corps.area}
       </Typography>
       <Typography variant="body1" paragraph>
-        {corps.address}
-      </Typography>
-      <Typography variant="body1" paragraph>
-        {corps.city}
+        {corps.address}, {corps.city}
       </Typography>
 
       <Divider sx={{ my: 2 }} />

@@ -514,8 +514,6 @@ app.get('/api/corps', (req, res) => {
                         lat: lat,
                         lng: lng
                     })
-                } else {
-                    console.warn(`Invalid coordinates for corps ${data.name} (${data.code}): lat=${data.latitude}, lng=${data.longitude}`)
                 }
             })
             .on('end', () => {
