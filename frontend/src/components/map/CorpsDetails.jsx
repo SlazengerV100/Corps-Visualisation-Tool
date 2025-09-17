@@ -37,7 +37,7 @@ const CorpsDetails = ({ corps }) => {
         'kidsChurch': '04-Kids Church',
         'youthDiscipleship': '05-Youth Discipleship'
       }
-      
+
       const metricCode = metricToCode[selectedMetric]
       const response = await fetch(`${serverUrl}/api/corps/${corps.id}/${selectedMetric}/byMonth/${year}`)
       if (!response.ok) {
@@ -78,7 +78,7 @@ const CorpsDetails = ({ corps }) => {
 
   const fetchMetricData = async (range) => {
     if (!corps) return
-    
+
     setIsLoading(true)
     try {
       let data = []
@@ -113,8 +113,7 @@ const CorpsDetails = ({ corps }) => {
           break
 
         case 'allTime':
-          // Get yearly data from 2010 to current year
-          const allYears = Array.from({ length: currentYear - 2009 }, (_, i) => currentYear - i)
+          const allYears = Array.from({ length: currentYear - 1999 }, (_, i) => currentYear - i)
           const allTimeData = await Promise.all(allYears.map(year => fetchYearlyData(year)))
           data = allTimeData.filter(item => item !== null).sort((a, b) => a.year - b.year)
           break
@@ -138,7 +137,7 @@ const CorpsDetails = ({ corps }) => {
 
   if (!corps) {
     return (
-      <Paper sx={{ 
+      <Paper sx={{
         p: 3
       }}>
         <Typography variant="h6">
@@ -156,9 +155,9 @@ const CorpsDetails = ({ corps }) => {
 
   return (
     <Paper
-        sx={{
-            p: 3
-        }}>
+      sx={{
+        p: 3
+      }}>
       <Typography variant="h4" gutterBottom>
         {corps.name}
       </Typography>
@@ -210,7 +209,7 @@ const CorpsDetails = ({ corps }) => {
         {isLoading ? (
           <CircularProgress />
         ) : (
-          <MetricChart 
+          <MetricChart
             data={metricData}
             width={600}
             height={300}
