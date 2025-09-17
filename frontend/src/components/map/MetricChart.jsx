@@ -23,6 +23,18 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
     // Determine if data is monthly or yearly based on data structure
     const isMonthlyData = data.some(d => d.month !== undefined);
 
+    const yDomain = () => {
+      const min = d3.min(data, d => d.metric)
+      const max = d3.max(data, d => d.metric)
+      if (min < 0) {
+        return [min, max]
+      }
+      if (max === 0) {
+        return [0, 1]
+      }
+      return [0, d3.max(data, d => d.metric)]
+    }
+
     const y = d3.scaleLinear()
       .domain(selectedMetric === 'surplusDeficit' ? [d3.min(data, d => d.metric), d3.max(data, d => d.metric)] : [0, d3.max(data, d => d.metric)])
       .nice()

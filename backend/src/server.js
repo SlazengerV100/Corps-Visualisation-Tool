@@ -125,8 +125,8 @@ function getGrowthData(year) {
                                     prevYear: null
                                 },
                                 firstTimeDecisions: {
-                                    currentYear: null,
-                                    prevYear: null
+                                    currentYear: 0,
+                                    prevYear: 0
                                 },
                                 kidsChurch: {
                                     currentYear: null,
@@ -458,6 +458,33 @@ function getGrowthMetricDataByYear(centreId, metric) {
         
         if (yearlyData.length === 0) {
             reject({ status: 404, error: `${metric} metric is not available for corps ${centreId} in any year` })
+            return
+        }
+        
+        // Sort by year
+        yearlyData.sort((a, b) => a.year - b.year)
+        resolve(yearlyData)
+    })
+}
+
+// Helper function to get first time decisions data by year for a specific corps (using cache)
+function getFirstTimeDecisionsDataByYear(centreId) {
+    return new Promise((resolve, reject) => {
+        const yearlyData = []
+        
+        // Iterate through all years in the cache
+        for (const [year, yearData] of growthDataCache) {
+            const corpsData = yearData.find(item => item.id === centreId)
+            if (corpsData && corpsData.metrics.congregationalWorship.currentYear > 0) {
+                yearlyData.push({
+                    year: year,
+                    metric: corpsData.metrics.firstTimeDecisions.currentYear
+                })
+            }
+        }
+        
+        if (yearlyData.length === 0) {
+            reject({ status: 404, error: `Surplus/deficit data is not available for corps ${location} in any year` })
             return
         }
         
@@ -840,18 +867,6 @@ app.get('/api/corps/:centreId/congregationalWorship/byMonth/:year', (req, res) =
         })
 })
 
-app.get('/api/corps/:centreId/firstTimeDecisions/byMonth/:year', (req, res) => {
-    const { centreId, year } = req.params
-    
-    getGrowthMetricDataByMonth(centreId, year, '03A-First Time Decisions')
-        .then(results => {
-            res.json(results)
-        })
-        .catch(err => {
-            res.status(err.status).json({ error: err.error, details: err.details })
-        })
-})
-
 app.get('/api/corps/:centreId/kidsChurch/byMonth/:year', (req, res) => {
     const { centreId, year } = req.params
     
@@ -903,7 +918,7 @@ app.get('/api/corps/:centreId/congregationalWorship/byYear', (req, res) => {
 app.get('/api/corps/:centreId/firstTimeDecisions/byYear', (req, res) => {
     const { centreId } = req.params
     
-    getGrowthMetricDataByYear(centreId, '03A-First Time Decisions')
+    getFirstTimeDecisionsDataByYear(centreId)
         .then(results => {
             res.json(results)
         })
