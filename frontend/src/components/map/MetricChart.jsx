@@ -22,40 +22,11 @@ const MetricChart = ({ data, timeRange, height = 300 }) => {
 
     // Determine if data is monthly or yearly based on data structure
     const isMonthlyData = data.some(d => d.month !== undefined);
-    
-    // Create scales
-    const x = d3.scaleLinear()
-      .domain([0, data.length])
-      .range([0, innerWidth]);
 
     const y = d3.scaleLinear()
       .domain([0, d3.max(data, d => d.metric)])
       .nice()
       .range([innerHeight, 0]);
-
-    // Create x-axis labels based on data type
-    const xAxisLabels = data.map((d, i) => {
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        
-      // For past year (1Y), show just month names
-      if (timeRange === 'pastYear') {
-        return monthNames[d.month - 1] || `M${d.month}`;
-      } else if (timeRange === 'pastTwoYears') {
-        // For past two years and longer, show "Jul 23" format
-        const monthName = monthNames[d.month - 1] || `M${d.month}`;
-        const yearShort = d.year ? d.year.toString().slice(-2) : '';
-        return `${monthName} ${yearShort}`;
-      } else {
-        return d.year;
-      }
-    });
-
-    // Create line generator
-    const line = d3.line()
-      .x((d, i) => x(i))
-      .y(d => y(d.metric))
-      .curve(d3.curveMonotoneX);
 
     // Create chart group
     const g = svg.append('g')
@@ -70,29 +41,89 @@ const MetricChart = ({ data, timeRange, height = 300 }) => {
         .tickFormat('')
       );
 
-    // Add x-axis with custom labels
+    // Improved axis handling with overlap prevention
+    const createSmartAxis = (data, innerWidth, timeRange) => {
+      const isMonthlyData = data.some(d => d.month !== undefined);
+      
+      if (isMonthlyData) {
+        // Use time scale for monthly data
+        const x = d3.scaleTime()
+          .domain(d3.extent(data, d => new Date(d.year, d.month - 1)))
+          .range([0, innerWidth]);
+        
+        // Smart tick selection based on time range
+        let tickInterval, tickFormat;
+        switch (timeRange) {
+          case 'pastYear':
+            tickInterval = d3.timeMonth.every(1);
+            tickFormat = d3.timeFormat("%b");
+            break;
+          case 'pastTwoYears':
+            tickInterval = d3.timeMonth.every(2);
+            tickFormat = d3.timeFormat("%b %y");
+            break;
+          default:
+            tickInterval = d3.timeMonth.every(3);
+            tickFormat = d3.timeFormat("%b %y");
+        }
+        
+        return {
+          x,
+          axis: d3.axisBottom(x)
+            .ticks(tickInterval)
+            .tickFormat(tickFormat)
+        };
+      } else {
+        // For yearly data, use linear scale with smart spacing
+        const x = d3.scaleLinear()
+          .domain([0, data.length - 1])
+          .range([0, innerWidth]);
+        
+        // Calculate optimal number of ticks
+        const maxTicks = Math.floor(innerWidth / 80); // 80px per label
+        const tickStep = Math.max(1, Math.floor(data.length / maxTicks));
+        
+        // Create tick positions that are always in between data points
+        // We want ticks at positions: 0.5, 1.5, 2.5, etc. (between data points)
+        const tickPositions = [];
+        for (let i = 0; i < data.length - 1; i += tickStep) {
+          tickPositions.push(i + 0.5); // Always place ticks between data points
+        }
+        
+        return {
+          x,
+          axis: d3.axisBottom(x)
+            .tickValues(tickPositions)
+            .tickFormat((d, i) => {
+              const dataIndex = Math.floor(d);
+              if (dataIndex < data.length) {
+                return data[dataIndex].year;
+              }
+              return '';
+            })
+        };
+      }
+    };
+
+    const { x, axis: xAxisGenerator } = createSmartAxis(data, innerWidth, timeRange);
+
+    // Create line generator
+    const line = d3.line()
+      .x((d, i) => {
+        if (isMonthlyData) {
+          return x(new Date(d.year, d.month - 1));
+        } else {
+          return x(i);
+        }
+      })
+      .y(d => y(d.metric))
+      .curve(d3.curveMonotoneX);
+
+    // Create x-axis
     const xAxis = g.append('g')
       .attr('transform', `translate(0,${innerHeight})`)
-      .call(d3.axisBottom(x)
-        .ticks(isMonthlyData ? data.length : data.length * 2)
-        .tickFormat((d, i) => {
-          if (isMonthlyData) {
-            return xAxisLabels[i] || '';
-          } else {
-            if (i === 0) return '';
-            return xAxisLabels[(i - 1) / 2] || '';
-          }
-        }))
+      .call(xAxisGenerator)
       .call(g => g.select('.domain').attr('stroke-opacity', 0.2));
-
-    // Make labels vertical only for past two years
-    if (timeRange === 'pastTwoYears') {
-      xAxis.call(g => g.selectAll('.tick text')
-        .style('text-anchor', 'end')
-        .attr('dx', '-.8em')
-        .attr('dy', '.15em')
-        .attr('transform', 'rotate(-45)'));
-    }
 
     // Add y-axis
     g.append('g')
@@ -114,7 +145,13 @@ const MetricChart = ({ data, timeRange, height = 300 }) => {
       .enter()
       .append('circle')
       .attr('class', 'dot')
-      .attr('cx', (d, i) => x(i))
+      .attr('cx', (d, i) => {
+        if (isMonthlyData) {
+          return x(new Date(d.year, d.month - 1));
+        } else {
+          return x(i);
+        }
+      })
       .attr('cy', d => y(d.metric))
       .attr('r', 6)
       .attr('fill', '#8884d8')
