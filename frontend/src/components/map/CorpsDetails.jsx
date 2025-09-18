@@ -225,6 +225,7 @@ const CorpsDetails = ({ corps }) => {
           <ToggleButton value="pastFiveYears">5Y</ToggleButton>
           <ToggleButton value="pastTenYears">10Y</ToggleButton>
           <ToggleButton value="allTime">ALL TIME</ToggleButton>
+          <ToggleButton value="future">FUTURE</ToggleButton>
         </ToggleButtonGroup>
       )}
 
