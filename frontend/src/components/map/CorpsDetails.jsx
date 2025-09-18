@@ -95,10 +95,16 @@ const CorpsDetails = ({ corps }) => {
       } else if (range === 'future') {
         data = await fetchYearlyData()
         
-        // Get the last 5 years of data for trend analysis
-        const lastFiveYears = data.filter(item => item.year > currentYear - 5)
-        
-        if (lastFiveYears.length >= 2) {
+        // Check if there's a data point for the current year
+        const currentYearData = data.find(item => item.year === currentYear)
+        if (!currentYearData) {
+          // No current year data available, return empty array
+          data = []
+        } else {
+          // Get the last 5 years of data for trend analysis
+          const lastFiveYears = data.filter(item => item.year > currentYear - 5)
+          
+          if (lastFiveYears.length >= 2) {
           // Calculate linear changes between consecutive years
           const linearChanges = []
           for (let i = 1; i < lastFiveYears.length; i++) {
@@ -133,9 +139,10 @@ const CorpsDetails = ({ corps }) => {
           
           // Combine historical data with projected future data
           data = [...lastFiveYears, ...futureData]
-        } else {
-          // If not enough historical data, just return the available data
-          data = lastFiveYears
+          } else {
+            // If not enough historical data, just return the available data
+            data = lastFiveYears
+          }
         }
 
       } else if (range === 'pastYear' || range === 'pastTwoYears') {
