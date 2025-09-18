@@ -84,14 +84,14 @@ const CorpsDetails = ({ corps }) => {
       let data = []
       
       // Use yearly data for 5Y, 10Y, and ALL TIME selections
-      if (timeRange === 'pastFiveYears' || timeRange === 'pastTenYears' || timeRange === 'allTime') {
+      if (range === 'pastFiveYears' || range === 'pastTenYears' || range === 'allTime') {
         data = await fetchYearlyData()
         
         // Filter data based on time range
         const currentYear = new Date().getFullYear()
         let yearsToInclude;
         
-        switch (timeRange) {
+        switch (range) {
           case 'pastFiveYears':
             yearsToInclude = 5;
             break;
@@ -111,7 +111,7 @@ const CorpsDetails = ({ corps }) => {
         const currentYear = new Date().getFullYear()
         let yearsToFetch;
 
-        switch (timeRange) {
+        switch (range) {
           case 'pastYear':
             yearsToFetch = 1;
             break;
