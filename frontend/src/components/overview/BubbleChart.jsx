@@ -241,6 +241,32 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
                         .attr('stroke', 'black')
                         .attr('stroke-width', 1.5)
                         .attr('opacity', 0.6)
+                        .on('mouseover', function(event) {
+                            const tooltip = svgRef.current.tooltip
+                            
+                            d3.select(this)
+                                .attr('stroke-width', 3)
+                                .attr('opacity', 0.8)
+
+                            tooltip.transition()
+                                .duration(200)
+                                .style("opacity", .9)
+
+                            tooltip.html(`<strong>${position.data.name} (${position.year})</strong><br/>Size: ${position.data.size}<br/>Growth: ${position.data.growth}<br/>Sustainability: ${position.data.sustainability}`)
+                                .style("left", (event.pageX + 10) + "px")
+                                .style("top", (event.pageY - 28) + "px")
+                        })
+                        .on('mouseout', function() {
+                            const tooltip = svgRef.current.tooltip
+                            
+                            d3.select(this)
+                                .attr('stroke-width', 1.5)
+                                .attr('opacity', 0.6)
+
+                            tooltip.transition()
+                                .duration(500)
+                                .style("opacity", 0)
+                        })
                 }
             })
         })
@@ -401,7 +427,10 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
                     .duration(200)
                     .style("opacity", .9)
 
-                tooltip.html(`<strong>${d.name}</strong><br/>Size: ${d.size}<br/>Growth: ${d.growth}<br/>Sustainability: ${d.sustainability}`)
+                // Show year in tooltip if corps is selected (similar to historical bubbles)
+                const showYear = selectedCorps && selectedCorps.length > 0 && selectedCorps.includes(d.id)
+                const nameWithYear = showYear ? `${d.name} (${year})` : d.name
+                tooltip.html(`<strong>${nameWithYear}</strong><br/>Size: ${d.size}<br/>Growth: ${d.growth}<br/>Sustainability: ${d.sustainability}`)
                     .style("left", (event.pageX + 10) + "px")
                     .style("top", (event.pageY - 28) + "px")
             })
