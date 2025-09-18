@@ -32,11 +32,11 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
                 
                 // Group corps by area
                 const groupedByArea = {}
-                data.forEach(corp => {
-                    if (!groupedByArea[corp.area]) {
-                        groupedByArea[corp.area] = []
+                data.forEach(corps => {
+                    if (!groupedByArea[corps.area]) {
+                        groupedByArea[corps.area] = []
                     }
-                    groupedByArea[corp.area].push(corp)
+                    groupedByArea[corps.area].push(corps)
                 })
                 setAreas(groupedByArea)
                 
@@ -62,15 +62,15 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
         fetchCorpsData()
     }, [])
 
-    const handleToggle = (name) => {
+    const handleToggle = (id) => {
         setSelectedCorps(prevSelected => {
-            const isCurrentlySelected = prevSelected.includes(name)
+            const isCurrentlySelected = prevSelected.includes(id)
             if (isCurrentlySelected) {
                 // Remove from selected corps
-                return prevSelected.filter(corpsName => corpsName !== name)
+                return prevSelected.filter(corpsId => corpsId !== id)
             } else {
                 // Add to selected corps
-                return [...prevSelected, name]
+                return [...prevSelected, id]
             }
         })
     }
@@ -84,19 +84,19 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
 
     const handleAreaSelectAll = (areaName) => {
         const areaCorps = areas[areaName] || []
-        const areaCorpNames = areaCorps.map(corp => corp.name)
-        const allSelected = areaCorpNames.every(name => selectedCorps.includes(name))
+        const areaCorpsIds = areaCorps.map(corps => corps.id)
+        const allSelected = areaCorpsIds.every(id => selectedCorps.includes(id))
         
         if (allSelected) {
             // Deselect all corps in this area
-            setSelectedCorps(prev => prev.filter(name => !areaCorpNames.includes(name)))
+            setSelectedCorps(prev => prev.filter(id => !areaCorpsIds.includes(id)))
         } else {
             // Select all corps in this area
             setSelectedCorps(prev => {
                 const newSelected = [...prev]
-                areaCorpNames.forEach(name => {
-                    if (!newSelected.includes(name)) {
-                        newSelected.push(name)
+                areaCorpsIds.forEach(id => {
+                    if (!newSelected.includes(id)) {
+                        newSelected.push(id)
                     }
                 })
                 return newSelected
@@ -106,12 +106,12 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
 
     const isAreaFullySelected = (areaName) => {
         const areaCorps = areas[areaName] || []
-        return areaCorps.length > 0 && areaCorps.every(corp => selectedCorps.includes(corp.name))
+        return areaCorps.length > 0 && areaCorps.every(corp => selectedCorps.includes(corp.id))
     }
 
     const isAreaPartiallySelected = (areaName) => {
         const areaCorps = areas[areaName] || []
-        const selectedCount = areaCorps.filter(corp => selectedCorps.includes(corp.name)).length
+        const selectedCount = areaCorps.filter(corp => selectedCorps.includes(corp.id)).length
         return selectedCount > 0 && selectedCount < areaCorps.length
     }
 
@@ -223,13 +223,13 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
                             {/* Corps list for this area */}
                             <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                                 <List component="div" disablePadding>
-                                    {areaCorps.sort((a, b) => a.name.localeCompare(b.name)).map(corp => (
-                                        <ListItem key={corp.name} sx={{ pl: 2, py: 0.25, overflow: 'hidden' }}>
+                                    {areaCorps.sort((a, b) => a.name.localeCompare(b.name)).map(corps => (
+                                        <ListItem key={corps.id} sx={{ pl: 2, py: 0.25, overflow: 'hidden' }}>
                                             <FormControlLabel
                                                 control={
                                                     <Checkbox
-                                                        checked={selectedCorps.includes(corp.name)}
-                                                        onChange={() => handleToggle(corp.name)}
+                                                        checked={selectedCorps.includes(corps.id)}
+                                                        onChange={() => handleToggle(corps.id)}
                                                     />
                                                 }
                                                 label={
@@ -239,10 +239,10 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
                                                             textOverflow: 'ellipsis',
                                                             whiteSpace: 'nowrap',
                                                             maxWidth: '100%',
-                                                            ...getCorpsStyling(corp.id)
+                                                            ...getCorpsStyling(corps.id)
                                                         }}
                                                     >
-                                                        {corp.name}
+                                                        {corps.name}
                                                     </Typography>
                                                 }
                                                 sx={{ 

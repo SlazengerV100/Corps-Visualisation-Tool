@@ -154,12 +154,12 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
         d3.select(svgRef.current).select('#year-text').text(year)
 
         // Update bubble history for selected corps
-        const selectedCorpsData = yearData.filter(d => selectedCorps.includes(d.name))
+        const selectedCorpsData = yearData.filter(d => selectedCorps.includes(d.id))
         const newHistory = { ...bubbleHistory }
 
         selectedCorpsData.forEach(corp => {
-            if (!newHistory[corp.name]) {
-                newHistory[corp.name] = []
+            if (!newHistory[corp.id]) {
+                newHistory[corp.id] = []
             }
             
             const currentPosition = {
@@ -170,22 +170,22 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
             }
 
             // Check if we already have this year's data
-            const existingIndex = newHistory[corp.name].findIndex(pos => pos.year === year)
+            const existingIndex = newHistory[corp.id].findIndex(pos => pos.year === year)
             if (existingIndex === -1) {
                 // Add new position
-                newHistory[corp.name].push(currentPosition)
+                newHistory[corp.id].push(currentPosition)
             } else {
                 // Update existing position
-                newHistory[corp.name][existingIndex] = currentPosition
+                newHistory[corp.id][existingIndex] = currentPosition
             }
         })
 
         // Handle year changes
         if (year < prevYearRef.current) {
             // Year decreased - remove most recent bubbles and lines
-            Object.keys(newHistory).forEach(corpName => {
-                if (newHistory[corpName]) {
-                    newHistory[corpName] = newHistory[corpName].filter(pos => pos.year <= year)
+            Object.keys(newHistory).forEach(corpsId => {
+                if (newHistory[corpsId]) {
+                    newHistory[corpsId] = newHistory[corpsId].filter(pos => pos.year <= year)
                 }
             })
         }
@@ -203,8 +203,8 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
         plot.selectAll('.historical-bubble').remove()
 
         // Draw connecting lines for selected corps
-        selectedCorps.forEach(corpName => {
-            const history = newHistory[corpName] || []
+        selectedCorps.forEach(corpsId => {
+            const history = newHistory[corpsId] || []
             if (history.length >= 2) {
                 const sortedHistory = history.sort((a, b) => a.year - b.year)
                 
@@ -214,12 +214,12 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
                     
                     plot.append('line')
                         .attr('class', 'connecting-line')
-                        .attr('data-corp', corpName)
+                        .attr('data-corp', corpsId)
                         .attr('x1', start.x)
                         .attr('y1', start.y)
                         .attr('x2', end.x)
                         .attr('y2', end.y)
-                        .attr('stroke', colourScale(corpName))
+                        .attr('stroke', colourScale(corpsId))
                         .attr('stroke-width', 2)
                         .attr('opacity', 0.7)
                 }
@@ -227,17 +227,17 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
         })
 
         // Draw historical bubbles for selected corps
-        selectedCorps.forEach(corpName => {
-            const history = newHistory[corpName] || []
+        selectedCorps.forEach(corpsId => {
+            const history = newHistory[corpsId] || []
             history.forEach((position) => {
                 if (position.year !== year) {
                     plot.append('circle')
                         .attr('class', 'historical-bubble')
-                        .attr('data-corp', corpName)
+                        .attr('data-corp', corpsId)
                         .attr('cx', position.x)
                         .attr('cy', position.y)
                         .attr('r', radiusScale(position.data.size))
-                        .attr('fill', colourScale(corpName))
+                        .attr('fill', colourScale(corpsId))
                         .attr('stroke', 'black')
                         .attr('stroke-width', 1.5)
                         .attr('opacity', 0.6)
@@ -258,38 +258,38 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
         const deselectedCorps = previouslySelectedCorps.filter(corp => !selectedCorps.includes(corp))
         if (deselectedCorps.length > 0) {
             // Remove historical bubbles and lines for deselected corps
-            deselectedCorps.forEach(corpName => {
+            deselectedCorps.forEach(corpsId => {
                 plot.selectAll('.historical-bubble').filter((d, i, nodes) => {
                     const circle = d3.select(nodes[i])
-                    return circle.attr('data-corp') === corpName
+                    return circle.attr('data-corp') === corpsId
                 }).remove()
                 
                 plot.selectAll('.connecting-line').filter((d, i, nodes) => {
                     const line = d3.select(nodes[i])
-                    return line.attr('data-corp') === corpName
+                    return line.attr('data-corp') === corpsId
                 }).remove()
             })
 
             // Remove history for deselected corps
             const newHistory = { ...bubbleHistory }
-            deselectedCorps.forEach(corpName => {
-                delete newHistory[corpName]
+            deselectedCorps.forEach(corpsId => {
+                delete newHistory[corpsId]
             })
             setBubbleHistory(newHistory)
         }
 
         // Handle corps selection
-        const newlySelectedCorps = selectedCorps.filter(corp => !previouslySelectedCorps.includes(corp))
+        const newlySelectedCorps = selectedCorps.filter(corps => !previouslySelectedCorps.includes(corps))
         const hadPreviousSelection = previouslySelectedCorps.length > 0
 
         if (newlySelectedCorps.length > 0) {
             // Add current position to history for newly selected corps
             const newHistory = { ...bubbleHistory }
-            newlySelectedCorps.forEach(corpName => {
-                const corpData = yearData.find(d => d.name === corpName)
+            newlySelectedCorps.forEach(corpsId => {
+                const corpData = yearData.find(d => d.id === corpsId)
                 if (corpData) {
-                    if (!newHistory[corpName]) {
-                        newHistory[corpName] = []
+                    if (!newHistory[corpsId]) {
+                        newHistory[corpsId] = []
                     }
                     
                     const currentPosition = {
@@ -300,13 +300,13 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
                     }
 
                     // Check if we already have this year's data
-                    const existingIndex = newHistory[corpName].findIndex(pos => pos.year === year)
+                    const existingIndex = newHistory[corpsId].findIndex(pos => pos.year === year)
                     if (existingIndex === -1) {
                         // Add new position
-                        newHistory[corpName].push(currentPosition)
+                        newHistory[corpsId].push(currentPosition)
                     } else {
                         // Update existing position
-                        newHistory[corpName][existingIndex] = currentPosition
+                        newHistory[corpsId][existingIndex] = currentPosition
                     }
                 }
             })
@@ -314,17 +314,17 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
 
             if (hadPreviousSelection) {
                 // If there were corps selected before, only redraw the new corps bubble with 100% opacity
-                newlySelectedCorps.forEach(corpName => {
+                newlySelectedCorps.forEach(corpsId => {
                     const currentBubble = plot.selectAll('.current-bubble').filter((d, i, nodes) => {
                         const circle = d3.select(nodes[i])
-                        return circle.attr('data-corp') === corpName
+                        return circle.attr('data-corp') === corpsId
                     })
                     currentBubble.attr('opacity', 1)
                 })
             } else {
                 // If there were no corps selected before, redraw all circles with new opacity
                 plot.selectAll('.current-bubble').attr('opacity', d => {
-                    return selectedCorps.includes(d.name) ? 1 : 0.2
+                    return selectedCorps.includes(d.id) ? 1 : 0.2
                 })
             }
         }
@@ -340,19 +340,19 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
         const plot = d3.select(svgRef.current).select('.plot-area')
         const tooltip = svgRef.current.tooltip
 
-        const allCorpsNames = corps?.map(c => c.name) || []
-        let filteredData = yearData.filter(d => allCorpsNames.includes(d.name))
+        const allCorpsIds = corps?.map(c => c.id) || []
+        let filteredData = yearData.filter(d => allCorpsIds.includes(d.id))
         
         // If hideUnselected is true and there are selected corps, only show selected corps
         if (hideUnselected && selectedCorps && selectedCorps.length > 0) {
-            filteredData = filteredData.filter(d => selectedCorps.includes(d.name))
+            filteredData = filteredData.filter(d => selectedCorps.includes(d.id))
         }
 
         // Sort data so selected corps are drawn last (appear on top)
         if (selectedCorps && selectedCorps.length > 0) {
             filteredData.sort((a, b) => {
-                const aSelected = selectedCorps.includes(a.name)
-                const bSelected = selectedCorps.includes(b.name)
+                const aSelected = selectedCorps.includes(a.id)
+                const bSelected = selectedCorps.includes(b.id)
                 if (aSelected && !bSelected) return 1  // a comes after b
                 if (!aSelected && bSelected) return -1 // a comes before b
                 return 0 // maintain original order
@@ -365,7 +365,7 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
 
         // DATA JOIN for current year bubbles
         const circles = plot.selectAll('.current-bubble')
-            .data(filteredData, d => d.name)
+            .data(filteredData, d => d.id)
 
         // EXIT
         circles.exit().remove()
@@ -375,22 +375,22 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
             .append('circle')
             .attr('class', 'current-bubble')
             .merge(circles)
-            .attr('data-corp', d => d.name)
+            .attr('data-corp', d => d.id)
             .attr('cx', d => xScale(d.growth))
             .attr('cy', d => yScale(d.sustainability))
             .attr('r', d => radiusScale(d.size))
-            .attr('fill', d => colourScale(d.name))
+            .attr('fill', d => colourScale(d.id))
             .attr('stroke', 'black')
             .attr('stroke-width', 1.5)
             .attr('opacity', d => {
                 if (selectedCorps && selectedCorps.length > 0) {
-                    return selectedCorps.includes(d.name) ? 1 : 0.2
+                    return selectedCorps.includes(d.id) ? 1 : 0.2
                 }
                 return 1
             })
             .on('mouseover', function(event, d) {
                 // Only show hover effects on selected corps when corps are selected
-                if (selectedCorps && selectedCorps.length > 0 && !selectedCorps.includes(d.name)) {
+                if (selectedCorps && selectedCorps.length > 0 && !selectedCorps.includes(d.id)) {
                     return
                 }
 
@@ -407,7 +407,7 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
             })
             .on('mouseout', function() {
                 // Only show hover effects on selected corps when corps are selected
-                if (selectedCorps && selectedCorps.length > 0 && !selectedCorps.includes(d3.select(this).datum().name)) {
+                if (selectedCorps && selectedCorps.length > 0 && !selectedCorps.includes(d3.select(this).datum().id)) {
                     return
                 }
 
@@ -421,7 +421,7 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
             .style('pointer-events', d => {
                 // When corps are selected, only selected corps should capture mouse events
                 if (selectedCorps && selectedCorps.length > 0) {
-                    return selectedCorps.includes(d.name) ? 'all' : 'none'
+                    return selectedCorps.includes(d.id) ? 'all' : 'none'
                 }
                 return 'all'
             })
