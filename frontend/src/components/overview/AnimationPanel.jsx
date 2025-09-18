@@ -39,6 +39,12 @@ export default function AnimationPanel({year, setYear}) {
     const [playing, setPlaying] = useState(false)
     const intervalRef = useRef(null)
 
+    // Generate marks for every year between MIN_YEAR and MAX_YEAR
+    const yearMarks = Array.from({ length: MAX_YEAR - MIN_YEAR + 1 }, (_, index) => ({
+        value: MIN_YEAR + index,
+        label: (MIN_YEAR + index).toString()
+    }))
+
     const togglePlay = () => {
         setPlaying(prev => !prev)
     }
@@ -81,10 +87,7 @@ export default function AnimationPanel({year, setYear}) {
                     min={MIN_YEAR}
                     max={MAX_YEAR}
                     step={1}
-                    marks={[
-                        { value: MIN_YEAR, label: MIN_YEAR.toString() },
-                        { value: MAX_YEAR, label: MAX_YEAR.toString() },
-                    ]}
+                    marks={yearMarks}
                     onChange={handleSliderChange}
                 />
             </Box>
