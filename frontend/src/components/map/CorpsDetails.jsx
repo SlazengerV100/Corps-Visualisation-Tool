@@ -62,33 +62,19 @@ const CorpsDetails = ({ corps }) => {
     }
   }
 
-  const fetchSurplusDeficitYearlyData = async () => {
-    try {
-      const response = await fetch(`${serverUrl}/api/corps/${corps.location}/surplusDeficit/byYear`)
-      if (!response.ok) {
-        return []
-      }
-      const data = await response.json()
-      return data
-    } catch (error) {
-      console.error(`Failed to fetch surplus/deficit yearly data`)
-      return []
-    }
-  }
-
   const fetchMetricData = async (range) => {
     if (!corps) return
 
     setIsLoading(true)
     try {
       let data = []
+      const currentYear = new Date().getFullYear()
       
       // Use yearly data for 5Y, 10Y, and ALL TIME selections
       if (range === 'pastFiveYears' || range === 'pastTenYears' || range === 'allTime') {
         data = await fetchYearlyData()
         
         // Filter data based on time range
-        const currentYear = new Date().getFullYear()
         let yearsToInclude;
         
         switch (range) {
@@ -105,21 +91,66 @@ const CorpsDetails = ({ corps }) => {
             yearsToInclude = 0;
         }
         
-        data = data.filter(item => item.year >= currentYear - yearsToInclude + 1)
-      } else {
-        // Use monthly data for 1Y and 2Y selections
+        data = data.filter(item => item.year > currentYear - yearsToInclude)
+      } else if (range === 'future') {
+        data = await fetchYearlyData()
+        
+        // Get the last 5 years of data for trend analysis
+        const lastFiveYears = data.filter(item => item.year > currentYear - 5)
+        
+        if (lastFiveYears.length >= 2) {
+          // Calculate linear changes between consecutive years
+          const linearChanges = []
+          for (let i = 1; i < lastFiveYears.length; i++) {
+            const prevValue = lastFiveYears[i - 1].metric
+            const currentValue = lastFiveYears[i].metric
+            
+            const linearChange = currentValue - prevValue
+            linearChanges.push(linearChange)
+          }
+          
+          // Calculate average linear change
+          const avgLinearChange = linearChanges.length > 0 
+            ? linearChanges.reduce((sum, change) => sum + change, 0) / linearChanges.length
+            : 0
+          
+          // Get the latest value from the last 5 years
+          const latestValue = lastFiveYears[lastFiveYears.length - 1].metric
+          
+          // Project 5 future data points using linear growth
+          const futureData = []
+          for (let i = 1; i <= 5; i++) {
+            const futureYear = currentYear + i
+            const projectedValue = latestValue + (avgLinearChange * i)
+            
+            futureData.push({
+              year: futureYear,
+              metric: Math.round(projectedValue * 100) / 100, // Round to 2 decimal places
+              financialYear: `${futureYear - 1}/${futureYear.toString().slice(-2)}`,
+              isProjected: true
+            })
+          }
+          
+          // Combine historical data with projected future data
+          data = [...lastFiveYears, ...futureData]
+        } else {
+          // If not enough historical data, just return the available data
+          data = lastFiveYears
+        }
+
+      } else if (range === 'pastYear' || range === 'pastTwoYears') {
         const currentYear = new Date().getFullYear()
-        let yearsToFetch;
+        let yearsToFetch
 
         switch (range) {
           case 'pastYear':
-            yearsToFetch = 1;
-            break;
+            yearsToFetch = 1
+            break
           case 'pastTwoYears':
-            yearsToFetch = 2;
-            break;
+            yearsToFetch = 2
+            break
           default:
-            yearsToFetch = 0;
+            yearsToFetch = 0
         }
 
         const fetchPromises = []
@@ -143,6 +174,7 @@ const CorpsDetails = ({ corps }) => {
 
       setMetricData(data)
     } catch (error) {
+      console.error(error)
       console.error(`Failed to fetch metric data`)
       setMetricData([])
     } finally {

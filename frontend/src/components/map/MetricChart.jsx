@@ -143,13 +143,56 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
         .tickSize(0))
       .call(g => g.select('.domain').attr('stroke-opacity', 0.2));
 
-    // Add the line path
-    const path = g.append('path')
-      .datum(data)
-      .attr('fill', 'none')
-      .attr('stroke', '#8884d8')
-      .attr('stroke-width', 2)
-      .attr('d', line);
+    // Create a custom line that changes from solid to dotted at current year
+    const currentYear = new Date().getFullYear();
+    
+    // Find the index where future data starts
+    const futureStartIndex = data.findIndex(d => d.year > currentYear);
+    
+    if (futureStartIndex === -1) {
+      // No future data, draw solid line
+      const path = g.append('path')
+        .datum(data)
+        .attr('fill', 'none')
+        .attr('stroke', '#8884d8')
+        .attr('stroke-width', 2)
+        .attr('d', line);
+    } else {
+      // Draw historical line (solid)
+      const historicalData = data.slice(0, futureStartIndex);
+      if (historicalData.length > 0) {
+        g.append('path')
+          .datum(historicalData)
+          .attr('fill', 'none')
+          .attr('stroke', '#8884d8')
+          .attr('stroke-width', 2)
+          .attr('d', line);
+      }
+      
+      // Create a custom line generator for future data that uses original indices
+      const futureLine = d3.line()
+        .x((d, i) => {
+          if (isMonthlyData) {
+            return x(new Date(d.year, d.month - 1));
+          } else {
+            // Find the original index in the full data array
+            const originalIndex = data.findIndex(item => item.year === d.year);
+            return x(originalIndex);
+          }
+        })
+        .y(d => Math.min(y(d.metric), y(0))) // Clip at y=0 (x-axis)
+        .curve(d3.curveMonotoneX);
+      
+      // Draw future line (dotted) starting from the last historical point
+      const futureData = data.slice(futureStartIndex - 1); // Include last historical point for connection
+      g.append('path')
+        .datum(futureData)
+        .attr('fill', 'none')
+        .attr('stroke', '#8884d8')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', '5,5')
+        .attr('d', futureLine);
+    }
 
     // Add dots (ensure they're above the line)
     const dots = g.selectAll('.dot')
@@ -164,7 +207,7 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
           return x(i);
         }
       })
-      .attr('cy', d => y(d.metric))
+      .attr('cy', d => Math.min(y(d.metric), y(0)))
       .attr('r', 6)
       .attr('fill', '#8884d8')
       .attr('stroke', 'white')
@@ -203,7 +246,8 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
         .attr('fill', '#8884d8');
     })
     .on('mouseover', (event, d) => {
-      const metricTextValue = selectedMetric === 'firstTimeDecisions' ? d.metric : d.metric.toFixed(2)
+      let metricTextValue = selectedMetric === 'firstTimeDecisions' ? d.metric : d.metric.toFixed(2)
+      metricTextValue = metricTextValue < 0 ? 0 : metricTextValue
       let tooltipTextContent = `Value: ${metricTextValue}`;
       if (isMonthlyData) {
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
@@ -271,14 +315,31 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
         });
     });
 
-    // Animation
-    const pathLength = path.node().getTotalLength();
-    path
-      .attr('stroke-dasharray', pathLength)
-      .attr('stroke-dashoffset', pathLength)
-      .transition()
-      .duration(1000)
-      .attr('stroke-dashoffset', 0);
+    // Animation for the lines
+    const paths = g.selectAll('path');
+    
+    paths.each(function() {
+      const pathElement = d3.select(this);
+      const pathLength = this.getTotalLength();
+      
+      if (pathElement.attr('stroke-dasharray') === '5,5') {
+        // Future line (already dotted) - fade in
+        pathElement
+          .attr('opacity', 0)
+          .transition()
+          .duration(1000)
+          .delay(500)
+          .attr('opacity', 1);
+      } else {
+        // Historical line (solid) - draw animation
+        pathElement
+          .attr('stroke-dasharray', pathLength)
+          .attr('stroke-dashoffset', pathLength)
+          .transition()
+          .duration(1000)
+          .attr('stroke-dashoffset', 0);
+      }
+    });
 
     dots
       .attr('opacity', 0)
