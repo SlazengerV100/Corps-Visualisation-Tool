@@ -24,10 +24,19 @@ const surplusDeficitDataCache = new Map()
 const sustainabilityDataCache = new Map()
 const monthlyGrowthMetricsCache = new Map()
 const centreIdToLocation = new Map()
+const corpsDataCache = new Map()
 
 // Initialize processing method
 async function initializeProcessing() {
     console.log('Starting server data initialization...')
+    
+    // Populate corps data cache first
+    try {
+        await getCorpsData()
+    } catch (error) {
+        console.error('Error populating corps data cache:', error)
+        // Continue with other initialization even if corps data fails
+    }
     
     for (let year = MIN_YEAR_SAMIS; year <= 2025; year++) {
         try {            
@@ -87,6 +96,63 @@ function updateCurrentCorps(metrics, metricName, value, yearType) {
             break
     }
     return metrics
+}
+
+// Helper function to populate corps data cache
+async function getCorpsData() {
+    return new Promise((resolve, reject) => {
+        const fileName = 'Corps address list.csv'
+        const filePath = path.join(DATA_FOLDER, fileName)
+
+        if (!fs.existsSync(filePath)) {
+            reject({ status: 404, error: `No data file found: ${fileName}` })
+            return
+        }
+
+        try {
+            fs.createReadStream(filePath)
+                .pipe(csv())
+                .on('data', (data) => {
+                    const lat = parseFloat(data.latitude)
+                    const lng = parseFloat(data.longitude)
+                    
+                    corpsDataCache.set(data.code, {
+                        id: data.code,
+                        name: data.name,
+                        area: data.division_name,
+                        address: data.address1,
+                        closingDate: parse(data.centre_close_date, 'dd/MM/yyyy', new Date()) || null,
+                        city: data.city,
+                        lat: lat,
+                        lng: lng,
+                        population: [
+                            {
+                                year: 2013,
+                                value: parseInt(data['2013 Population']) || 0
+                            },
+                            {
+                                year: 2024,
+                                value: parseInt(data['2024 Estimate']) || 0
+                            },
+                            {
+                                year: 2050,
+                                value: parseInt(data['2050 Projection']) || 0
+                            }
+                        ]
+                    })
+                })
+                .on('end', () => {
+                    resolve()
+                })
+                .on('error', (err) => {
+                    console.error(`Error reading CSV file: ${err.message}`)
+                    reject({ status: 500, error: 'Failed to read CSV file', details: err.message })
+                })
+        } catch (err) {
+            console.error(`An unexpected error occurred: ${err.message}`)
+            reject({ status: 500, error: 'An unexpected server error occurred.' })
+        }
+    })
 }
 
 // Helper function to get all metric data for a specific corps and year
@@ -675,51 +741,17 @@ function calculateSustainability(metrics, size) {
 }
 
 app.get('/api/corps', (req, res) => {
-    const fileName = 'Corps address list.csv'
-    const filePath = path.join(DATA_FOLDER, fileName)
-    const results = []
+    // Convert corps data cache to array and filter for valid coordinates
+    const results = Array.from(corpsDataCache.values()).filter(corps => {
+        return !isNaN(corps.lat) && !isNaN(corps.lng)
+    })
 
-    if (!fs.existsSync(filePath)) {
-        res.status(404).json({ error: `No data file found: ${fileName}` })
+    if (results.length === 0) {
+        res.status(404).json({ error: 'No corps with valid coordinates found in the data' })
         return
     }
 
-    try {
-        fs.createReadStream(filePath)
-            .pipe(csv())
-            .on('data', (data) => {
-                const lat = parseFloat(data.latitude)
-                const lng = parseFloat(data.longitude)
-                
-                // Only include corps with valid coordinates
-                if (!isNaN(lat) && !isNaN(lng)) {
-                    results.push({
-                        id: data.code,
-                        name: data.name,
-                        area: data.division_name,
-                        address: data.address1,
-                        closingDate: parse(data.centre_close_date, 'dd/MM/yyyy', new Date()) || null,
-                        city: data.city,
-                        lat: lat,
-                        lng: lng
-                    })
-                }
-            })
-            .on('end', () => {
-                if (results.length === 0) {
-                    res.status(404).json({ error: 'No corps with valid coordinates found in the data' })
-                    return
-                }
-                res.json(results)
-            })
-            .on('error', (err) => {
-                console.error(`Error reading CSV file: ${err.message}`)
-                res.status(500).json({ error: 'Failed to read CSV file', details: err.message })
-            })
-    } catch (err) {
-        console.error(`An unexpected error occurred: ${err.message}`)
-        res.status(500).json({ error: 'An unexpected server error occurred.' })
-    }
+    res.json(results)
 })
 
 app.get('/api/corps/growth/:year', (req, res) => {
@@ -830,7 +862,14 @@ app.get('/api/corps/metrics/:year', (req, res) => {
     const combinedResults = []
     growthData.forEach(growthItem => {
         const sustainabilityItem = sustainabilityMap.get(growthItem.id)
-        const result = {
+        const populationData = corpsDataCache.get(growthItem.id)?.population || null
+        let currentYearPopulation = null
+        if (populationData && Array.isArray(populationData)) {
+            const currentYearEntry = populationData.find(p => p.year === year)
+            currentYearPopulation = currentYearEntry ? currentYearEntry.value : null
+        }
+
+        combinedResults.push({
             id: growthItem.id,
             name: growthItem.name,
             metrics: {
@@ -838,15 +877,11 @@ app.get('/api/corps/metrics/:year', (req, res) => {
                 firstTimeDecisions: growthItem.metrics.firstTimeDecisions,
                 kidsChurch: growthItem.metrics.kidsChurch,
                 youthDiscipleship: growthItem.metrics.youthDiscipleship,
-                tithing: null,
-                surplusDeficit: null
+                tithing: sustainabilityItem?.metrics?.tithing || null,
+                surplusDeficit: sustainabilityItem?.metrics?.surplusDeficit || null,
+                population: currentYearPopulation
             }
-        }
-        if (sustainabilityItem) {
-            result.metrics.tithing = sustainabilityItem.metrics.tithing
-            result.metrics.surplusDeficit = sustainabilityItem.metrics.surplusDeficit
-        }
-        combinedResults.push(result)
+        })
     })
 
     if (combinedResults.length === 0) {
