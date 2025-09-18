@@ -348,6 +348,17 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
             filteredData = filteredData.filter(d => selectedCorps.includes(d.name))
         }
 
+        // Sort data so selected corps are drawn last (appear on top)
+        if (selectedCorps && selectedCorps.length > 0) {
+            filteredData.sort((a, b) => {
+                const aSelected = selectedCorps.includes(a.name)
+                const bSelected = selectedCorps.includes(b.name)
+                if (aSelected && !bSelected) return 1  // a comes after b
+                if (!aSelected && bSelected) return -1 // a comes before b
+                return 0 // maintain original order
+            })
+        }
+
         const colourScale = d3.scaleOrdinal()
             .domain(corps.map(c => c.id))
             .range(d3.schemeTableau10)
@@ -378,6 +389,11 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
                 return 1
             })
             .on('mouseover', function(event, d) {
+                // Only show hover effects on selected corps when corps are selected
+                if (selectedCorps && selectedCorps.length > 0 && !selectedCorps.includes(d.name)) {
+                    return
+                }
+
                 d3.select(this)
                     .attr('stroke-width', 3)
 
@@ -390,12 +406,24 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
                     .style("top", (event.pageY - 28) + "px")
             })
             .on('mouseout', function() {
+                // Only show hover effects on selected corps when corps are selected
+                if (selectedCorps && selectedCorps.length > 0 && !selectedCorps.includes(d3.select(this).datum().name)) {
+                    return
+                }
+
                 d3.select(this)
                     .attr('stroke-width', 1.5)
 
                 tooltip.transition()
                     .duration(500)
                     .style("opacity", 0)
+            })
+            .style('pointer-events', d => {
+                // When corps are selected, only selected corps should capture mouse events
+                if (selectedCorps && selectedCorps.length > 0) {
+                    return selectedCorps.includes(d.name) ? 'all' : 'none'
+                }
+                return 'all'
             })
 
     }, [corps, yearData, selectedCorps, dimensions, hideUnselected])
