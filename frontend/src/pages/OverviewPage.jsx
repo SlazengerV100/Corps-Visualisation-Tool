@@ -7,7 +7,7 @@ import {useEffect, useState} from 'react'
 
 export default function OverviewPage() {
     const serverUrl = import.meta.env.VITE_SERVER_URL
-    const [year, setYear] = useState(2024)
+    const [year, setYear] = useState(new Date().getFullYear())
     const [yearData, setYearData] = useState(null)
     const [selectedCorps, setSelectedCorps] = useState([])
     const [corps, setCorps] = useState([])
