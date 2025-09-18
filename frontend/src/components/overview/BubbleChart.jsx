@@ -3,7 +3,7 @@ import { useTheme } from '@mui/material/styles'
 import Box from '@mui/material/Box'
 import * as d3 from 'd3'
 
-export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
+export default function BubbleChart({ year, yearData, corps, selectedCorps, hideUnselected }) {
     const svgRef = useRef()
     const containerRef = useRef()
     const theme = useTheme()
@@ -195,7 +195,7 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
 
         // Draw historical lines and bubbles when year changes
         const colourScale = d3.scaleOrdinal()
-            .domain(corps.map(c => c.name))
+            .domain(corps.map(c => c.id))
             .range(d3.schemeTableau10)
 
         // Clear existing historical elements
@@ -341,10 +341,15 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
         const tooltip = svgRef.current.tooltip
 
         const allCorpsNames = corps?.map(c => c.name) || []
-        const filteredData = yearData.filter(d => allCorpsNames.includes(d.name))
+        let filteredData = yearData.filter(d => allCorpsNames.includes(d.name))
+        
+        // If hideUnselected is true and there are selected corps, only show selected corps
+        if (hideUnselected && selectedCorps && selectedCorps.length > 0) {
+            filteredData = filteredData.filter(d => selectedCorps.includes(d.name))
+        }
 
         const colourScale = d3.scaleOrdinal()
-            .domain(corps.map(c => c.name))
+            .domain(corps.map(c => c.id))
             .range(d3.schemeTableau10)
 
         // DATA JOIN for current year bubbles
@@ -393,7 +398,7 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps }) {
                     .style("opacity", 0)
             })
 
-    }, [corps, yearData, selectedCorps, dimensions])
+    }, [corps, yearData, selectedCorps, dimensions, hideUnselected])
 
     return (
         <Box 

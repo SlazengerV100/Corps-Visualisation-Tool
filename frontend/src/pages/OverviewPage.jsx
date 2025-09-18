@@ -1,6 +1,7 @@
 import BubbleChart from '../components/overview/BubbleChart.jsx'
 import AnimationPanel from '../components/overview/AnimationPanel.jsx'
 import CheckboxSelectorPanel from '../components/overview/CheckboxSelectorPanel.jsx'
+import TogglePanel from '../components/overview/TogglePanel.jsx'
 import Box from '@mui/material/Box'
 import {useEffect, useState} from 'react'
 
@@ -10,6 +11,7 @@ export default function OverviewPage() {
     const [yearData, setYearData] = useState(null)
     const [selectedCorps, setSelectedCorps] = useState([])
     const [corps, setCorps] = useState([])
+    const [hideUnselected, setHideUnselected] = useState(false)
 
     useEffect(() => {
         const fetchYearData = async () => {
@@ -62,6 +64,7 @@ export default function OverviewPage() {
                         yearData={yearData} 
                         corps={corps}
                         selectedCorps={selectedCorps}
+                        hideUnselected={hideUnselected}
                     />
                 </Box>
                 
@@ -84,16 +87,27 @@ export default function OverviewPage() {
             }}>
                 <Box sx={{ 
                     height: '100%',
-                    overflowY: 'auto', // Allow vertical scrolling
-                    overflowX: 'hidden', // Prevent horizontal scrollbar
-                    padding: 2
+                    display: 'flex',
+                    flexDirection: 'column'
                 }}>
-                    <CheckboxSelectorPanel 
-                        selectedCorps={selectedCorps} 
-                        setSelectedCorps={setSelectedCorps}
-                        onCorpsDataLoaded={handleCorpsDataLoaded}
-                        year={year}
-                        yearData={yearData}
+                    <Box sx={{ 
+                        flex: 1,
+                        overflowY: 'auto', // Allow vertical scrolling
+                        overflowX: 'hidden', // Prevent horizontal scrollbar
+                        padding: 2
+                    }}>
+                        <CheckboxSelectorPanel 
+                            selectedCorps={selectedCorps} 
+                            setSelectedCorps={setSelectedCorps}
+                            onCorpsDataLoaded={handleCorpsDataLoaded}
+                            year={year}
+                            yearData={yearData}
+                        />
+                    </Box>
+                    <TogglePanel 
+                        hideUnselected={hideUnselected}
+                        setHideUnselected={setHideUnselected}
+                        selectedCorps={selectedCorps}
                     />
                 </Box>
             </Box>
