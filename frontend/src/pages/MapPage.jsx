@@ -37,7 +37,7 @@ export default function MapPage() {
             }}
         >
             <Box sx={{ flex: 2, height: '100%' }}>
-                <CorpsMap corpsData={corpsData} onCorpsSelect={setSelectedCorps} />
+                <CorpsMap corpsData={corpsData} selectedCorps={selectedCorps}onCorpsSelect={setSelectedCorps} />
             </Box>
 
             <Box
