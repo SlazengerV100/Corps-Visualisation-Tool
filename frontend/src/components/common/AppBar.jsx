@@ -64,6 +64,15 @@ export default function ButtonAppBar() {
                         >
                             Map
                         </NavButton>
+                        <NavButton
+                            component={Link}
+                            to="/population"
+                            color="inherit"
+                            variant="text"
+                            active={isActive('/population')}
+                        >
+                            Population
+                        </NavButton>
                     </Box>
                 </Toolbar>
             </AppBar>
