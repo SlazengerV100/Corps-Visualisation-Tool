@@ -8,6 +8,7 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
     const containerRef = useRef()
     const theme = useTheme()
     const [bubbleHistory, setBubbleHistory] = useState({}) // Store previous positions for selected corps
+    const [allYearData, setAllYearData] = useState({}) // Store all fetched year data
     const prevYearRef = useRef(year)
     const prevSelectedCorpsRef = useRef(selectedCorps)
     const [dimensions, setDimensions] = useState({ width: 900, height: 600 })
@@ -28,6 +29,33 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
         window.addEventListener('resize', updateDimensions)
         return () => window.removeEventListener('resize', updateDimensions)
     }, [])
+
+    // Function to fetch data for a specific year
+    const fetchYearData = async (yearToFetch) => {
+        if (allYearData[yearToFetch]) {
+            return allYearData[yearToFetch] // Return cached data
+        }
+
+        try {
+            const serverUrl = import.meta.env.VITE_SERVER_URL
+            const response = await fetch(`${serverUrl}/api/corps/bubbleChart/${yearToFetch}`)
+            if (!response.ok) {
+                return null
+            }
+            const data = await response.json()
+            
+            // Cache the data
+            setAllYearData(prev => ({
+                ...prev,
+                [yearToFetch]: data
+            }))
+            
+            return data
+        } catch (error) {
+            console.error(`Failed to fetch data for year ${yearToFetch}:`, error)
+            return null
+        }
+    }
 
     // Constant margins
     const margin = { left: 125, right: 20, top: 20, bottom: 30 }
@@ -202,35 +230,107 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
         plot.selectAll('.connecting-line').remove()
         plot.selectAll('.historical-bubble').remove()
 
-        // Draw connecting lines for selected corps
-        selectedCorps.forEach(corpsId => {
-            const history = newHistory[corpsId] || []
-            if (history.length >= 2) {
+        // Draw connecting lines for selected corps using actual data
+        const drawConnectingLines = async () => {
+            for (const corpsId of selectedCorps) {
+                const history = newHistory[corpsId] || []
+                if (history.length === 0) continue
+
                 const sortedHistory = history.sort((a, b) => a.year - b.year)
-                
-                for (let i = 0; i < sortedHistory.length - 1; i++) {
-                    const start = sortedHistory[i]
-                    const end = sortedHistory[i + 1]
+                const minYear = sortedHistory[0].year
+                const maxYear = sortedHistory[sortedHistory.length - 1].year
+
+                // Get positions for all years between min and max
+                const allPositions = []
+                for (let yearToFetch = minYear; yearToFetch <= maxYear; yearToFetch++) {
+                    let position
                     
-                    plot.append('line')
-                        .attr('class', 'connecting-line')
-                        .attr('data-corp', corpsId)
-                        .attr('x1', start.x)
-                        .attr('y1', start.y)
-                        .attr('x2', end.x)
-                        .attr('y2', end.y)
-                        .attr('stroke', colourScale(corpsId))
-                        .attr('stroke-width', 2)
-                        .attr('opacity', 0.7)
+                    if (yearToFetch === year) {
+                        // Use current year data from yearData prop
+                        const corpsData = yearData.find(d => d.id === corpsId)
+                        if (corpsData) {
+                            position = {
+                                year: yearToFetch,
+                                x: xScale(corpsData.growth),
+                                y: yScale(corpsData.sustainability),
+                                data: corpsData
+                            }
+                        }
+                    } else {
+                        // Fetch historical data
+                        const yearDataForCorps = await fetchYearData(yearToFetch)
+                        if (yearDataForCorps) {
+                            const corpsData = yearDataForCorps.find(d => d.id === corpsId)
+                            if (corpsData) {
+                                position = {
+                                    year: yearToFetch,
+                                    x: xScale(corpsData.growth),
+                                    y: yScale(corpsData.sustainability),
+                                    data: corpsData
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (position) {
+                        allPositions.push(position)
+                    }
+                }
+
+                // Draw lines between consecutive years
+                for (let i = 0; i < allPositions.length - 1; i++) {
+                    const start = allPositions[i]
+                    const end = allPositions[i + 1]
+                    
+                    // Only draw line if the years are consecutive (no gaps)
+                    if (end.year - start.year === 1) {
+                        plot.append('line')
+                            .attr('class', 'connecting-line')
+                            .attr('data-corp', corpsId)
+                            .attr('x1', start.x)
+                            .attr('y1', start.y)
+                            .attr('x2', end.x)
+                            .attr('y2', end.y)
+                            .attr('stroke', colourScale(corpsId))
+                            .attr('stroke-width', 2)
+                            .attr('opacity', 0.7)
+                    }
                 }
             }
-        })
+        }
 
-        // Draw historical bubbles for selected corps
-        selectedCorps.forEach(corpsId => {
-            const history = newHistory[corpsId] || []
-            history.forEach((position) => {
-                if (position.year !== year) {
+        drawConnectingLines()
+
+        // Draw historical bubbles for selected corps using actual data
+        const drawHistoricalBubbles = async () => {
+            for (const corpsId of selectedCorps) {
+                const history = newHistory[corpsId] || []
+                if (history.length === 0) continue
+
+                const sortedHistory = history.sort((a, b) => a.year - b.year)
+                const minYear = sortedHistory[0].year
+                const maxYear = sortedHistory[sortedHistory.length - 1].year
+
+                // Fetch data for all years between min and max
+                for (let yearToFetch = minYear; yearToFetch <= maxYear; yearToFetch++) {
+                    if (yearToFetch === year) continue // Skip current year
+
+                    const yearData = await fetchYearData(yearToFetch)
+                    if (!yearData) continue
+
+                    // Find the corps data for this year
+                    const corpsData = yearData.find(d => d.id === corpsId)
+                    if (!corpsData) continue
+
+                    // Create position data
+                    const position = {
+                        year: yearToFetch,
+                        x: xScale(corpsData.growth),
+                        y: yScale(corpsData.sustainability),
+                        data: corpsData
+                    }
+
+                    // Draw the bubble
                     plot.append('circle')
                         .attr('class', 'historical-bubble')
                         .attr('data-corp', corpsId)
@@ -268,8 +368,10 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
                                 .style("opacity", 0)
                         })
                 }
-            })
-        })
+            }
+        }
+
+        drawHistoricalBubbles()
 
     }, [year, yearData, dimensions])
 
