@@ -1,6 +1,6 @@
 import BubbleChart from '../components/overview/BubbleChart.jsx'
 import AnimationPanel from '../components/overview/AnimationPanel.jsx'
-import CheckboxSelectorPanel from '../components/common/CheckboxSelectorPanel.jsx'
+import CheckboxSelectorPanel from '../components/overview/CheckboxSelectorPanel.jsx'
 import Box from '@mui/material/Box'
 import {useEffect, useState} from 'react'
 
