@@ -4,7 +4,7 @@ import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import { Link, useLocation } from 'react-router-dom'
-import { styled } from '@mui/material/styles'
+import { styled, useTheme } from '@mui/material/styles'
 
 // Custom navigation button component using MUI theme
 const NavButton = styled(Button)(({ theme, active }) => ({
@@ -27,11 +27,12 @@ const NavButton = styled(Button)(({ theme, active }) => ({
 
 export default function ButtonAppBar() {
     const location = useLocation()
+    const theme = useTheme()
     const isActive = (path) => location.pathname === path
 
     return (
         <Box>
-            <AppBar>
+            <AppBar sx={{ backgroundColor: theme.palette.primary.main }}>
                 <Toolbar sx={{ display: 'flex', gap: 2 }}>
                     <img
                         src="https://www.salvationarmy.org.nz/wp-content/uploads/2024/06/cropped-cropped-tsa-redshield-icon-512-32x32.png"
@@ -40,6 +41,7 @@ export default function ButtonAppBar() {
                             height: 32,
                             marginRight: 16,
                         }}
+                        color={theme.palette.primary.main}
                     />
                     <Typography variant="h6" component="div">
                         Corps Analytics

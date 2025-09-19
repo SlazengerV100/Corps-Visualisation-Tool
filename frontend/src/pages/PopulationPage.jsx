@@ -1,10 +1,18 @@
 import React from 'react'
-import { Box } from '@mui/material'
+import Box from '@mui/material/Box'
+import PopulationChart from '../components/population/PopulationChart'
 
 const PopulationPage = () => {
   return (
-    <Box sx={{ p: 3 }}>
-      <p>Population Page</p>
+    <Box
+      sx={{
+        flex: 1,
+        display: 'flex',
+        height: '100%',
+        overflow: 'hidden',
+      }}
+    >
+      <PopulationChart />
     </Box>
   )
 }
