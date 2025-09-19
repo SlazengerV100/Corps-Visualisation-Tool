@@ -72,8 +72,8 @@ export function calculateNominalSustainability(prevYear, currentYear) {
  * @returns {number} Percentage change
  */
 export function calculatePercentageChange(prevYear, currentYear) {
-    if (prevYear === 0) {
-        throw new Error('Cannot calculate percentage change when previous year is zero')
+    if (prevYear <= 0) {
+        throw new Error('Cannot calculate percentage change when previous year is less than or equal to zero')
     }
     return (currentYear - prevYear) / prevYear
 }
@@ -117,6 +117,9 @@ export function calculateSustainability(metrics, size) {
  * @returns {Object} Updated metrics object
  */
 export function updateCurrentCorps(metrics, metricName, value, yearType) {
+    if (yearType != 'currentYear' && yearType != 'prevYear') {
+        throw new Error('Year type must be either currentYear or prevYear')
+    }
     switch (metricName) {
         case '01-Congregational Worship':
             metrics.congregationalWorship[yearType] = value
