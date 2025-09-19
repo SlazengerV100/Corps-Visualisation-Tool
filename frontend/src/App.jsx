@@ -10,6 +10,7 @@ import AppBar from './components/common/AppBar.jsx'
 import OverviewPage from './pages/OverviewPage.jsx'
 import MapPage from './pages/MapPage.jsx'
 import PopulationPage from './pages/PopulationPage.jsx'
+import DefinitionsPage from './pages/DefinitionsPage.jsx'
 
 const theme = createTheme({
     typography: {
@@ -49,6 +50,7 @@ function App() {
                             <Route path="/" element={<OverviewPage />} />
                             <Route path="/map" element={<MapPage />} />
                             <Route path="/population" element={<PopulationPage />} />
+                            <Route path="/definitions" element={<DefinitionsPage />} />
                         </Routes>
                     </Box>
                 </Router>

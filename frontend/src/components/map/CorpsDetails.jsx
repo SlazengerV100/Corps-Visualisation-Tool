@@ -199,13 +199,13 @@ const CorpsDetails = ({ corps }) => {
 
   if (!corps) {
     return (
-      <Paper sx={{
+      <Box sx={{
         p: 3
       }}>
         <Typography variant="h6">
           Select a corps on the map to view details
         </Typography>
-      </Paper>
+      </Box>
     );
   }
 

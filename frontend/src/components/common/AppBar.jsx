@@ -75,6 +75,15 @@ export default function ButtonAppBar() {
                         >
                             Population
                         </NavButton>
+                        <NavButton
+                            component={Link}
+                            to="/definitions"
+                            color="inherit"
+                            variant="text"
+                            active={isActive('/definitions')}
+                        >
+                            Definitions
+                        </NavButton>
                     </Box>
                 </Toolbar>
             </AppBar>
