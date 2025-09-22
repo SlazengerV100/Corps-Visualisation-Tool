@@ -87,7 +87,8 @@ export function createCorpsRoutes(metricService) {
         const combinedResults = []
         growthData.forEach(growthItem => {
             const sustainabilityItem = sustainabilityMap.get(growthItem.id)
-            if (sustainabilityItem !== undefined && growthItem.metrics.congregationalWorship.currentYear > 0) {
+            const growth = calculateGrowth(growthItem.metrics)
+            if (sustainabilityItem !== undefined && growth !== null) {
                 const size = growthItem.metrics.congregationalWorship.currentYear
                 combinedResults.push({
                     id: growthItem.id,
