@@ -394,7 +394,7 @@ describe('Calculation Utilities', () => {
       }
 
       // This should throw an error due to division by zero in calculatePercentageChange
-      expect(() => calculateGrowth(metrics)).toThrow('Cannot calculate percentage change when previous year is less than or equal to zero')
+      expect(() => calculateGrowth(metrics)).toThrow('Cannot calculate growth score when previous year is zero')
     })
   })
 

@@ -81,9 +81,12 @@ export function calculatePercentageChange(prevYear, currentYear) {
 /**
  * Calculate overall growth score based on metrics
  * @param {Object} metrics - Growth metrics object
- * @returns {number} Rounded growth score
+ * @returns {number} Rounded growth score or null if previous year is less than or equal to zero
  */
 export function calculateGrowth(metrics) {
+    if (metrics.congregationalWorship.prevYear == 0) {
+        throw new Error('Cannot calculate growth score when previous year is zero')
+    }
     let growth = getGrowthBand(metrics.congregationalWorship.currentYear)
     growth += calculateNominalChange(metrics.congregationalWorship.prevYear, metrics.congregationalWorship.currentYear)
     const percentage = calculatePercentageChange(metrics.congregationalWorship.prevYear, metrics.congregationalWorship.currentYear)
