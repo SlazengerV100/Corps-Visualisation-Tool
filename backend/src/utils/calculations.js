@@ -57,6 +57,9 @@ export function calculateNominalChange(prevYear, currentYear) {
  * @returns {number} Nominal sustainability change value
  */
 export function calculateNominalSustainability(prevYear, currentYear) {
+    if (prevYear === null || currentYear === null) {
+        return null
+    }
     const nominalChange = currentYear - prevYear
     const maxSize = maxCongregation * maxTithingPerPerson * benchmark
     const value = nominalChange / maxSize * maxPointsChange
@@ -81,18 +84,30 @@ export function calculatePercentageChange(prevYear, currentYear) {
 /**
  * Calculate overall growth score based on metrics
  * @param {Object} metrics - Growth metrics object
- * @returns {number} Rounded growth score
+ * @returns {number} Rounded growth score or null if previous year is less than or equal to zero
  */
 export function calculateGrowth(metrics) {
+    if (metrics.congregationalWorship.prevYear === 0) {
+        throw new Error('Cannot calculate growth score when previous year is zero')
+    }
+    if (metrics.congregationalWorship.prevYear === null || metrics.congregationalWorship.currentYear === null) {
+        return null
+    }
+
     let growth = getGrowthBand(metrics.congregationalWorship.currentYear)
     growth += calculateNominalChange(metrics.congregationalWorship.prevYear, metrics.congregationalWorship.currentYear)
-    const percentage = calculatePercentageChange(metrics.congregationalWorship.prevYear, metrics.congregationalWorship.currentYear)
-    if (percentage >= benchmark) {
-        growth += maxPointsChange
-    } else {
-        growth = growth * (1 + percentage)
+
+    try {
+        const percentage = calculatePercentageChange(metrics.congregationalWorship.prevYear, metrics.congregationalWorship.currentYear)
+        if (percentage >= benchmark) {
+            growth += maxPointsChange
+        } else {
+            growth = growth * (1 + percentage)
+        }
+        return Math.round(growth)
+    } catch (error) {
+        return null
     }
-    return Math.round(growth)
 }
 
 /**

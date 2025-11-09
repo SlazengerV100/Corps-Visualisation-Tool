@@ -137,7 +137,14 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
         if (!yearData || !Array.isArray(yearData)) {
             return false
         }
-        return yearData.some(data => data.id === centreId)
+        const bubbleData = yearData.find(data => data.id === centreId)
+        if (bubbleData) {
+            if (bubbleData.growth != null && bubbleData.sustainability != null) {
+                return true
+            }
+            return false
+        }
+        return false
     }
 
     // Get the styling for a corps based on its status
