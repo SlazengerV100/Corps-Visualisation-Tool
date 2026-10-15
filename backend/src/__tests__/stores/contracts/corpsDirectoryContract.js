@@ -1,3 +1,5 @@
+import { alpha, beta, unknownId, byId } from './scenario.js'
+
 export function describeCorpsDirectoryContract(loadDirectory) {
     describe('CorpsDirectory contract', () => {
         let directory
@@ -8,15 +10,14 @@ export function describeCorpsDirectoryContract(loadDirectory) {
 
         describe('all', () => {
             test('should list every corps', () => {
-                expect(directory.all().map(c => c.id).sort()).toEqual(['100001', '100002'])
+                expect([...directory.all()].sort(byId).map(c => c.id)).toEqual([alpha.id, beta.id])
             })
         })
 
         describe('get', () => {
             test('should return the corps reference data', () => {
-                expect(directory.get('100001')).toEqual({
-                    id: '100001',
-                    name: 'Alpha Corps',
+                expect(directory.get(alpha.id)).toEqual({
+                    ...alpha,
                     area: 'Area Officer - North',
                     address: '1 Main Street',
                     city: 'Kaitaia',
@@ -32,25 +33,25 @@ export function describeCorpsDirectoryContract(loadDirectory) {
             })
 
             test('should return the closing date and null coordinates when missing', () => {
-                const beta = directory.get('100002')
-                expect(beta.closingDate).toEqual(new Date(2014, 11, 23))
-                expect(beta.lat).toBeNull()
-                expect(beta.lng).toBeNull()
+                const corps = directory.get(beta.id)
+                expect(corps.closingDate).toEqual(new Date(2014, 11, 23))
+                expect(corps.lat).toBeNull()
+                expect(corps.lng).toBeNull()
             })
 
             test('should return null for an unknown corps', () => {
-                expect(directory.get('999999')).toBeNull()
+                expect(directory.get(unknownId)).toBeNull()
             })
         })
 
         describe('population', () => {
             test('should return the population for a year with a figure', () => {
-                expect(directory.population('100001', 2024)).toBe(1200)
+                expect(directory.population(alpha.id, 2024)).toBe(1200)
             })
 
             test('should return null for a year or corps without a figure', () => {
-                expect(directory.population('100001', 2030)).toBeNull()
-                expect(directory.population('999999', 2024)).toBeNull()
+                expect(directory.population(alpha.id, 2030)).toBeNull()
+                expect(directory.population(unknownId, 2024)).toBeNull()
             })
         })
     })
