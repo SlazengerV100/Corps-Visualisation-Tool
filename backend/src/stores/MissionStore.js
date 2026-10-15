@@ -2,7 +2,7 @@
  * @typedef {import('../domain/Corps.js').Corps} Corps
  * @typedef {import('../domain/FinancialYear.js').FinancialYear} FinancialYear
  * @typedef {import('../domain/MissionIndicator.js').MissionIndicator} MissionIndicator
- * @typedef {import('../domain/MissionIndicators.js').MissionIndicators} MissionIndicators
+ * @typedef {import('../domain/MissionIndicator.js').MissionIndicators} MissionIndicators
  * @typedef {import('../domain/MonthlyPoint.js').MonthlyPoint} MonthlyPoint
  */
 
