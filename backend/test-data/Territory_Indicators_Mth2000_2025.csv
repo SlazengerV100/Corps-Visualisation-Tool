@@ -1,0 +1,6 @@
+﻿country,division_id,division_code,division_name,centre_id,centre_code,centre_name,end_year,indicator,period_code,averages,totals,sortorder
+New Zealand,1930,100100,Area Officer - North,1,100001,Alpha Corps,2023/24,01-Congregational Worship,M2406,65,260,1
+New Zealand,1930,100100,Area Officer - North,1,100001,Alpha Corps,2023/24,01-Congregational Worship,M2307,55,220,1
+New Zealand,1930,100100,Area Officer - North,1,100001,Alpha Corps,2023/24,01-Congregational Worship,TOTAL,60,3120,1
+New Zealand,1930,100100,Area Officer - North,1,100001,Alpha Corps,Growth%,01-Congregational Worship,TOT01,18.18,18.18,1
+New Zealand,1930,100100,Area Officer - North,1,100001,Alpha Corps,2023/24,06-Prayer Meetings,M2307,12,48,6
