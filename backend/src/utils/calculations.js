@@ -52,9 +52,21 @@ export function calculateNominalChange(prevYear, currentYear) {
 
 /**
  * Calculate nominal change for sustainability metrics
+ * @overload
  * @param {number} prevYear - Previous year value
  * @param {number} currentYear - Current year value
  * @returns {number} Nominal sustainability change value
+ */
+/**
+ * @overload
+ * @param {number | null} prevYear
+ * @param {number | null} currentYear
+ * @returns {number | null}
+ */
+/**
+ * @param {number | null} prevYear
+ * @param {number | null} currentYear
+ * @returns {number | null}
  */
 export function calculateNominalSustainability(prevYear, currentYear) {
     if (prevYear === null || currentYear === null) {
@@ -83,8 +95,8 @@ export function calculatePercentageChange(prevYear, currentYear) {
 
 /**
  * Calculate overall growth score based on metrics
- * @param {Object} metrics - Growth metrics object
- * @returns {number} Rounded growth score or null if previous year is less than or equal to zero
+ * @param {{ congregationalWorship: { currentYear: number | null, prevYear: number | null } }} metrics - Growth metrics object
+ * @returns {number | null} Rounded growth score or null if previous year is less than or equal to zero
  */
 export function calculateGrowth(metrics) {
     if (metrics.congregationalWorship.prevYear === 0) {
@@ -112,7 +124,7 @@ export function calculateGrowth(metrics) {
 
 /**
  * Calculate overall sustainability score based on metrics and size
- * @param {Object} metrics - Sustainability metrics object
+ * @param {{ tithing: { currentYear: number, prevYear: number } }} metrics - Sustainability metrics object
  * @param {number} size - Congregational size
  * @returns {number} Rounded sustainability score
  */
@@ -125,11 +137,11 @@ export function calculateSustainability(metrics, size) {
 
 /**
  * Update current corps metrics based on metric name and value
- * @param {Object} metrics - Current metrics object
+ * @param {Record<'congregationalWorship' | 'firstTimeDecisions' | 'kidsChurch' | 'youthDiscipleship', { currentYear: number | null, prevYear: number | null }>} metrics - Current metrics object
  * @param {string} metricName - Name of the metric to update
  * @param {number} value - Value to set
- * @param {string} yearType - Either 'currentYear' or 'prevYear'
- * @returns {Object} Updated metrics object
+ * @param {'currentYear' | 'prevYear'} yearType - Either 'currentYear' or 'prevYear'
+ * @returns {Record<'congregationalWorship' | 'firstTimeDecisions' | 'kidsChurch' | 'youthDiscipleship', { currentYear: number | null, prevYear: number | null }>} Updated metrics object
  */
 export function updateCurrentCorps(metrics, metricName, value, yearType) {
     if (yearType != 'currentYear' && yearType != 'prevYear') {
