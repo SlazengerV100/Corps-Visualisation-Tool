@@ -43,7 +43,7 @@ const toMonth = (periodCode) => {
  * @template K, V
  * @param {Map<K, V>} map
  * @param {K} key
- * @param {() => V} create
+ * @param {() => NoInfer<V>} create
  * @returns {V}
  */
 const getOrCreate = (map, key, create) => {
@@ -96,9 +96,12 @@ export class SamisCsvMissionStore {
             this.names.set(row.centre_code, row.centre_name)
             years.add(year)
             const byYear = getOrCreate(this.yearlyByCorps, row.centre_code, () => new Map())
-            const indicators = getOrCreate(byYear, year, () => /** @type {MissionIndicators} */ (
-                Object.fromEntries([...INDICATORS.values()].map(i => [i, null]))
-            ))
+            const indicators = getOrCreate(byYear, year, () => ({
+                congregationalWorship: null,
+                firstTimeDecisions: null,
+                kidsChurch: null,
+                youthDiscipleship: null
+            }))
             indicators[indicator] = parseFloat(row.averages)
         }
 
@@ -113,7 +116,7 @@ export class SamisCsvMissionStore {
             years.add(year)
             const byYear = getOrCreate(this.monthlyByCorps, row.centre_code, () => new Map())
             const byIndicator = getOrCreate(byYear, year, () => new Map())
-            getOrCreate(byIndicator, indicator, () => /** @type {MonthlyPoint[]} */ ([])).push({
+            getOrCreate(byIndicator, indicator, () => []).push({
                 year: month >= 7 ? year - 1 : year,
                 month,
                 metric: parseFloat(row.averages)
