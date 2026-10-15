@@ -1,4 +1,5 @@
 import path from 'path'
+import { getOrCreate } from './getOrCreate.js'
 import { readCsv } from './readCsv.js'
 
 /**
@@ -37,22 +38,6 @@ const toMonth = (periodCode) => {
     const match = /^M\d{2}(\d{2})$/.exec(periodCode)
     const month = match ? parseInt(match[1], 10) : 0
     return month >= 1 && month <= 12 ? month : null
-}
-
-/**
- * @template K, V
- * @param {Map<K, V>} map
- * @param {K} key
- * @param {() => NoInfer<V>} create
- * @returns {V}
- */
-const getOrCreate = (map, key, create) => {
-    let value = map.get(key)
-    if (value === undefined) {
-        value = create()
-        map.set(key, value)
-    }
-    return value
 }
 
 /**
