@@ -1,0 +1,5 @@
+/**
+ * @typedef {number} FinancialYear
+ */
+
+export {}
