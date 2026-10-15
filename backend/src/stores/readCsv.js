@@ -4,10 +4,11 @@ import csv from 'csv-parser'
 /**
  * Read every row of a CSV file, with any byte-order mark stripped from the headers.
  * @param {string} filePath
- * @returns {Promise<Object<string, string>[]>} Rejects naming the file when it cannot be read
+ * @returns {Promise<Record<string, string>[]>} Rejects naming the file when it cannot be read
  */
 export function readCsv(filePath) {
     return new Promise((resolve, reject) => {
+        /** @type {Record<string, string>[]} */
         const rows = []
         fs.createReadStream(filePath)
             .on('error', err => reject(new Error(`Failed to read ${filePath}: ${err.message}`)))

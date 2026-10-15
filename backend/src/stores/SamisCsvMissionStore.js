@@ -5,11 +5,14 @@ import { readCsv } from './readCsv.js'
  * @typedef {import('./MissionStore.js').MissionStore} MissionStore
  * @typedef {import('../domain/FinancialYear.js').FinancialYear} FinancialYear
  * @typedef {import('../domain/MissionIndicator.js').MissionIndicator} MissionIndicator
+ * @typedef {import('../domain/MissionIndicator.js').MissionIndicators} MissionIndicators
+ * @typedef {import('../domain/MonthlyPoint.js').MonthlyPoint} MonthlyPoint
  */
 
 const YEARLY_FILE = 'Territory_Indicators_Yr2000_2025.csv'
 const MONTHLY_FILE = 'Territory_Indicators_Mth2000_2025.csv'
 
+/** @type {Map<string, MissionIndicator>} */
 const INDICATORS = new Map([
     ['01-Congregational Worship', 'congregationalWorship'],
     ['03A-First Time Decisions', 'firstTimeDecisions'],
@@ -17,22 +20,39 @@ const INDICATORS = new Map([
     ['05-Youth Discipleship', 'youthDiscipleship']
 ])
 
+/**
+ * @param {string} endYear
+ * @returns {FinancialYear | null}
+ */
 const toFinancialYear = (endYear) => {
     const match = /^(\d{4})\/\d{2}$/.exec(endYear)
     return match ? parseInt(match[1], 10) + 1 : null
 }
 
+/**
+ * @param {string} periodCode
+ * @returns {number | null}
+ */
 const toMonth = (periodCode) => {
     const match = /^M\d{2}(\d{2})$/.exec(periodCode)
     const month = match ? parseInt(match[1], 10) : 0
     return month >= 1 && month <= 12 ? month : null
 }
 
+/**
+ * @template K, V
+ * @param {Map<K, V>} map
+ * @param {K} key
+ * @param {() => V} create
+ * @returns {V}
+ */
 const getOrCreate = (map, key, create) => {
-    if (!map.has(key)) {
-        map.set(key, create())
+    let value = map.get(key)
+    if (value === undefined) {
+        value = create()
+        map.set(key, value)
     }
-    return map.get(key)
+    return value
 }
 
 /**
@@ -53,10 +73,18 @@ export class SamisCsvMissionStore {
         return new SamisCsvMissionStore(yearlyRows, monthlyRows)
     }
 
+    /**
+     * @param {Record<string, string>[]} yearlyRows
+     * @param {Record<string, string>[]} monthlyRows
+     */
     constructor(yearlyRows, monthlyRows) {
+        /** @type {Map<string, string>} */
         this.names = new Map()
+        /** @type {Map<string, Map<FinancialYear, MissionIndicators>>} */
         this.yearlyByCorps = new Map()
+        /** @type {Map<string, Map<FinancialYear, Map<MissionIndicator, MonthlyPoint[]>>>} */
         this.monthlyByCorps = new Map()
+        /** @type {Set<FinancialYear>} */
         const years = new Set()
 
         for (const row of yearlyRows) {
@@ -68,7 +96,9 @@ export class SamisCsvMissionStore {
             this.names.set(row.centre_code, row.centre_name)
             years.add(year)
             const byYear = getOrCreate(this.yearlyByCorps, row.centre_code, () => new Map())
-            const indicators = getOrCreate(byYear, year, () => Object.fromEntries([...INDICATORS.values()].map(i => [i, null])))
+            const indicators = getOrCreate(byYear, year, () => /** @type {MissionIndicators} */ (
+                Object.fromEntries([...INDICATORS.values()].map(i => [i, null]))
+            ))
             indicators[indicator] = parseFloat(row.averages)
         }
 
@@ -83,7 +113,7 @@ export class SamisCsvMissionStore {
             years.add(year)
             const byYear = getOrCreate(this.monthlyByCorps, row.centre_code, () => new Map())
             const byIndicator = getOrCreate(byYear, year, () => new Map())
-            getOrCreate(byIndicator, indicator, () => []).push({
+            getOrCreate(byIndicator, indicator, () => /** @type {MonthlyPoint[]} */ ([])).push({
                 year: month >= 7 ? year - 1 : year,
                 month,
                 metric: parseFloat(row.averages)
@@ -98,6 +128,7 @@ export class SamisCsvMissionStore {
             }
         }
 
+        /** @type {FinancialYear[]} */
         this.financialYears = [...years].sort((a, b) => a - b)
     }
 
@@ -109,10 +140,19 @@ export class SamisCsvMissionStore {
         return [...this.names].map(([id, name]) => ({ id, name }))
     }
 
+    /**
+     * @param {string} centreId
+     * @param {FinancialYear} year
+     */
     yearly(centreId, year) {
         return this.yearlyByCorps.get(centreId)?.get(year) ?? null
     }
 
+    /**
+     * @param {string} centreId
+     * @param {FinancialYear} year
+     * @param {MissionIndicator} indicator
+     */
     monthly(centreId, year, indicator) {
         return this.monthlyByCorps.get(centreId)?.get(year)?.get(indicator) ?? []
     }
