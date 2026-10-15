@@ -1,0 +1,11 @@
+﻿country,division_id,division_code,division_name,centre_id,centre_code,centre_name,end_year,indicator,averages,totals,sortorder
+New Zealand,1930,100100,Area Officer - North,1,100001,Alpha Corps,2022/23,01-Congregational Worship,50,2600,1
+New Zealand,1930,100100,Area Officer - North,1,100001,Alpha Corps,2022/23,03A-First Time Decisions,2,2,3
+New Zealand,1930,100100,Area Officer - North,1,100001,Alpha Corps,2022/23,04-Kids Church,10,520,4
+New Zealand,1930,100100,Area Officer - North,1,100001,Alpha Corps,2022/23,05-Youth Discipleship,5,260,5
+New Zealand,1930,100100,Area Officer - North,1,100001,Alpha Corps,2023/24,01-Congregational Worship,60,3120,1
+New Zealand,1930,100100,Area Officer - North,1,100001,Alpha Corps,2023/24,03A-First Time Decisions,0,0,3
+New Zealand,1930,100100,Area Officer - North,1,100001,Alpha Corps,2023/24,05-Youth Discipleship,6,312,5
+New Zealand,1930,100100,Area Officer - North,1,100001,Alpha Corps,2023/24,06-Prayer Meetings,12,624,6
+New Zealand,1930,100100,Area Officer - North,1,100001,Alpha Corps,Growth%,01-Congregational Worship,20,20,1
+New Zealand,1930,100100,Area Officer - North,2,100002,Beta Corps,2023/24,01-Congregational Worship,20,1040,1
