@@ -7,5 +7,11 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
   },
-  "include": ["src/domain", "src/stores"]
+  "include": [
+    "src/domain",
+    "src/stores",
+    "src/services/CorpsInsights.js",
+    "src/services/InvalidQueryError.js",
+    "src/services/NotFoundError.js"
+  ]
 }
