@@ -63,6 +63,12 @@ To run [Jest](https://jestjs.io/) unit tests for the backend:
 1. Run `npm i`
 1. Run `npm run test`
 
+### Linting
+The backend has support for linting.
+
+1. Open your terminal to the `backend` folder.
+1. Run `npm run lint`
+
 ## Frontend
 ### Setup
 In order to setup the frontend, you need to create a `.env` file to store your environment variables.
