@@ -1,4 +1,3 @@
-/* eslint-disable -- Untyped legacy file. Add types and remove this when the file is next changed. */
 import React, { useEffect, useRef, useState } from 'react'
 import { useTheme } from '@mui/material/styles'
 import * as d3 from 'd3'
@@ -10,19 +9,22 @@ const PopulationChart = () => {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [year, setYear] = useState(2024)
+  const [year, setYear] = useState(null)
   const serverUrl = import.meta.env.VITE_SERVER_URL
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true)
-        const response = await fetch(`${serverUrl}/api/corps/metrics/${year}`)
+        const response = await fetch(`${serverUrl}/api/snapshots`)
         if (!response.ok) {
           throw new Error('Failed to fetch data')
         }
         const result = await response.json()
-        setData(result)
+        // Show the latest year that has population figures
+        const latestYear = Math.max(...result.filter(d => d.metrics.population > 0).map(d => d.year))
+        setYear(latestYear)
+        setData(result.filter(d => d.year === latestYear))
       } catch (err) {
         setError(err.message)
       } finally {
@@ -31,7 +33,7 @@ const PopulationChart = () => {
     }
 
     fetchData()
-  }, [serverUrl, year])
+  }, [serverUrl])
 
   useEffect(() => {
     if (!data || data.length === 0) return

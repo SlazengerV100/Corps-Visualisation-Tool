@@ -4,12 +4,11 @@ import { useTheme } from '@mui/material/styles'
 import Box from '@mui/material/Box'
 import * as d3 from 'd3'
 
-export default function BubbleChart({ year, yearData, corps, selectedCorps, hideUnselected }) {
+export default function BubbleChart({ year, yearData, pointsByYear, corps, selectedCorps, hideUnselected }) {
     const svgRef = useRef()
     const containerRef = useRef()
     const theme = useTheme()
     const [bubbleHistory, setBubbleHistory] = useState({}) // Store previous positions for selected corps
-    const [allYearData, setAllYearData] = useState({}) // Store all fetched year data
     const prevYearRef = useRef(year)
     const prevSelectedCorpsRef = useRef(selectedCorps)
     const [dimensions, setDimensions] = useState({ width: 900, height: 600 })
@@ -31,32 +30,8 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
         return () => window.removeEventListener('resize', updateDimensions)
     }, [])
 
-    // Function to fetch data for a specific year
-    const fetchYearData = async (yearToFetch) => {
-        if (allYearData[yearToFetch]) {
-            return allYearData[yearToFetch] // Return cached data
-        }
-
-        try {
-            const serverUrl = import.meta.env.VITE_SERVER_URL
-            const response = await fetch(`${serverUrl}/api/corps/bubbleChart/${yearToFetch}`)
-            if (!response.ok) {
-                return null
-            }
-            const data = await response.json()
-            
-            // Cache the data
-            setAllYearData(prev => ({
-                ...prev,
-                [yearToFetch]: data
-            }))
-            
-            return data
-        } catch (error) {
-            console.error(`Failed to fetch data for year ${yearToFetch}:`, error)
-            return null
-        }
-    }
+    // Look up the points for a specific year
+    const getYearData = (yearToGet) => pointsByYear[yearToGet] ?? null
 
     // Constant margins
     const margin = { left: 125, right: 20, top: 20, bottom: 30 }
@@ -258,8 +233,8 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
                             }
                         }
                     } else {
-                        // Fetch historical data
-                        const yearDataForCorps = await fetchYearData(yearToFetch)
+                        // Look up historical data
+                        const yearDataForCorps = getYearData(yearToFetch)
                         if (yearDataForCorps) {
                             const corpsData = yearDataForCorps.find(d => d.id === corpsId)
                             if (corpsData) {
@@ -316,7 +291,7 @@ export default function BubbleChart({ year, yearData, corps, selectedCorps, hide
                 for (let yearToFetch = minYear; yearToFetch <= maxYear; yearToFetch++) {
                     if (yearToFetch === year) continue // Skip current year
 
-                    const yearData = await fetchYearData(yearToFetch)
+                    const yearData = getYearData(yearToFetch)
                     if (!yearData) continue
 
                     // Find the corps data for this year
