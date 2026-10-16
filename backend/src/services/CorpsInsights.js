@@ -104,7 +104,7 @@ export class CorpsInsights {
         const years = [...new Set([...mission.years(), ...finance.years()])].sort((a, b) => a - b)
         const centreIds = [...new Set([...mission.corps(), ...finance.corps()].map(c => c.id))]
 
-        /** @type {Map<MetricName, Metric>} */
+        /** @type {Map<string, Metric>} */
         this.metrics = new Map(sources.map(source => {
             /** @type {Map<string, YearlyPoint[]>} */
             const yearlyByCorps = new Map()
@@ -234,7 +234,7 @@ export class CorpsInsights {
     /**
      * One corps' points for a metric, by year or by month, optionally limited to one financial year.
      * @param {string} centreId
-     * @param {MetricName} metricName
+     * @param {string} metricName
      * @param {{ granularity?: Granularity, year?: FinancialYear }} [filters]
      * @returns {YearlyPoint[] | MonthlyPoint[]} Throws InvalidQueryError for an invalid filter, NotFoundError when there is no data
      */
