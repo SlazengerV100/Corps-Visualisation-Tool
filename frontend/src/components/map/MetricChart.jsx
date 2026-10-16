@@ -143,11 +143,8 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
         .tickSize(0))
       .call(g => g.select('.domain').attr('stroke-opacity', 0.2));
 
-    // Create a custom line that changes from solid to dotted at current year
-    const currentYear = new Date().getFullYear();
-    
-    // Find the index where future data starts
-    const futureStartIndex = data.findIndex(d => d.year > currentYear);
+    // Create a custom line that changes from solid to dotted at the first projected point
+    const futureStartIndex = data.findIndex(d => d.isProjected);
     
     if (futureStartIndex === -1) {
       // No future data, draw solid line

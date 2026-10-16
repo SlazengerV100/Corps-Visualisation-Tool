@@ -31,9 +31,9 @@ const Slider = styled(MUISlider)(({ theme }) => ({
     },
 }))
 
-export default function AnimationPanel({year, setYear}) {
-    const MIN_YEAR = 2010
-    const MAX_YEAR = 2025
+export default function AnimationPanel({year, setYear, years}) {
+    const MIN_YEAR = years[0]
+    const MAX_YEAR = years[years.length - 1]
     const animationSpeed = 1000 // ms
 
     const [playing, setPlaying] = useState(false)
@@ -68,11 +68,15 @@ export default function AnimationPanel({year, setYear}) {
         }
 
         return () => clearInterval(intervalRef.current)
-    }, [playing, setYear])
+    }, [playing, setYear, MIN_YEAR, MAX_YEAR])
 
     const handleSliderChange = (_, newValue) => {
         setPlaying(false)
         setYear(newValue)
+    }
+
+    if (years.length === 0 || year === null) {
+        return null
     }
 
     return (
