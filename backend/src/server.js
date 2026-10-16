@@ -1,19 +1,16 @@
-import { createApp, createMetricService } from './app.js'
+import { createApp, createInsights } from './app.js'
 
 /**
  * Main server entry point
  */
 async function startServer() {
     try {
-        // Create services
-        const metricService = createMetricService()
-        
+        // Load every source once before accepting traffic
+        const insights = await createInsights(process.env.DATA_FOLDER)
+
         // Create Express app
-        const app = createApp(metricService)
-        
-        // Initialize data processing
-        await metricService.initializeProcessing()
-        
+        const app = createApp(insights)
+
         // Start server
         const PORT = process.env.PORT || 8080
         const server = app.listen(PORT, () => {
