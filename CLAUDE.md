@@ -1,5 +1,10 @@
 # Corps Visualisation Tool
 
+Visualises The Salvation Army New Zealand corps statistics: attendance, discipleship and finance per corps over time.
+
+- `backend/`: See `backend/CLAUDE.md`.
+- `frontend/`: See `frontend/CLAUDE.md`.
+
 ## Data
 
 The source CSV exports are not in the repository; point `DATA_FOLDER` at a local copy. They come from two systems plus a reference list, and the code keeps them apart:
@@ -12,7 +17,6 @@ The source CSV exports are not in the repository; point `DATA_FOLDER` at a local
 
 - A **financial year** runs July to June and is named by the year it ends in: `2025` is July 2024 to June 2025. Monthly points carry the calendar year, so July–December of FY2025 are 2024.
 - A corps is identified by its **centre code** everywhere. Each source's own keys are converted to it inside that source's store.
-- Neither app hard-codes years or the metric list; both come from `/api/catalogue`.
 
 ## Deployment
 
@@ -20,4 +24,6 @@ The backend scales to zero and starts on the first request, so start-up time mat
 
 ## Working in this repo
 
-`backend/prds/` holds local planning documents. Keep them untracked and stage explicit paths.
+PRDs or planning documents are not to be checked in.
+
+The codebase is moving to TypeScript. Any file you touch should get types and pass `npm run lint` in its package. If the file opens with a lint-disable annotation, remove it as part of the same change.

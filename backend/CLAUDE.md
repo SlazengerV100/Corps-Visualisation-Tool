@@ -9,18 +9,13 @@
 
 ## Typing
 
-`npm run lint` type-checks the JSDoc strictly and must stay clean. Avoid casts: use a checked object literal, or `NoInfer` so a generic takes its type from the right argument.
-
-## Tests
-
-- Fixture CSVs must copy the real headers exactly, including the byte-order mark, and include the rows a store has to skip.
-- Before changing behaviour the API exposes, record the current responses on real data and compare afterwards, classifying every difference as intended or unexpected.
+The codebase is moving to TypeScript. `npm run lint` type-checks the JSDoc in `src` strictly (`tsc` with `checkJs`), runs on commit, and must pass. Give any file you add or touch full JSDoc types. Tests under `src/__tests__` are not type-checked yet.
 
 ## Data quirks
 
 ### SAMIS
 
-- Both exports contain summary rows (`Growth%` in the year column, `TOTAL`/`TOTxx` period codes) that must be skipped.
+- Both exports contain summary rows (`Growth%` in the year column, `TOTAL`/`TOTxx` period codes).
 - Yearly worship, kids church and youth figures are the average of the monthly values. First-time decisions count only in years with worship above zero, and default to 0.
 
 ### TechOne
@@ -31,14 +26,8 @@
 
 ### Address list
 
-Population figures exist only for a few census and projection years, not every year.
+- Population figures exist only for a few census and projection years, not every year.
 
 ### Scores
 
-- Growth is undefined when the previous year's worship is 0 (the formula throws).
-- Sustainability needs tithing but not surplus/deficit.
-- A year is scored only if finance data exists for the year before; otherwise the first finance year scores against zero prior tithing.
-
-### File names
-
-The export file names include their year range. A data refresh that renames them needs the store constants updated; until then the server refuses to start and names the missing file.
+- Scores can only exist for a given year if there is valid data for the year before.
