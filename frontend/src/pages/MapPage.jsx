@@ -1,3 +1,4 @@
+/* eslint-disable -- Untyped legacy file. Add types and remove this when the file is next changed. */
 import * as React from 'react'
 import { useEffect, useState } from "react";
 import Box from '@mui/material/Box'

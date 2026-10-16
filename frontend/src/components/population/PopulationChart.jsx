@@ -1,3 +1,4 @@
+/* eslint-disable -- Untyped legacy file. Add types and remove this when the file is next changed. */
 import React, { useEffect, useRef, useState } from 'react'
 import { useTheme } from '@mui/material/styles'
 import * as d3 from 'd3'
