@@ -1,3 +1,4 @@
+/* eslint-disable -- Untyped legacy file. Add types and remove this when the file is next changed. */
 import React, { useEffect, useState } from 'react';
 import {
   Box,
