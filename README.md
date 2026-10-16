@@ -64,10 +64,12 @@ To run [Jest](https://jestjs.io/) unit tests for the backend:
 1. Run `npm run test`
 
 ### Linting
-The backend has support for linting.
+The backend is typed with JSDoc comments, and linting type-checks them with the TypeScript compiler in strict mode. Tests under `src/__tests__` are not type-checked yet.
 
 1. Open your terminal to the `backend` folder.
 1. Run `npm run lint`
+
+Any backend file you add or change should be fully typed so that linting passes.
 
 ## Frontend
 ### Setup
@@ -86,6 +88,20 @@ To run the frontend:
 1. Open your terminal to the `frontend` folder.
 1. Run `npm i`
 1. Run `npm run dev` for development.
+
+### Linting
+The frontend has support for linting.
+
+1. Open your terminal to the `frontend` folder.
+1. Run `npm run lint`
+
+## Pre-commit hooks
+[pre-commit](https://pre-commit.com/) runs `npm run lint` for the backend or frontend whenever a commit changes files in that folder.
+
+1. Install pre-commit, for example with `brew install pre-commit`.
+1. In the repository root, run `pre-commit install`.
+
+The codebase is moving to TypeScript. Some frontend files that failed linting when the hook was added open with an `eslint-disable` annotation. When you change one of these files, add types, fix its lint errors and remove the annotation.
 
 ## Docker
 Both the frontend and backend can instead be run as Docker containers via Docker Compose, without installing Node.js locally.
