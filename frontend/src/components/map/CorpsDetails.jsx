@@ -21,19 +21,32 @@ const CorpsDetails = ({ corps }) => {
   const [selectedMetric, setSelectedMetric] = useState('congregationalWorship');
   const [metricData, setMetricData] = useState([])
   const [isLoading, setIsLoading] = useState(false)
+  const [metrics, setMetrics] = useState([])
 
-  const availableMetrics = [
-    { value: 'congregationalWorship', label: 'Congregational Worship' },
-    { value: 'firstTimeDecisions', label: 'First Time Decisions' },
-    { value: 'kidsChurch', label: 'Kid\'s Church' },
-    { value: 'youthDiscipleship', label: 'Youth Discipleship' },
-    { value: 'tithing', label: 'Tithing' },
-    { value: 'surplusDeficit', label: 'Surplus/Deficit' },
-  ]
+  useEffect(() => {
+    const fetchCatalogue = async () => {
+      try {
+        const response = await fetch(`${serverUrl}/api/catalogue`)
+        if (response.ok) {
+          setMetrics((await response.json()).metrics)
+        }
+      } catch {
+        console.error('Failed to fetch the metric catalogue')
+      }
+    }
+
+    fetchCatalogue()
+  }, [serverUrl])
+
+  const definition = metrics.find(metric => metric.name === selectedMetric)
+  const supportsMonthly = definition?.granularities.includes('month') ?? false
+  const latestYear = definition?.years[definition.years.length - 1]
+  const monthlyRanges = ['pastYear', 'pastTwoYears']
+  const effectiveRange = supportsMonthly || !monthlyRanges.includes(timeRange) ? timeRange : 'allTime'
 
   const fetchMonthlyData = async (year) => {
     try {
-      const response = await fetch(`${serverUrl}/api/corps/${corps.id}/${selectedMetric}/byMonth/${year}`)
+      const response = await fetch(`${serverUrl}/api/corps/${corps.id}/series/${selectedMetric}?granularity=month&year=${year}`)
       if (!response.ok) {
         return []
       }
@@ -47,7 +60,7 @@ const CorpsDetails = ({ corps }) => {
 
   const fetchYearlyData = async () => {
     try {
-      const response = await fetch(`${serverUrl}/api/corps/${corps.id}/${selectedMetric}/byYear`)
+      const response = await fetch(`${serverUrl}/api/corps/${corps.id}/series/${selectedMetric}`)
       if (!response.ok) {
         return []
       }
@@ -64,35 +77,22 @@ const CorpsDetails = ({ corps }) => {
   }
 
   const fetchMetricData = async (range) => {
-    if (!corps) return
+    if (!corps || latestYear === undefined) return
 
     setIsLoading(true)
     try {
       let data = []
-      const currentYear = new Date().getFullYear()
-      
+      const currentYear = latestYear
+
       // Use yearly data for 5Y, 10Y, and ALL TIME selections
       if (range === 'pastFiveYears' || range === 'pastTenYears' || range === 'allTime') {
         data = await fetchYearlyData()
-        
+
         // Filter data based on time range
-        let yearsToInclude;
-        
-        switch (range) {
-          case 'pastFiveYears':
-            yearsToInclude = 5;
-            break;
-          case 'pastTenYears':
-            yearsToInclude = 10;
-            break;
-          case 'allTime':
-            yearsToInclude = new Date().getFullYear() - 2000;
-            break;
-          default:
-            yearsToInclude = 0;
+        if (range !== 'allTime') {
+          const yearsToInclude = range === 'pastFiveYears' ? 5 : 10
+          data = data.filter(item => item.year > currentYear - yearsToInclude)
         }
-        
-        data = data.filter(item => item.year > currentYear - yearsToInclude)
       } else if (range === 'future') {
         data = await fetchYearlyData()
         
@@ -147,7 +147,6 @@ const CorpsDetails = ({ corps }) => {
         }
 
       } else if (range === 'pastYear' || range === 'pastTwoYears') {
-        const currentYear = new Date().getFullYear()
         let yearsToFetch
 
         switch (range) {
@@ -191,12 +190,8 @@ const CorpsDetails = ({ corps }) => {
   }
 
   useEffect(() => {
-    if (selectedMetric === 'surplusDeficit') {
-      fetchMetricData('allTime')
-    } else {
-      fetchMetricData(timeRange)
-    }
-  }, [serverUrl, corps, timeRange, selectedMetric])
+    fetchMetricData(effectiveRange)
+  }, [serverUrl, corps, effectiveRange, selectedMetric, latestYear])
 
   if (!corps) {
     return (
@@ -244,30 +239,28 @@ const CorpsDetails = ({ corps }) => {
           label="Select Metric"
           onChange={(e) => setSelectedMetric(e.target.value)}
         >
-          {availableMetrics.map((metric) => (
-            <MenuItem key={metric.value} value={metric.value}>
+          {metrics.map((metric) => (
+            <MenuItem key={metric.name} value={metric.name}>
               {metric.label}
             </MenuItem>
           ))}
         </Select>
       </FormControl>
 
-      {selectedMetric !== 'surplusDeficit' && (
-        <ToggleButtonGroup
-          value={timeRange}
-          exclusive
-          onChange={handleTimeRangeChange}
-          size="small"
-          sx={{ mb: 2 }}
-        >
-          <ToggleButton value="pastYear">1Y</ToggleButton>
-          <ToggleButton value="pastTwoYears">2Y</ToggleButton>
-          <ToggleButton value="pastFiveYears">5Y</ToggleButton>
-          <ToggleButton value="pastTenYears">10Y</ToggleButton>
-          <ToggleButton value="allTime">ALL TIME</ToggleButton>
-          <ToggleButton value="future">FUTURE</ToggleButton>
-        </ToggleButtonGroup>
-      )}
+      <ToggleButtonGroup
+        value={effectiveRange}
+        exclusive
+        onChange={handleTimeRangeChange}
+        size="small"
+        sx={{ mb: 2 }}
+      >
+        {supportsMonthly && <ToggleButton value="pastYear">1Y</ToggleButton>}
+        {supportsMonthly && <ToggleButton value="pastTwoYears">2Y</ToggleButton>}
+        <ToggleButton value="pastFiveYears">5Y</ToggleButton>
+        <ToggleButton value="pastTenYears">10Y</ToggleButton>
+        <ToggleButton value="allTime">ALL TIME</ToggleButton>
+        <ToggleButton value="future">FUTURE</ToggleButton>
+      </ToggleButtonGroup>
 
       <Box sx={{ height: 300, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {isLoading ? (
@@ -275,7 +268,7 @@ const CorpsDetails = ({ corps }) => {
         ) : (
           <MetricChart
             data={metricData}
-            timeRange={timeRange}
+            timeRange={effectiveRange}
             selectedMetric={selectedMetric}
             height={300}
           />

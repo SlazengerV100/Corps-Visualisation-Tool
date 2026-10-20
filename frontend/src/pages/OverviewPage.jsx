@@ -1,4 +1,3 @@
-/* eslint-disable -- Untyped legacy file. Add types and remove this when the file is next changed. */
 import BubbleChart from '../components/overview/BubbleChart.jsx'
 import AnimationPanel from '../components/overview/AnimationPanel.jsx'
 import CheckboxSelectorPanel from '../components/overview/CheckboxSelectorPanel.jsx'
@@ -8,30 +7,45 @@ import {useEffect, useState} from 'react'
 
 export default function OverviewPage() {
     const serverUrl = import.meta.env.VITE_SERVER_URL
-    const [year, setYear] = useState(new Date().getFullYear())
-    const [yearData, setYearData] = useState(null)
+    const [year, setYear] = useState(null)
+    const [years, setYears] = useState([])
+    const [pointsByYear, setPointsByYear] = useState({})
     const [selectedCorps, setSelectedCorps] = useState([])
     const [corps, setCorps] = useState([])
     const [hideUnselected, setHideUnselected] = useState(false)
 
     useEffect(() => {
-        const fetchYearData = async () => {
+        const fetchBubbleData = async () => {
             try {
-                const response = await fetch(`${serverUrl}/api/corps/bubbleChart/${year}`)
-                if (!response.ok) {
-                    setYearData(null)
+                const [catalogueResponse, snapshotsResponse] = await Promise.all([
+                    fetch(`${serverUrl}/api/catalogue`),
+                    fetch(`${serverUrl}/api/snapshots?scored=true`)
+                ])
+                if (!catalogueResponse.ok || !snapshotsResponse.ok) {
                     return
                 }
-                const data = await response.json()
-                setYearData(data)
-            } catch (error) {
-                console.error(`Failed to fetch data for ${year}`)
-                setYearData(null)
+                const catalogue = await catalogueResponse.json()
+                const snapshots = await snapshotsResponse.json()
+
+                const byYear = {}
+                snapshots.forEach(snapshot => {
+                    byYear[snapshot.year] ??= []
+                    byYear[snapshot.year].push({ id: snapshot.id, name: snapshot.name, ...snapshot.scores })
+                })
+
+                const scoredYears = catalogue.snapshots.scoredYears
+                setPointsByYear(byYear)
+                setYears(scoredYears)
+                setYear(scoredYears[scoredYears.length - 1] ?? null)
+            } catch {
+                console.error('Failed to fetch bubble chart data')
             }
         }
 
-        fetchYearData()
-    }, [serverUrl, year])
+        fetchBubbleData()
+    }, [serverUrl])
+
+    const yearData = pointsByYear[year] ?? null
 
     const handleCorpsDataLoaded = (corpsData) => {
         setCorps(corpsData)
@@ -61,8 +75,9 @@ export default function OverviewPage() {
                     justifyContent: 'center'
                 }}>
                     <BubbleChart 
-                        year={year} 
-                        yearData={yearData} 
+                        year={year}
+                        yearData={yearData}
+                        pointsByYear={pointsByYear}
                         corps={corps}
                         selectedCorps={selectedCorps}
                         hideUnselected={hideUnselected}
@@ -74,7 +89,7 @@ export default function OverviewPage() {
                     flexShrink: 0, // Prevents shrinking
                     padding: 2
                 }}>
-                    <AnimationPanel year={year} setYear={setYear} />
+                    <AnimationPanel year={year} setYear={setYear} years={years} />
                 </Box>
             </Box>
             
