@@ -3,7 +3,7 @@ import { isValid, parse } from 'date-fns'
 import { readCsv } from '../csv.js'
 
 /**
- * @typedef {import('./CorpsDirectory.js').CorpsDirectory} CorpsDirectory
+ * @typedef {import('./CorpsDirectoryRepository.js').CorpsDirectoryRepository} CorpsDirectoryRepository
  * @typedef {import('../../models/Corps.js').Corps} Corps
  */
 
@@ -34,17 +34,17 @@ const toClosingDate = (value) => {
 }
 
 /**
- * CorpsDirectory backed by the corps address list export.
- * @implements {CorpsDirectory}
+ * CorpsDirectoryRepository backed by the corps address list export.
+ * @implements {CorpsDirectoryRepository}
  */
-export class AddressListCsvDirectory {
+export class AddressListCsvDirectoryRepository {
     /**
      * Read the address list once from the data folder.
      * @param {string} dataFolder
-     * @returns {Promise<AddressListCsvDirectory>} Rejects naming the export when it cannot be read
+     * @returns {Promise<AddressListCsvDirectoryRepository>} Rejects naming the export when it cannot be read
      */
     static async load(dataFolder) {
-        return new AddressListCsvDirectory(await readCsv(path.join(dataFolder, ADDRESS_LIST_FILE)))
+        return new AddressListCsvDirectoryRepository(await readCsv(path.join(dataFolder, ADDRESS_LIST_FILE)))
     }
 
     /**

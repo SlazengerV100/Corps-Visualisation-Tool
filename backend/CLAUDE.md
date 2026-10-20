@@ -3,9 +3,9 @@
 ## Invariants
 
 - Read each source file once per process. No file I/O or score computation while serving a request; derived figures are precomputed when the insights layer is built.
-- A store reads only its own source and returns figures as recorded. Business rules and anything combining sources belong in the insights layer.
+- A repository reads only its own source and returns figures as recorded. Business rules and anything combining sources belong in the insights layer.
 - A new metric is a registry entry, not a new route.
-- Every store implementation must pass its contract's shared test suite.
+- Every repository implementation must pass its contract's shared test suite.
 
 ## Typing
 

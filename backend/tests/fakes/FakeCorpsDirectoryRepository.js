@@ -1,4 +1,4 @@
-export class FakeCorpsDirectory {
+export class FakeCorpsDirectoryRepository {
     constructor({ corps }) {
         this.corpsList = corps
     }

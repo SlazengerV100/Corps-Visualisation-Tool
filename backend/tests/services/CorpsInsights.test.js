@@ -2,9 +2,9 @@ import { CorpsInsights } from '../../src/services/CorpsInsights.js'
 import { InvalidQueryError } from '../../src/services/InvalidQueryError.js'
 import { NotFoundError } from '../../src/services/NotFoundError.js'
 import { calculateGrowth, calculateSustainability } from '../../src/utils/calculations.js'
-import { FakeMissionStore } from '../fakes/FakeMissionStore.js'
-import { FakeFinanceStore } from '../fakes/FakeFinanceStore.js'
-import { FakeCorpsDirectory } from '../fakes/FakeCorpsDirectory.js'
+import { FakeMissionRepository } from '../fakes/FakeMissionRepository.js'
+import { FakeFinanceRepository } from '../fakes/FakeFinanceRepository.js'
+import { FakeCorpsDirectoryRepository } from '../fakes/FakeCorpsDirectoryRepository.js'
 
 const alpha = { id: '100001', name: 'Alpha Corps' }
 const beta = { id: '100002', name: 'Beta Corps' }
@@ -27,7 +27,7 @@ const alphaListing = {
 }
 
 const insights = new CorpsInsights(
-    new FakeMissionStore({
+    new FakeMissionRepository({
         corps: [alpha, beta, gamma, delta, epsilon],
         yearly: {
             [alpha.id]: { 2023: indicators(100, 3, 10, 5), 2024: indicators(110, null, null, 6) },
@@ -43,7 +43,7 @@ const insights = new CorpsInsights(
             }
         }
     }),
-    new FakeFinanceStore({
+    new FakeFinanceRepository({
         corps: [alpha, beta, delta, epsilon],
         tithing: {
             [alpha.id]: { 2023: 50000, 2024: 60000 },
@@ -56,7 +56,7 @@ const insights = new CorpsInsights(
         },
         surplusDeficit: { [alpha.id]: { 2024: 0 } }
     }),
-    new FakeCorpsDirectory({
+    new FakeCorpsDirectoryRepository({
         corps: [alphaListing, { ...alphaListing, ...beta, lat: null, lng: null, population: [] }]
     })
 )

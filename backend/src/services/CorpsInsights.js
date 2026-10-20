@@ -3,9 +3,9 @@ import { InvalidQueryError } from './InvalidQueryError.js'
 import { NotFoundError } from './NotFoundError.js'
 
 /**
- * @typedef {import('../stores/mission/MissionStore.js').MissionStore} MissionStore
- * @typedef {import('../stores/finance/FinanceStore.js').FinanceStore} FinanceStore
- * @typedef {import('../stores/directory/CorpsDirectory.js').CorpsDirectory} CorpsDirectory
+ * @typedef {import('../repositories/mission/MissionRepository.js').MissionRepository} MissionRepository
+ * @typedef {import('../repositories/finance/FinanceRepository.js').FinanceRepository} FinanceRepository
+ * @typedef {import('../repositories/directory/CorpsDirectoryRepository.js').CorpsDirectoryRepository} CorpsDirectoryRepository
  * @typedef {import('../models/Catalogue.js').Catalogue} Catalogue
  * @typedef {import('../models/Corps.js').Corps} Corps
  * @typedef {import('../models/FinancialYear.js').FinancialYear} FinancialYear
@@ -34,13 +34,13 @@ import { NotFoundError } from './NotFoundError.js'
 const outOfRange = (years, year) => year !== undefined && (years.length === 0 || year < years[0] || year > years[years.length - 1])
 
 /**
- * Combines the mission, finance and directory stores into the views the API serves, computed once at construction.
+ * Combines the mission, finance and directory repositories into the views the API serves, computed once at construction.
  */
 export class CorpsInsights {
     /**
-     * @param {MissionStore} mission
-     * @param {FinanceStore} finance
-     * @param {CorpsDirectory} directory
+     * @param {MissionRepository} mission
+     * @param {FinanceRepository} finance
+     * @param {CorpsDirectoryRepository} directory
      */
     constructor(mission, finance, directory) {
         /**

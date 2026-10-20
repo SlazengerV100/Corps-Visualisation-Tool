@@ -16,7 +16,7 @@ The source CSV exports are not in the repository; point `DATA_FOLDER` at a local
 ## Domain conventions
 
 - A **financial year** runs July to June and is named by the year it ends in: `2025` is July 2024 to June 2025. Monthly points carry the calendar year, so July–December of FY2025 are 2024.
-- A corps is identified by its **centre code** everywhere. Each source's own keys are converted to it inside that source's store.
+- A corps is identified by its **centre code** everywhere. Each source's own keys are converted to it inside that source's repository.
 
 ## Deployment
 

@@ -5,7 +5,7 @@
  */
 
 /**
- * @typedef {Object} FinanceStore
+ * @typedef {Object} FinanceRepository
  * @property {() => FinancialYear[]} years
  * @property {() => Pick<Corps, 'id' | 'name'>[]} corps
  * @property {(centreId: string, year: FinancialYear) => number | null} tithing

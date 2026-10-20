@@ -2,7 +2,7 @@ import path from 'path'
 import { getOrCreate, readCsv } from '../csv.js'
 
 /**
- * @typedef {import('./FinanceStore.js').FinanceStore} FinanceStore
+ * @typedef {import('./FinanceRepository.js').FinanceRepository} FinanceRepository
  * @typedef {import('../../models/FinancialYear.js').FinancialYear} FinancialYear
  * @typedef {import('../../models/MonthlyPoint.js').MonthlyPoint} MonthlyPoint
  */
@@ -40,21 +40,21 @@ const toSurplusDeficitYear = (column) => {
 }
 
 /**
- * FinanceStore backed by the TechOne tithing and surplus/deficit exports.
- * @implements {FinanceStore}
+ * FinanceRepository backed by the TechOne tithing and surplus/deficit exports.
+ * @implements {FinanceRepository}
  */
-export class TechOneCsvFinanceStore {
+export class TechOneCsvFinanceRepository {
     /**
      * Read both finance exports once from the data folder.
      * @param {string} dataFolder
-     * @returns {Promise<TechOneCsvFinanceStore>} Rejects naming the export that cannot be read
+     * @returns {Promise<TechOneCsvFinanceRepository>} Rejects naming the export that cannot be read
      */
     static async load(dataFolder) {
         const [tithingRows, surplusDeficitRows] = await Promise.all([
             readCsv(path.join(dataFolder, TITHING_FILE)),
             readCsv(path.join(dataFolder, SURPLUS_DEFICIT_FILE))
         ])
-        return new TechOneCsvFinanceStore(tithingRows, surplusDeficitRows)
+        return new TechOneCsvFinanceRepository(tithingRows, surplusDeficitRows)
     }
 
     /**

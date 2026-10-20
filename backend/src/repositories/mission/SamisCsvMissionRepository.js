@@ -2,7 +2,7 @@ import path from 'path'
 import { getOrCreate, readCsv } from '../csv.js'
 
 /**
- * @typedef {import('./MissionStore.js').MissionStore} MissionStore
+ * @typedef {import('./MissionRepository.js').MissionRepository} MissionRepository
  * @typedef {import('../../models/FinancialYear.js').FinancialYear} FinancialYear
  * @typedef {import('../../models/MissionIndicator.js').MissionIndicator} MissionIndicator
  * @typedef {import('../../models/MissionIndicator.js').MissionIndicators} MissionIndicators
@@ -40,21 +40,21 @@ const toMonth = (periodCode) => {
 }
 
 /**
- * MissionStore backed by the SAMIS yearly and monthly indicator exports.
- * @implements {MissionStore}
+ * MissionRepository backed by the SAMIS yearly and monthly indicator exports.
+ * @implements {MissionRepository}
  */
-export class SamisCsvMissionStore {
+export class SamisCsvMissionRepository {
     /**
      * Read both indicator exports once from the data folder.
      * @param {string} dataFolder
-     * @returns {Promise<SamisCsvMissionStore>} Rejects naming the export that cannot be read
+     * @returns {Promise<SamisCsvMissionRepository>} Rejects naming the export that cannot be read
      */
     static async load(dataFolder) {
         const [yearlyRows, monthlyRows] = await Promise.all([
             readCsv(path.join(dataFolder, YEARLY_FILE)),
             readCsv(path.join(dataFolder, MONTHLY_FILE))
         ])
-        return new SamisCsvMissionStore(yearlyRows, monthlyRows)
+        return new SamisCsvMissionRepository(yearlyRows, monthlyRows)
     }
 
     /**

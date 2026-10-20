@@ -7,7 +7,7 @@
  */
 
 /**
- * @typedef {Object} MissionStore
+ * @typedef {Object} MissionRepository
  * @property {() => FinancialYear[]} years
  * @property {() => Pick<Corps, 'id' | 'name'>[]} corps
  * @property {(centreId: string, year: FinancialYear) => MissionIndicators | null} yearly
