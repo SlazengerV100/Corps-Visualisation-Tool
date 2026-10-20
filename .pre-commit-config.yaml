@@ -1,0 +1,15 @@
+repos:
+  - repo: local
+    hooks:
+      - id: backend-lint
+        name: backend lint
+        entry: npm run lint --prefix backend
+        language: system
+        files: ^backend/
+        pass_filenames: false
+      - id: frontend-lint
+        name: frontend lint
+        entry: npm run lint --prefix frontend
+        language: system
+        files: ^frontend/
+        pass_filenames: false

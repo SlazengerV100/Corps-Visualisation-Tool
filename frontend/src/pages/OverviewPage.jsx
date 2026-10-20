@@ -1,3 +1,4 @@
+/* eslint-disable -- Untyped legacy file. Add types and remove this when the file is next changed. */
 import BubbleChart from '../components/overview/BubbleChart.jsx'
 import AnimationPanel from '../components/overview/AnimationPanel.jsx'
 import CheckboxSelectorPanel from '../components/overview/CheckboxSelectorPanel.jsx'
