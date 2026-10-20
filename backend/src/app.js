@@ -1,9 +1,9 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
-import { SamisCsvMissionStore } from './stores/SamisCsvMissionStore.js'
-import { TechOneCsvFinanceStore } from './stores/TechOneCsvFinanceStore.js'
-import { AddressListCsvDirectory } from './stores/AddressListCsvDirectory.js'
+import { SamisCsvMissionRepository } from './repositories/mission/SamisCsvMissionRepository.js'
+import { TechOneCsvFinanceRepository } from './repositories/finance/TechOneCsvFinanceRepository.js'
+import { AddressListCsvDirectoryRepository } from './repositories/directory/AddressListCsvDirectoryRepository.js'
 import { CorpsInsights } from './services/CorpsInsights.js'
 import { InvalidQueryError } from './services/InvalidQueryError.js'
 import { NotFoundError } from './services/NotFoundError.js'
@@ -68,9 +68,9 @@ export async function createInsights(dataFolder) {
         throw new Error('DATA_FOLDER environment variable is required')
     }
     const [mission, finance, directory] = await Promise.all([
-        SamisCsvMissionStore.load(dataFolder),
-        TechOneCsvFinanceStore.load(dataFolder),
-        AddressListCsvDirectory.load(dataFolder)
+        SamisCsvMissionRepository.load(dataFolder),
+        TechOneCsvFinanceRepository.load(dataFolder),
+        AddressListCsvDirectoryRepository.load(dataFolder)
     ])
     return new CorpsInsights(mission, finance, directory)
 }

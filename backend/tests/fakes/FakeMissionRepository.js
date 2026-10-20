@@ -1,4 +1,4 @@
-export class FakeMissionStore {
+export class FakeMissionRepository {
     constructor({ corps, yearly = {}, monthly = {} }) {
         this.corpsList = corps
         this.yearlyData = yearly

@@ -3,21 +3,21 @@ import { InvalidQueryError } from './InvalidQueryError.js'
 import { NotFoundError } from './NotFoundError.js'
 
 /**
- * @typedef {import('../stores/MissionStore.js').MissionStore} MissionStore
- * @typedef {import('../stores/FinanceStore.js').FinanceStore} FinanceStore
- * @typedef {import('../stores/CorpsDirectory.js').CorpsDirectory} CorpsDirectory
- * @typedef {import('../domain/Catalogue.js').Catalogue} Catalogue
- * @typedef {import('../domain/Corps.js').Corps} Corps
- * @typedef {import('../domain/FinancialYear.js').FinancialYear} FinancialYear
- * @typedef {import('../domain/Metric.js').Granularity} Granularity
- * @typedef {import('../domain/Metric.js').MetricDefinition} MetricDefinition
- * @typedef {import('../domain/Metric.js').MetricName} MetricName
- * @typedef {import('../domain/MissionIndicator.js').MissionIndicator} MissionIndicator
- * @typedef {import('../domain/MissionIndicator.js').MissionIndicators} MissionIndicators
- * @typedef {import('../domain/MonthlyPoint.js').MonthlyPoint} MonthlyPoint
- * @typedef {import('../domain/Snapshot.js').Snapshot} Snapshot
- * @typedef {import('../domain/Snapshot.js').YearPair} YearPair
- * @typedef {import('../domain/YearlyPoint.js').YearlyPoint} YearlyPoint
+ * @typedef {import('../repositories/mission/MissionRepository.js').MissionRepository} MissionRepository
+ * @typedef {import('../repositories/finance/FinanceRepository.js').FinanceRepository} FinanceRepository
+ * @typedef {import('../repositories/directory/CorpsDirectoryRepository.js').CorpsDirectoryRepository} CorpsDirectoryRepository
+ * @typedef {import('../models/Catalogue.js').Catalogue} Catalogue
+ * @typedef {import('../models/Corps.js').Corps} Corps
+ * @typedef {import('../models/FinancialYear.js').FinancialYear} FinancialYear
+ * @typedef {import('../models/Metric.js').Granularity} Granularity
+ * @typedef {import('../models/Metric.js').MetricDefinition} MetricDefinition
+ * @typedef {import('../models/Metric.js').MetricName} MetricName
+ * @typedef {import('../models/MissionIndicator.js').MissionIndicator} MissionIndicator
+ * @typedef {import('../models/MissionIndicator.js').MissionIndicators} MissionIndicators
+ * @typedef {import('../models/MonthlyPoint.js').MonthlyPoint} MonthlyPoint
+ * @typedef {import('../models/Snapshot.js').Snapshot} Snapshot
+ * @typedef {import('../models/Snapshot.js').YearPair} YearPair
+ * @typedef {import('../models/YearlyPoint.js').YearlyPoint} YearlyPoint
  */
 
 /**
@@ -34,13 +34,13 @@ import { NotFoundError } from './NotFoundError.js'
 const outOfRange = (years, year) => year !== undefined && (years.length === 0 || year < years[0] || year > years[years.length - 1])
 
 /**
- * Combines the mission, finance and directory stores into the views the API serves, computed once at construction.
+ * Combines the mission, finance and directory repositories into the views the API serves, computed once at construction.
  */
 export class CorpsInsights {
     /**
-     * @param {MissionStore} mission
-     * @param {FinanceStore} finance
-     * @param {CorpsDirectory} directory
+     * @param {MissionRepository} mission
+     * @param {FinanceRepository} finance
+     * @param {CorpsDirectoryRepository} directory
      */
     constructor(mission, finance, directory) {
         /**

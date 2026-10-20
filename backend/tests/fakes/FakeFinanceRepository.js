@@ -1,4 +1,4 @@
-export class FakeFinanceStore {
+export class FakeFinanceRepository {
     constructor({ corps, tithing = {}, monthlyTithing = {}, surplusDeficit = {} }) {
         this.corpsList = corps
         this.tithingData = tithing

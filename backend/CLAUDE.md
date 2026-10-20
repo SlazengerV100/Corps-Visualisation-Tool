@@ -3,13 +3,13 @@
 ## Invariants
 
 - Read each source file once per process. No file I/O or score computation while serving a request; derived figures are precomputed when the insights layer is built.
-- A store reads only its own source and returns figures as recorded. Business rules and anything combining sources belong in the insights layer.
+- A repository reads only its own source and returns figures as recorded. Business rules and anything combining sources belong in the insights layer.
 - A new metric is a registry entry, not a new route.
-- Every store implementation must pass its contract's shared test suite.
+- Every repository implementation must pass its contract's shared test suite.
 
 ## Typing
 
-The codebase is moving to TypeScript. `npm run lint` type-checks the JSDoc in `src` strictly (`tsc` with `checkJs`), runs on commit, and must pass. Give any file you add or touch full JSDoc types. Tests under `src/__tests__` are not type-checked yet.
+The codebase is moving to TypeScript. `npm run lint` type-checks the JSDoc in `src` strictly (`tsc` with `checkJs`), runs on commit, and must pass. Give any file you add or touch full JSDoc types. Tests under `tests` are not type-checked yet.
 
 ## Data quirks
 

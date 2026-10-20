@@ -3,5 +3,5 @@ npm-debug.log
 .env
 .git
 .gitignore
-src/__tests__
+tests
 jest.config.js

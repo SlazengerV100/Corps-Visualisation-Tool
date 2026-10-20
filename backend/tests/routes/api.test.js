@@ -1,5 +1,5 @@
 import request from 'supertest'
-import { createApp, createInsights } from '../../app.js'
+import { createApp, createInsights } from '../../src/app.js'
 
 describe('API', () => {
     let app
