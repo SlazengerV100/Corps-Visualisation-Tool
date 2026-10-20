@@ -97,4 +97,32 @@ describe('API', () => {
             expect(res.status).toBe(400)
         })
     })
+
+    describe('GET /', () => {
+        let appWithFrontend
+
+        beforeAll(async () => {
+            appWithFrontend = createApp(await createInsights(process.env.DATA_FOLDER), './test-data/frontend')
+        })
+
+        test.each([
+            ['the index', '/'],
+            ['a client-side route', '/map']
+        ])('should serve the frontend for %s', async (_, path) => {
+            const res = await request(appWithFrontend).get(path)
+            expect(res.status).toBe(200)
+            expect(res.text).toContain('Corps Visualisation Tool')
+        })
+
+        test('should still serve the API', async () => {
+            const res = await request(appWithFrontend).get('/api/corps')
+            expect(res.status).toBe(200)
+            expect(res.body.map(c => c.id)).toEqual(['100001'])
+        })
+
+        test('should not serve the frontend without a static folder', async () => {
+            const res = await request(app).get('/')
+            expect(res.status).toBe(404)
+        })
+    })
 })
