@@ -64,7 +64,7 @@ To run [Jest](https://jestjs.io/) unit tests for the backend:
 1. Run `npm run test`
 
 ### Linting
-The backend is typed with JSDoc comments, and linting type-checks them with the TypeScript compiler in strict mode. Tests under `src/__tests__` are not type-checked yet.
+The backend is typed with JSDoc comments, and linting type-checks them with the TypeScript compiler in strict mode. Tests under `backend/tests` are not type-checked yet.
 
 1. Open your terminal to the `backend` folder.
 1. Run `npm run lint`

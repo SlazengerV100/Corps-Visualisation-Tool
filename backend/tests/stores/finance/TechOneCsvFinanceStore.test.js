@@ -1,4 +1,4 @@
-import { TechOneCsvFinanceStore } from '../../../stores/finance/TechOneCsvFinanceStore.js'
+import { TechOneCsvFinanceStore } from '../../../src/stores/finance/TechOneCsvFinanceStore.js'
 import { describeFinanceStoreContract } from './financeStoreContract.js'
 
 describe('TechOneCsvFinanceStore', () => {

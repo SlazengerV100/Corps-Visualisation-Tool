@@ -1,4 +1,4 @@
-import { SamisCsvMissionStore } from '../../../stores/mission/SamisCsvMissionStore.js'
+import { SamisCsvMissionStore } from '../../../src/stores/mission/SamisCsvMissionStore.js'
 import { describeMissionStoreContract } from './missionStoreContract.js'
 
 describe('SamisCsvMissionStore', () => {

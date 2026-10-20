@@ -9,7 +9,7 @@
 
 ## Typing
 
-The codebase is moving to TypeScript. `npm run lint` type-checks the JSDoc in `src` strictly (`tsc` with `checkJs`), runs on commit, and must pass. Give any file you add or touch full JSDoc types. Tests under `src/__tests__` are not type-checked yet.
+The codebase is moving to TypeScript. `npm run lint` type-checks the JSDoc in `src` strictly (`tsc` with `checkJs`), runs on commit, and must pass. Give any file you add or touch full JSDoc types. Tests under `tests` are not type-checked yet.
 
 ## Data quirks
 
