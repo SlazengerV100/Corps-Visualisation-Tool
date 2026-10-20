@@ -4,7 +4,7 @@ import { readCsv } from '../csv.js'
 
 /**
  * @typedef {import('./CorpsDirectory.js').CorpsDirectory} CorpsDirectory
- * @typedef {import('../../domain/Corps.js').Corps} Corps
+ * @typedef {import('../../models/Corps.js').Corps} Corps
  */
 
 const ADDRESS_LIST_FILE = 'Corps address list.csv'

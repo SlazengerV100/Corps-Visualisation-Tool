@@ -1,9 +1,9 @@
 /**
- * @typedef {import('../../domain/Corps.js').Corps} Corps
- * @typedef {import('../../domain/FinancialYear.js').FinancialYear} FinancialYear
- * @typedef {import('../../domain/MissionIndicator.js').MissionIndicator} MissionIndicator
- * @typedef {import('../../domain/MissionIndicator.js').MissionIndicators} MissionIndicators
- * @typedef {import('../../domain/MonthlyPoint.js').MonthlyPoint} MonthlyPoint
+ * @typedef {import('../../models/Corps.js').Corps} Corps
+ * @typedef {import('../../models/FinancialYear.js').FinancialYear} FinancialYear
+ * @typedef {import('../../models/MissionIndicator.js').MissionIndicator} MissionIndicator
+ * @typedef {import('../../models/MissionIndicator.js').MissionIndicators} MissionIndicators
+ * @typedef {import('../../models/MonthlyPoint.js').MonthlyPoint} MonthlyPoint
  */
 
 /**

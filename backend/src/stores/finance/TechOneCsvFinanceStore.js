@@ -3,8 +3,8 @@ import { getOrCreate, readCsv } from '../csv.js'
 
 /**
  * @typedef {import('./FinanceStore.js').FinanceStore} FinanceStore
- * @typedef {import('../../domain/FinancialYear.js').FinancialYear} FinancialYear
- * @typedef {import('../../domain/MonthlyPoint.js').MonthlyPoint} MonthlyPoint
+ * @typedef {import('../../models/FinancialYear.js').FinancialYear} FinancialYear
+ * @typedef {import('../../models/MonthlyPoint.js').MonthlyPoint} MonthlyPoint
  */
 
 /**

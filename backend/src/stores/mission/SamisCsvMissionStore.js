@@ -3,10 +3,10 @@ import { getOrCreate, readCsv } from '../csv.js'
 
 /**
  * @typedef {import('./MissionStore.js').MissionStore} MissionStore
- * @typedef {import('../../domain/FinancialYear.js').FinancialYear} FinancialYear
- * @typedef {import('../../domain/MissionIndicator.js').MissionIndicator} MissionIndicator
- * @typedef {import('../../domain/MissionIndicator.js').MissionIndicators} MissionIndicators
- * @typedef {import('../../domain/MonthlyPoint.js').MonthlyPoint} MonthlyPoint
+ * @typedef {import('../../models/FinancialYear.js').FinancialYear} FinancialYear
+ * @typedef {import('../../models/MissionIndicator.js').MissionIndicator} MissionIndicator
+ * @typedef {import('../../models/MissionIndicator.js').MissionIndicators} MissionIndicators
+ * @typedef {import('../../models/MonthlyPoint.js').MonthlyPoint} MonthlyPoint
  */
 
 const YEARLY_FILE = 'Territory_Indicators_Yr2000_2025.csv'

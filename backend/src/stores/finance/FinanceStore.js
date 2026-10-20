@@ -1,7 +1,7 @@
 /**
- * @typedef {import('../../domain/Corps.js').Corps} Corps
- * @typedef {import('../../domain/FinancialYear.js').FinancialYear} FinancialYear
- * @typedef {import('../../domain/MonthlyPoint.js').MonthlyPoint} MonthlyPoint
+ * @typedef {import('../../models/Corps.js').Corps} Corps
+ * @typedef {import('../../models/FinancialYear.js').FinancialYear} FinancialYear
+ * @typedef {import('../../models/MonthlyPoint.js').MonthlyPoint} MonthlyPoint
  */
 
 /**
