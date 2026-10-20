@@ -1,32 +1,38 @@
-/* eslint-disable -- Untyped legacy file. Add types and remove this when the file is next changed. */
 import * as React from 'react'
 import { useEffect, useState } from "react";
 import Box from '@mui/material/Box'
 import CorpsMap from "../components/map/CorpsMap.jsx";
 import CorpsDetails from "../components/map/CorpsDetails.jsx";
 
+/**
+ * @typedef {import('../components/map/CorpsDetails.jsx').Corps} Corps
+ */
+
+/**
+ * Map of every corps beside the details of the selected one
+ * @returns {React.JSX.Element}
+ */
 export default function MapPage() {
-    const serverUrl = import.meta.env.VITE_SERVER_URL
-    const [selectedCorps, setSelectedCorps] = useState(null);
-    const [corpsData, setCorpsData] = useState([])
+    const [selectedCorps, setSelectedCorps] = useState(/** @type {Corps | null} */ (null));
+    const [corpsData, setCorpsData] = useState(/** @type {Corps[]} */ ([]))
 
     useEffect(() => {
         const fetchCorpsData = async () => {
             try {
-                const response = await fetch(`${serverUrl}/api/corps`)
+                const response = await fetch('/api/corps')
                 if (!response.ok) {
                     setCorpsData([])
                     return
                 }
                 const data = await response.json()
                 setCorpsData(data)
-            } catch (error) {
+            } catch {
                 console.error(`Failed to fetch corps data`)
                 setCorpsData([])
             }
         }
         fetchCorpsData()
-    }, [serverUrl])
+    }, [])
 
     return (
         <Box

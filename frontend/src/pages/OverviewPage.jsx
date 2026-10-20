@@ -6,7 +6,6 @@ import Box from '@mui/material/Box'
 import {useEffect, useState} from 'react'
 
 export default function OverviewPage() {
-    const serverUrl = import.meta.env.VITE_SERVER_URL
     const [year, setYear] = useState(null)
     const [years, setYears] = useState([])
     const [pointsByYear, setPointsByYear] = useState({})
@@ -18,8 +17,8 @@ export default function OverviewPage() {
         const fetchBubbleData = async () => {
             try {
                 const [catalogueResponse, snapshotsResponse] = await Promise.all([
-                    fetch(`${serverUrl}/api/catalogue`),
-                    fetch(`${serverUrl}/api/snapshots?scored=true`)
+                    fetch('/api/catalogue'),
+                    fetch('/api/snapshots?scored=true')
                 ])
                 if (!catalogueResponse.ok || !snapshotsResponse.ok) {
                     return
@@ -43,7 +42,7 @@ export default function OverviewPage() {
         }
 
         fetchBubbleData()
-    }, [serverUrl])
+    }, [])
 
     const yearData = pointsByYear[year] ?? null
 

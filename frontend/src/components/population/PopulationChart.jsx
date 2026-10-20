@@ -10,13 +10,12 @@ const PopulationChart = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [year, setYear] = useState(null)
-  const serverUrl = import.meta.env.VITE_SERVER_URL
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true)
-        const response = await fetch(`${serverUrl}/api/snapshots`)
+        const response = await fetch('/api/snapshots')
         if (!response.ok) {
           throw new Error('Failed to fetch data')
         }
@@ -33,7 +32,7 @@ const PopulationChart = () => {
     }
 
     fetchData()
-  }, [serverUrl])
+  }, [])
 
   useEffect(() => {
     if (!data || data.length === 0) return

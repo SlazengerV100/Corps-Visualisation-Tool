@@ -21,8 +21,7 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
     useEffect(() => {
         const fetchCorpsData = async () => {
             try {
-                const serverUrl = import.meta.env.VITE_SERVER_URL
-                const response = await fetch(`${serverUrl}/api/corps`)
+                const response = await fetch('/api/corps')
                 if (!response.ok) {
                     console.error('Failed to fetch corps data')
                     return
