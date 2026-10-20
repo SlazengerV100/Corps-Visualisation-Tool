@@ -1,5 +1,5 @@
-import { TechOneCsvFinanceStore } from '../../stores/TechOneCsvFinanceStore.js'
-import { describeFinanceStoreContract } from './contracts/financeStoreContract.js'
+import { TechOneCsvFinanceStore } from '../../../stores/finance/TechOneCsvFinanceStore.js'
+import { describeFinanceStoreContract } from './financeStoreContract.js'
 
 describe('TechOneCsvFinanceStore', () => {
     describeFinanceStoreContract(() => TechOneCsvFinanceStore.load(process.env.DATA_FOLDER))

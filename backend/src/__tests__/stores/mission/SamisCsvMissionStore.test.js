@@ -1,5 +1,5 @@
-import { SamisCsvMissionStore } from '../../stores/SamisCsvMissionStore.js'
-import { describeMissionStoreContract } from './contracts/missionStoreContract.js'
+import { SamisCsvMissionStore } from '../../../stores/mission/SamisCsvMissionStore.js'
+import { describeMissionStoreContract } from './missionStoreContract.js'
 
 describe('SamisCsvMissionStore', () => {
     describeMissionStoreContract(() => SamisCsvMissionStore.load(process.env.DATA_FOLDER))

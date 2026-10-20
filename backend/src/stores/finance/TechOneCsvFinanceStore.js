@@ -1,11 +1,11 @@
 import path from 'path'
-import { getOrCreate } from './getOrCreate.js'
-import { readCsv } from './readCsv.js'
+import { getOrCreate } from '../getOrCreate.js'
+import { readCsv } from '../readCsv.js'
 
 /**
  * @typedef {import('./FinanceStore.js').FinanceStore} FinanceStore
- * @typedef {import('../domain/FinancialYear.js').FinancialYear} FinancialYear
- * @typedef {import('../domain/MonthlyPoint.js').MonthlyPoint} MonthlyPoint
+ * @typedef {import('../../domain/FinancialYear.js').FinancialYear} FinancialYear
+ * @typedef {import('../../domain/MonthlyPoint.js').MonthlyPoint} MonthlyPoint
  */
 
 /**

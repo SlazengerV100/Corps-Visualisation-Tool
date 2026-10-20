@@ -1,4 +1,4 @@
-import { alpha, beta, unknownId, byId } from './scenario.js'
+import { alpha, beta, unknownId, byId } from '../scenario.js'
 
 export function describeMissionStoreContract(loadStore) {
     describe('MissionStore contract', () => {

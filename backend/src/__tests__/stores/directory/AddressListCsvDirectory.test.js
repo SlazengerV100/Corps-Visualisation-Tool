@@ -1,5 +1,5 @@
-import { AddressListCsvDirectory } from '../../stores/AddressListCsvDirectory.js'
-import { describeCorpsDirectoryContract } from './contracts/corpsDirectoryContract.js'
+import { AddressListCsvDirectory } from '../../../stores/directory/AddressListCsvDirectory.js'
+import { describeCorpsDirectoryContract } from './corpsDirectoryContract.js'
 
 describe('AddressListCsvDirectory', () => {
     describeCorpsDirectoryContract(() => AddressListCsvDirectory.load(process.env.DATA_FOLDER))

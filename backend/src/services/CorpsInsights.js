@@ -3,9 +3,9 @@ import { InvalidQueryError } from './InvalidQueryError.js'
 import { NotFoundError } from './NotFoundError.js'
 
 /**
- * @typedef {import('../stores/MissionStore.js').MissionStore} MissionStore
- * @typedef {import('../stores/FinanceStore.js').FinanceStore} FinanceStore
- * @typedef {import('../stores/CorpsDirectory.js').CorpsDirectory} CorpsDirectory
+ * @typedef {import('../stores/mission/MissionStore.js').MissionStore} MissionStore
+ * @typedef {import('../stores/finance/FinanceStore.js').FinanceStore} FinanceStore
+ * @typedef {import('../stores/directory/CorpsDirectory.js').CorpsDirectory} CorpsDirectory
  * @typedef {import('../domain/Catalogue.js').Catalogue} Catalogue
  * @typedef {import('../domain/Corps.js').Corps} Corps
  * @typedef {import('../domain/FinancialYear.js').FinancialYear} FinancialYear
