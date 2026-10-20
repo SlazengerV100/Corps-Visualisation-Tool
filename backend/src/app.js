@@ -1,5 +1,4 @@
 import express from 'express'
-import cors from 'cors'
 import dotenv from 'dotenv'
 import { SamisCsvMissionRepository } from './repositories/mission/SamisCsvMissionRepository.js'
 import { TechOneCsvFinanceRepository } from './repositories/finance/TechOneCsvFinanceRepository.js'
@@ -25,7 +24,6 @@ export function createApp(insights, staticFolder) {
 
     // Middleware
     app.use(express.json())
-    app.use(cors())
 
     // Routes
     app.use('/api/catalogue', createCatalogueRoutes(insights))
