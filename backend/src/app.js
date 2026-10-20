@@ -1,5 +1,4 @@
 import express from 'express'
-import cors from 'cors'
 import dotenv from 'dotenv'
 import { SamisCsvMissionRepository } from './repositories/mission/SamisCsvMissionRepository.js'
 import { TechOneCsvFinanceRepository } from './repositories/finance/TechOneCsvFinanceRepository.js'
@@ -17,14 +16,14 @@ dotenv.config()
 /**
  * Create and configure the Express application
  * @param {CorpsInsights} insights - The combined corps insights
+ * @param {string} [staticFolder] - Folder holding the built frontend, served for every non-API path
  * @returns {express.Application} Configured Express app
  */
-export function createApp(insights) {
+export function createApp(insights, staticFolder) {
     const app = express()
 
     // Middleware
     app.use(express.json())
-    app.use(cors())
 
     // Routes
     app.use('/api/catalogue', createCatalogueRoutes(insights))
@@ -35,6 +34,14 @@ export function createApp(insights) {
     app.get('/health', (req, res) => {
         res.json({ status: 'OK', timestamp: new Date().toISOString() })
     })
+
+    // Frontend, falling back to index.html for client-side routes
+    if (staticFolder) {
+        app.use(express.static(staticFolder))
+        app.get('/{*path}', (req, res) => {
+            res.sendFile('index.html', { root: staticFolder })
+        })
+    }
 
     // Error handling middleware
     /** @type {express.ErrorRequestHandler} */

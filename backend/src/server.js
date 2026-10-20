@@ -9,7 +9,7 @@ async function startServer() {
         const insights = await createInsights(process.env.DATA_FOLDER)
 
         // Create Express app
-        const app = createApp(insights)
+        const app = createApp(insights, process.env.STATIC_FOLDER)
 
         // Start server
         const PORT = process.env.PORT || 8080

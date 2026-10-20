@@ -1,4 +1,3 @@
-/* eslint-disable -- Untyped legacy file. Add types and remove this when the file is next changed. */
 import React, { useEffect, useState } from 'react';
 import {
   Box,
@@ -15,18 +14,55 @@ import {
 } from '@mui/material';
 import MetricChart from './MetricChart.jsx';
 
+/**
+ * @typedef {Object} Corps
+ * @property {string} id
+ * @property {string} name
+ * @property {string} area
+ * @property {string} address
+ * @property {string} city
+ * @property {string | null} closingDate
+ * @property {number | null} lat
+ * @property {number | null} lng
+ */
+
+/**
+ * @typedef {Object} MetricDefinition
+ * @property {string} name
+ * @property {string} label
+ * @property {('year' | 'month')[]} granularities
+ * @property {number[]} years
+ */
+
+/**
+ * @typedef {'pastYear' | 'pastTwoYears' | 'pastFiveYears' | 'pastTenYears' | 'allTime' | 'future'} TimeRange
+ */
+
+/**
+ * @typedef {Object} ChartPoint
+ * @property {number} year
+ * @property {number} [month]
+ * @property {number} metric
+ * @property {string} [financialYear]
+ * @property {boolean} [isProjected]
+ */
+
+/**
+ * Details and metric history of one corps
+ * @param {{ corps: Corps | null }} props
+ * @returns {React.JSX.Element}
+ */
 const CorpsDetails = ({ corps }) => {
-  const serverUrl = import.meta.env.VITE_SERVER_URL
-  const [timeRange, setTimeRange] = useState('pastYear');
+  const [timeRange, setTimeRange] = useState(/** @type {TimeRange} */ ('pastYear'));
   const [selectedMetric, setSelectedMetric] = useState('congregationalWorship');
-  const [metricData, setMetricData] = useState([])
+  const [metricData, setMetricData] = useState(/** @type {ChartPoint[]} */ ([]))
   const [isLoading, setIsLoading] = useState(false)
-  const [metrics, setMetrics] = useState([])
+  const [metrics, setMetrics] = useState(/** @type {MetricDefinition[]} */ ([]))
 
   useEffect(() => {
     const fetchCatalogue = async () => {
       try {
-        const response = await fetch(`${serverUrl}/api/catalogue`)
+        const response = await fetch('/api/catalogue')
         if (response.ok) {
           setMetrics((await response.json()).metrics)
         }
@@ -36,7 +72,7 @@ const CorpsDetails = ({ corps }) => {
     }
 
     fetchCatalogue()
-  }, [serverUrl])
+  }, [])
 
   const definition = metrics.find(metric => metric.name === selectedMetric)
   const supportsMonthly = definition?.granularities.includes('month') ?? false
@@ -44,23 +80,30 @@ const CorpsDetails = ({ corps }) => {
   const monthlyRanges = ['pastYear', 'pastTwoYears']
   const effectiveRange = supportsMonthly || !monthlyRanges.includes(timeRange) ? timeRange : 'allTime'
 
+  /**
+   * @param {number} year - Financial year
+   * @returns {Promise<ChartPoint[]>}
+   */
   const fetchMonthlyData = async (year) => {
     try {
-      const response = await fetch(`${serverUrl}/api/corps/${corps.id}/series/${selectedMetric}?granularity=month&year=${year}`)
+      const response = await fetch(`/api/corps/${corps.id}/series/${selectedMetric}?granularity=month&year=${year}`)
       if (!response.ok) {
         return []
       }
       const data = await response.json()
       return data
-    } catch (error) {
+    } catch {
       console.error(`Failed to fetch monthly metric data for ${year}`)
       return []
     }
   }
 
+  /**
+   * @returns {Promise<ChartPoint[]>}
+   */
   const fetchYearlyData = async () => {
     try {
-      const response = await fetch(`${serverUrl}/api/corps/${corps.id}/series/${selectedMetric}`)
+      const response = await fetch(`/api/corps/${corps.id}/series/${selectedMetric}`)
       if (!response.ok) {
         return []
       }
@@ -70,12 +113,15 @@ const CorpsDetails = ({ corps }) => {
         financialYear: `${item.year - 1}/${item.year.toString().slice(-2)}`,
         year: item.year
       }))
-    } catch (error) {
+    } catch {
       console.error(`Failed to fetch yearly metric data`)
       return []
     }
   }
 
+  /**
+   * @param {TimeRange} range
+   */
   const fetchMetricData = async (range) => {
     if (!corps || latestYear === undefined) return
 
@@ -191,7 +237,7 @@ const CorpsDetails = ({ corps }) => {
 
   useEffect(() => {
     fetchMetricData(effectiveRange)
-  }, [serverUrl, corps, effectiveRange, selectedMetric, latestYear])
+  }, [corps, effectiveRange, selectedMetric, latestYear])
 
   if (!corps) {
     return (
@@ -205,6 +251,10 @@ const CorpsDetails = ({ corps }) => {
     );
   }
 
+  /**
+   * @param {React.MouseEvent<HTMLElement>} event
+   * @param {TimeRange | null} newTimeRange
+   */
   const handleTimeRangeChange = (event, newTimeRange) => {
     if (newTimeRange !== null) {
       setTimeRange(newTimeRange);
