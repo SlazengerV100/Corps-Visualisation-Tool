@@ -1,7 +1,10 @@
-node_modules
-npm-debug.log
-.env
+**/node_modules
+**/dist
+**/npm-debug.log
+**/.env
 .git
-.gitignore
-tests
-jest.config.js
+**/.gitignore
+backend/tests
+backend/test-data
+backend/jest.config.js
+data

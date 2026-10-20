@@ -1,7 +1,7 @@
-# Start the frontend and backend with Docker containers
+# Start the tool in a Docker container
 stack-up:
     docker compose up -d --build
 
-# Stop the frontend and backend Docker containers
+# Stop the tool's Docker container
 stack-down:
     docker compose down

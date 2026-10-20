@@ -1,20 +1,9 @@
 services:
-  backend:
-    build: ./backend
+  app:
+    build: .
     ports:
-      - "8081:8081"
+      - "8080:8080"
     environment:
-      PORT: 8081
       DATA_FOLDER: /data
     volumes:
       - ${HOST_DATA_FOLDER:-./data}:/data:ro
-
-  frontend:
-    build:
-      context: ./frontend
-      args:
-        VITE_SERVER_URL: http://localhost:8081
-    ports:
-      - "8080:8080"
-    depends_on:
-      - backend
