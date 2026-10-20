@@ -6,3 +6,7 @@ backend/.env
 frontend/.env
 .env
 data
+infra/.terraform
+infra/*.tfstate*
+infra/terraform.tfvars
+infra/tfplan
