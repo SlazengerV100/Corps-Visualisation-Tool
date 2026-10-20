@@ -1,6 +1,6 @@
 import path from 'path'
 import { isValid, parse } from 'date-fns'
-import { readCsv } from '../readCsv.js'
+import { readCsv } from '../csv.js'
 
 /**
  * @typedef {import('./CorpsDirectory.js').CorpsDirectory} CorpsDirectory
