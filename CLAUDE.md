@@ -4,6 +4,7 @@ Visualises The Salvation Army New Zealand corps statistics: attendance, disciple
 
 - `backend/`: See `backend/CLAUDE.md`.
 - `frontend/`: See `frontend/CLAUDE.md`.
+- `infra/`: See `infra/CLAUDE.md`.
 
 ## Data
 
