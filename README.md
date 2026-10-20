@@ -46,8 +46,9 @@ In order to setup the backend, you need to create a `.env` file to store your en
 
     | Environment Variable | Description |
     | ------ | ------ |
-    | PORT | The desired port number of the backend server. For development, this must match the VITE_SERVER_URL in the frontend environment variables. |
+    | PORT | The desired port number of the backend server. For development, this must match the SERVER_URL in the frontend environment variables. |
     | DATA_FOLDER | The path to the folder which contains the CSV data files which are not included in this repository for security reasons. |
+    | STATIC_FOLDER | Optional. The path to a built frontend (`frontend/dist`) for the backend to serve. Leave unset in development, where the frontend's dev server serves it. |
 
 ### Running
 To run the backend: 
@@ -80,7 +81,7 @@ In order to setup the frontend, you need to create a `.env` file to store your e
 
     | Environment Variable | Description |
     | ------ | ------ |
-    | VITE_SERVER_URL | If running locally, the URL of the local host server, including the port number from the backend environment variables. |
+    | SERVER_URL | The URL of the local backend server, including the port number from the backend environment variables. The development server proxies `/api` requests to it. |
 
 ### Running
 To run the frontend:
@@ -104,7 +105,7 @@ The frontend has support for linting.
 The codebase is moving to TypeScript. Some frontend files that failed linting when the hook was added open with an `eslint-disable` annotation. When you change one of these files, add types, fix its lint errors and remove the annotation.
 
 ## Docker
-Both the frontend and backend can instead be run as Docker containers via Docker Compose, without installing Node.js locally.
+The tool can instead be run as a single Docker container via Docker Compose, without installing Node.js locally. The backend serves both the API and the built frontend.
 
 ### Setup
 1. In the repository root, create a `.env` file (see [`.env.example`](.env.example)):
@@ -113,9 +114,9 @@ Both the frontend and backend can instead be run as Docker containers via Docker
     | ------ | ------ |
     | HOST_DATA_FOLDER | Path on your machine to the folder containing the CSV data files |
 
-    This `.env` is read by Docker Compose only, to mount your data folder into the backend container — it is separate from `backend/.env` and `frontend/.env`, which configure the apps themselves when run outside Docker.
+    This `.env` is read by Docker Compose only, to mount your data folder into the container — it is separate from `backend/.env` and `frontend/.env`, which configure the apps themselves when run outside Docker.
 
 ### Running
 1. Run `just stack-up`.
-1. The frontend is served at http://localhost:8080 and the backend at http://localhost:8081.
-1. Run `just stack-down` to stop and remove the containers.
+1. The tool is served at http://localhost:8080, with the API under http://localhost:8080/api.
+1. Run `just stack-down` to stop and remove the container.
