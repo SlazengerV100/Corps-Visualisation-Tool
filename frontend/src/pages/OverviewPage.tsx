@@ -1,16 +1,25 @@
-import BubbleChart from '../components/overview/BubbleChart.tsx'
+import React from 'react'
+import BubbleChart, { type BubblePoint } from '../components/overview/BubbleChart.tsx'
 import AnimationPanel from '../components/overview/AnimationPanel.tsx'
-import CheckboxSelectorPanel from '../components/overview/CheckboxSelectorPanel.jsx'
+import CheckboxSelectorPanel from '../components/overview/CheckboxSelectorPanel.tsx'
 import TogglePanel from '../components/overview/TogglePanel.tsx'
 import Box from '@mui/material/Box'
 import {useEffect, useState} from 'react'
+import type { Corps } from '../components/map/CorpsDetails.tsx'
 
-export default function OverviewPage() {
-    const [year, setYear] = useState(null)
-    const [years, setYears] = useState([])
-    const [pointsByYear, setPointsByYear] = useState({})
-    const [selectedCorps, setSelectedCorps] = useState([])
-    const [corps, setCorps] = useState([])
+interface ScoredSnapshot {
+    id: string
+    name: string
+    year: number
+    scores: Omit<BubblePoint, 'id' | 'name'>
+}
+
+export default function OverviewPage(): React.JSX.Element {
+    const [year, setYear] = useState<number | null>(null)
+    const [years, setYears] = useState<number[]>([])
+    const [pointsByYear, setPointsByYear] = useState<Record<number, BubblePoint[]>>({})
+    const [selectedCorps, setSelectedCorps] = useState<string[]>([])
+    const [corps, setCorps] = useState<Corps[]>([])
     const [hideUnselected, setHideUnselected] = useState(false)
 
     useEffect(() => {
@@ -23,10 +32,10 @@ export default function OverviewPage() {
                 if (!catalogueResponse.ok || !snapshotsResponse.ok) {
                     return
                 }
-                const catalogue = await catalogueResponse.json()
-                const snapshots = await snapshotsResponse.json()
+                const catalogue: { snapshots: { scoredYears: number[] } } = await catalogueResponse.json()
+                const snapshots: ScoredSnapshot[] = await snapshotsResponse.json()
 
-                const byYear = {}
+                const byYear: Record<number, BubblePoint[]> = {}
                 snapshots.forEach(snapshot => {
                     byYear[snapshot.year] ??= []
                     byYear[snapshot.year].push({ id: snapshot.id, name: snapshot.name, ...snapshot.scores })
@@ -44,7 +53,7 @@ export default function OverviewPage() {
         void fetchBubbleData()
     }, [])
 
-    const yearData = pointsByYear[year] ?? null
+    const yearData = year === null ? null : pointsByYear[year] ?? null
 
     return (
         <Box sx={{ 
