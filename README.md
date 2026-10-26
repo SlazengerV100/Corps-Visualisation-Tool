@@ -102,7 +102,7 @@ The frontend has support for linting.
 1. Install pre-commit, for example with `brew install pre-commit`.
 1. In the repository root, run `pre-commit install`.
 
-The codebase is moving to TypeScript. Some frontend files that failed linting when the hook was added open with an `eslint-disable` annotation. When you change one of these files, add types, fix its lint errors and remove the annotation.
+The codebase is moving to TypeScript. The frontend is already TypeScript only; the backend is typed with JSDoc until it is converted.
 
 ## Docker
 The tool can instead be run as a single Docker container via Docker Compose, without installing Node.js locally. The backend serves both the API and the built frontend.
