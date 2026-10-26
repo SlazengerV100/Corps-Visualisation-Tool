@@ -28,6 +28,7 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
         if (selectedCorps) {
             map.setView([selectedCorps.lat, selectedCorps.lng], Math.max(map.getZoom(), corpsZoom))
         } else {
+            map.closePopup()
             map.setView(centre, map.getZoom())
         }
     }, [selectedCorps])
