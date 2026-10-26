@@ -53,15 +53,15 @@ In order to setup the backend, you need to create a `.env` file to store your en
 ### Running
 To run the backend: 
 
+1. In the repository root, run `npm i`. The backend and frontend are npm workspaces sharing one install.
 1. Open your terminal to the `backend` folder.
-1. Run `npm i`
 1. Run `npm run dev` for development or `npm start` for production.
 
 ### Testing
 To run [Jest](https://jestjs.io/) unit tests for the backend: 
 
+1. In the repository root, run `npm i`.
 1. Open your terminal to the `backend` folder.
-1. Run `npm i`
 1. Run `npm run test`
 
 ### Linting
@@ -86,8 +86,8 @@ In order to setup the frontend, you need to create a `.env` file to store your e
 ### Running
 To run the frontend:
 
+1. In the repository root, run `npm i`.
 1. Open your terminal to the `frontend` folder.
-1. Run `npm i`
 1. Run `npm run dev` for development.
 
 ### Linting

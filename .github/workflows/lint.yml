@@ -5,6 +5,10 @@ on:
     paths:
       - backend/**
       - frontend/**
+      - package.json
+      - package-lock.json
+      - tsconfig.base.json
+      - .oxlintrc.jsonc
       - .github/workflows/lint.yml
 
 permissions:
@@ -20,12 +24,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: |
-            backend/package-lock.json
-            frontend/package-lock.json
 
-      - run: npm ci --prefix backend
-      - run: npm ci --prefix frontend
+      - run: npm ci
 
-      - run: npm run lint --prefix backend
-      - run: npm run lint --prefix frontend
+      - run: npm run lint

@@ -1,0 +1,45 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "ignorePatterns": ["frontend/dist"],
+  "rules": {
+    // Prefers mutating objects in map over spreading them; the arrays here are too small for that to pay off.
+    "oxc/no-map-spread": "off"
+  },
+  "overrides": [
+    {
+      "files": ["backend/**"],
+      "rules": {
+        // JSDoc typedef-only modules need an empty export; turn this back on once the backend is TypeScript.
+        "unicorn/require-module-specifiers": "off"
+      }
+    },
+    {
+      "files": ["frontend/**"],
+      "plugins": ["react"],
+      "env": {
+        "browser": true
+      },
+      "rules": {
+        "eslint/no-unused-vars": ["error", { "varsIgnorePattern": "^[A-Z_]" }],
+        "react/rules-of-hooks": "error",
+        "react/only-export-components": ["warn", { "allowConstantExport": true }],
+        // The JSX transform has not needed React in scope since React 17.
+        "react/react-in-jsx-scope": "off",
+        // Duplicates react/exhaustive-deps.
+        "react/exhaustive-effect-dependencies": "off",
+        // Flags fetching in effects; revisit if the app adopts a data-fetching library.
+        "react/set-state-in-effect": "off"
+      }
+    }
+  ],
+  "options": {
+    "typeAware": true,
+    "typeCheck": true,
+    "maxWarnings": 0
+  }
+}

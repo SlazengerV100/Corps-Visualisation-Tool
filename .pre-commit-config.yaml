@@ -3,13 +3,13 @@ repos:
     hooks:
       - id: backend-lint
         name: backend lint
-        entry: npm run lint --prefix backend
+        entry: npm run lint --workspace backend
         language: system
-        files: ^backend/
+        files: ^(backend/|package(-lock)?\.json$|tsconfig\.base\.json$|\.oxlintrc\.jsonc$)
         pass_filenames: false
       - id: frontend-lint
         name: frontend lint
-        entry: npm run lint --prefix frontend
+        entry: npm run lint --workspace frontend
         language: system
-        files: ^frontend/
+        files: ^(frontend/|package(-lock)?\.json$|tsconfig\.base\.json$|\.oxlintrc\.jsonc$)
         pass_filenames: false
