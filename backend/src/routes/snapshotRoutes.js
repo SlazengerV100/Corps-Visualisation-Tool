@@ -18,7 +18,7 @@ export function createSnapshotRoutes(insights) {
     router.get('/', (req, res) => {
         const { scored } = req.query
         if (scored !== undefined && scored !== 'true' && scored !== 'false') {
-            throw new InvalidQueryError(`Invalid scored ${scored}`)
+            throw new InvalidQueryError(`Invalid scored ${JSON.stringify(scored)}`)
         }
         res.json(insights.snapshots({ year: parseYear(req.query.year), scored: scored === 'true' }))
     })

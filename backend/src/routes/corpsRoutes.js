@@ -23,7 +23,7 @@ export function createCorpsRoutes(insights) {
     router.get('/:centreId/series/:metric', (req, res) => {
         const { granularity = 'year' } = req.query
         if (granularity !== 'year' && granularity !== 'month') {
-            throw new InvalidQueryError(`Invalid granularity ${granularity}`)
+            throw new InvalidQueryError(`Invalid granularity ${JSON.stringify(granularity)}`)
         }
         res.json(insights.series(req.params.centreId, req.params.metric, { granularity, year: parseYear(req.query.year) }))
     })
