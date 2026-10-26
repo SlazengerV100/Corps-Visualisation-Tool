@@ -7,6 +7,7 @@
 
 ## Applying changes
 
+- Only apply from an up-to-date main checkout, after the change has merged. Never `terraform apply` from a branch or worktree; plan there only.
 - Show the user a saved `terraform plan -out=tfplan` before every apply, and apply only that plan. Never `-auto-approve`.
 - Never run `terraform destroy`, or apply a plan that destroys or replaces a resource, unless the user asked for it. Call out any replacement in the plan.
 - Run `terraform fmt` and `terraform validate` before committing.
