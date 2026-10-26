@@ -2,8 +2,8 @@
 
 ## Typing
 
-- The codebase is moving to TypeScript. Give any file you add or touch full JSDoc types, as the backend does. `npm run lint` only runs ESLint here and does not type-check yet, so nothing enforces this.
-- `npm run lint` runs on commit and must pass. Files that failed it when the hook was added open with `/* eslint-disable */` for now. When you change one of those files, add types, fix its lint errors and remove the annotation.
+- The codebase is moving to TypeScript. Give any file you add or touch full types. `npm run lint` runs oxlint, which type-checks `.ts` and `.tsx` files but not JavaScript (`checkJs` is off), so JSDoc types in `.jsx` files go unchecked.
+- `npm run lint` runs on commit and in CI, and must pass; warnings don't fail it. Files that failed ESLint when the hook was added open with `/* eslint-disable */`, which oxlint honours. When you change one of those files, add types, fix its lint errors and remove the annotation.
 
 ## Data quirks
 
