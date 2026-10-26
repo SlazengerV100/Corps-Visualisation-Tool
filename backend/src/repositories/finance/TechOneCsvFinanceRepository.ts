@@ -1,10 +1,10 @@
 import path from 'path'
-import { getOrCreate, readCsv } from '../csv.js'
+import { getOrCreate, readCsv } from '../csv.ts'
 
 /**
- * @typedef {import('./FinanceRepository.js').FinanceRepository} FinanceRepository
- * @typedef {import('../../models/FinancialYear.js').FinancialYear} FinancialYear
- * @typedef {import('../../models/MonthlyPoint.js').MonthlyPoint} MonthlyPoint
+ * @typedef {import('./FinanceRepository.ts').FinanceRepository} FinanceRepository
+ * @typedef {import('../../models/FinancialYear.ts').FinancialYear} FinancialYear
+ * @typedef {import('../../models/MonthlyPoint.ts').MonthlyPoint} MonthlyPoint
  */
 
 /**

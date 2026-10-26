@@ -1,23 +1,23 @@
-import { calculateGrowth, calculateSustainability } from '../utils/calculations.js'
-import { InvalidQueryError } from './InvalidQueryError.js'
-import { NotFoundError } from './NotFoundError.js'
+import { calculateGrowth, calculateSustainability } from '../utils/calculations.ts'
+import { InvalidQueryError } from './InvalidQueryError.ts'
+import { NotFoundError } from './NotFoundError.ts'
 
 /**
- * @typedef {import('../repositories/mission/MissionRepository.js').MissionRepository} MissionRepository
- * @typedef {import('../repositories/finance/FinanceRepository.js').FinanceRepository} FinanceRepository
- * @typedef {import('../repositories/directory/CorpsDirectoryRepository.js').CorpsDirectoryRepository} CorpsDirectoryRepository
- * @typedef {import('../models/Catalogue.js').Catalogue} Catalogue
- * @typedef {import('../models/Corps.js').Corps} Corps
- * @typedef {import('../models/FinancialYear.js').FinancialYear} FinancialYear
- * @typedef {import('../models/Metric.js').Granularity} Granularity
- * @typedef {import('../models/Metric.js').MetricDefinition} MetricDefinition
- * @typedef {import('../models/Metric.js').MetricName} MetricName
- * @typedef {import('../models/MissionIndicator.js').MissionIndicator} MissionIndicator
- * @typedef {import('../models/MissionIndicator.js').MissionIndicators} MissionIndicators
- * @typedef {import('../models/MonthlyPoint.js').MonthlyPoint} MonthlyPoint
- * @typedef {import('../models/Snapshot.js').Snapshot} Snapshot
- * @typedef {import('../models/Snapshot.js').YearPair} YearPair
- * @typedef {import('../models/YearlyPoint.js').YearlyPoint} YearlyPoint
+ * @typedef {import('../repositories/mission/MissionRepository.ts').MissionRepository} MissionRepository
+ * @typedef {import('../repositories/finance/FinanceRepository.ts').FinanceRepository} FinanceRepository
+ * @typedef {import('../repositories/directory/CorpsDirectoryRepository.ts').CorpsDirectoryRepository} CorpsDirectoryRepository
+ * @typedef {import('../models/Catalogue.ts').Catalogue} Catalogue
+ * @typedef {import('../models/Corps.ts').Corps} Corps
+ * @typedef {import('../models/FinancialYear.ts').FinancialYear} FinancialYear
+ * @typedef {import('../models/Metric.ts').Granularity} Granularity
+ * @typedef {import('../models/Metric.ts').MetricDefinition} MetricDefinition
+ * @typedef {import('../models/Metric.ts').MetricName} MetricName
+ * @typedef {import('../models/MissionIndicator.ts').MissionIndicator} MissionIndicator
+ * @typedef {import('../models/MissionIndicator.ts').MissionIndicators} MissionIndicators
+ * @typedef {import('../models/MonthlyPoint.ts').MonthlyPoint} MonthlyPoint
+ * @typedef {import('../models/Snapshot.ts').Snapshot} Snapshot
+ * @typedef {import('../models/Snapshot.ts').YearPair} YearPair
+ * @typedef {import('../models/YearlyPoint.ts').YearlyPoint} YearlyPoint
  */
 
 /**

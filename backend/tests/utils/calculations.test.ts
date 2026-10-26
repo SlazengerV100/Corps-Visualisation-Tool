@@ -8,7 +8,7 @@ import {
   calculateGrowth,
   calculateSustainability,
   updateCurrentCorps
-} from '../../src/utils/calculations.js'
+} from '../../src/utils/calculations.ts'
 
 describe('Calculation Utilities', () => {
   describe('getGrowthBand', () => {

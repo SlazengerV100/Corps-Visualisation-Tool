@@ -1,5 +1,5 @@
 /**
- * @typedef {import('../../models/Corps.js').Corps} Corps
+ * @typedef {import('../../models/Corps.ts').Corps} Corps
  */
 
 /**

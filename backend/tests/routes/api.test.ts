@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest'
 import request from 'supertest'
-import { createApp, createInsights } from '../../src/app.js'
+import { createApp, createInsights } from '../../src/app.ts'
 
 describe('API', () => {
     let app

@@ -1,6 +1,6 @@
 /**
- * @typedef {import('./FinancialYear.js').FinancialYear} FinancialYear
- * @typedef {import('./Metric.js').MetricDefinition} MetricDefinition
+ * @typedef {import('./FinancialYear.ts').FinancialYear} FinancialYear
+ * @typedef {import('./Metric.ts').MetricDefinition} MetricDefinition
  */
 
 /**

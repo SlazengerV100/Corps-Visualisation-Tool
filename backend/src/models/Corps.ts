@@ -1,5 +1,5 @@
 /**
- * @typedef {import('./Population.js').Population} Population
+ * @typedef {import('./Population.ts').Population} Population
  */
 
 /**

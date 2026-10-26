@@ -1,5 +1,5 @@
 /**
- * @typedef {import('./FinancialYear.js').FinancialYear} FinancialYear
+ * @typedef {import('./FinancialYear.ts').FinancialYear} FinancialYear
  */
 
 /**

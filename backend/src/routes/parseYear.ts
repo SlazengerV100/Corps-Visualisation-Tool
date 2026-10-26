@@ -1,4 +1,4 @@
-import { InvalidQueryError } from '../services/InvalidQueryError.js'
+import { InvalidQueryError } from '../services/InvalidQueryError.ts'
 
 /**
  * Read an optional financial year from a query parameter.

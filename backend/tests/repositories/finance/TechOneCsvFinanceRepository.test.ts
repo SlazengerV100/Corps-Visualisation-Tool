@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { TechOneCsvFinanceRepository } from '../../../src/repositories/finance/TechOneCsvFinanceRepository.js'
-import { describeFinanceRepositoryContract } from './financeRepositoryContract.js'
+import { TechOneCsvFinanceRepository } from '../../../src/repositories/finance/TechOneCsvFinanceRepository.ts'
+import { describeFinanceRepositoryContract } from './financeRepositoryContract.ts'
 
 describe('TechOneCsvFinanceRepository', () => {
     describeFinanceRepositoryContract(() => TechOneCsvFinanceRepository.load(process.env.DATA_FOLDER))

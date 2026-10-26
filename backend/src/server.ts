@@ -1,4 +1,4 @@
-import { createApp, createInsights } from './app.js'
+import { createApp, createInsights } from './app.ts'
 
 /**
  * Main server entry point

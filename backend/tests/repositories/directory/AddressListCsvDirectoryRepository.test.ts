@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { AddressListCsvDirectoryRepository } from '../../../src/repositories/directory/AddressListCsvDirectoryRepository.js'
-import { describeCorpsDirectoryRepositoryContract } from './corpsDirectoryRepositoryContract.js'
+import { AddressListCsvDirectoryRepository } from '../../../src/repositories/directory/AddressListCsvDirectoryRepository.ts'
+import { describeCorpsDirectoryRepositoryContract } from './corpsDirectoryRepositoryContract.ts'
 
 describe('AddressListCsvDirectoryRepository', () => {
     describeCorpsDirectoryRepositoryContract(() => AddressListCsvDirectoryRepository.load(process.env.DATA_FOLDER))

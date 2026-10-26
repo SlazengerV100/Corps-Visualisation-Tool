@@ -1,6 +1,6 @@
 /**
- * @typedef {import('./FinancialYear.js').FinancialYear} FinancialYear
- * @typedef {import('./MissionIndicator.js').MissionIndicator} MissionIndicator
+ * @typedef {import('./FinancialYear.ts').FinancialYear} FinancialYear
+ * @typedef {import('./MissionIndicator.ts').MissionIndicator} MissionIndicator
  */
 
 /**

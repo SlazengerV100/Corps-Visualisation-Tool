@@ -1,7 +1,7 @@
 import express from 'express'
 
 /**
- * @typedef {import('../services/CorpsInsights.js').CorpsInsights} CorpsInsights
+ * @typedef {import('../services/CorpsInsights.ts').CorpsInsights} CorpsInsights
  */
 
 /**

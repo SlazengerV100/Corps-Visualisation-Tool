@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, test } from 'vitest'
-import { alpha, beta, unknownId, byId } from '../scenario.js'
+import { alpha, beta, unknownId, byId } from '../scenario.ts'
 
 export function describeCorpsDirectoryRepositoryContract(loadRepository) {
     describe('CorpsDirectoryRepository contract', () => {

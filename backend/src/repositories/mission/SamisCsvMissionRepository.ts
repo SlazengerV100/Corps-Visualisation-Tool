@@ -1,12 +1,12 @@
 import path from 'path'
-import { getOrCreate, readCsv } from '../csv.js'
+import { getOrCreate, readCsv } from '../csv.ts'
 
 /**
- * @typedef {import('./MissionRepository.js').MissionRepository} MissionRepository
- * @typedef {import('../../models/FinancialYear.js').FinancialYear} FinancialYear
- * @typedef {import('../../models/MissionIndicator.js').MissionIndicator} MissionIndicator
- * @typedef {import('../../models/MissionIndicator.js').MissionIndicators} MissionIndicators
- * @typedef {import('../../models/MonthlyPoint.js').MonthlyPoint} MonthlyPoint
+ * @typedef {import('./MissionRepository.ts').MissionRepository} MissionRepository
+ * @typedef {import('../../models/FinancialYear.ts').FinancialYear} FinancialYear
+ * @typedef {import('../../models/MissionIndicator.ts').MissionIndicator} MissionIndicator
+ * @typedef {import('../../models/MissionIndicator.ts').MissionIndicators} MissionIndicators
+ * @typedef {import('../../models/MonthlyPoint.ts').MonthlyPoint} MonthlyPoint
  */
 
 const YEARLY_FILE = 'Territory_Indicators_Yr2000_2025.csv'

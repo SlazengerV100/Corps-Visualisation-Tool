@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'vitest'
-import { CorpsInsights } from '../../src/services/CorpsInsights.js'
-import { InvalidQueryError } from '../../src/services/InvalidQueryError.js'
-import { NotFoundError } from '../../src/services/NotFoundError.js'
-import { calculateGrowth, calculateSustainability } from '../../src/utils/calculations.js'
-import { FakeMissionRepository } from '../fakes/FakeMissionRepository.js'
-import { FakeFinanceRepository } from '../fakes/FakeFinanceRepository.js'
-import { FakeCorpsDirectoryRepository } from '../fakes/FakeCorpsDirectoryRepository.js'
+import { CorpsInsights } from '../../src/services/CorpsInsights.ts'
+import { InvalidQueryError } from '../../src/services/InvalidQueryError.ts'
+import { NotFoundError } from '../../src/services/NotFoundError.ts'
+import { calculateGrowth, calculateSustainability } from '../../src/utils/calculations.ts'
+import { FakeMissionRepository } from '../fakes/FakeMissionRepository.ts'
+import { FakeFinanceRepository } from '../fakes/FakeFinanceRepository.ts'
+import { FakeCorpsDirectoryRepository } from '../fakes/FakeCorpsDirectoryRepository.ts'
 
 const alpha = { id: '100001', name: 'Alpha Corps' }
 const beta = { id: '100002', name: 'Beta Corps' }

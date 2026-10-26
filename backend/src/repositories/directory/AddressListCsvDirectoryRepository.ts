@@ -1,10 +1,10 @@
 import path from 'path'
 import { isValid, parse } from 'date-fns'
-import { readCsv } from '../csv.js'
+import { readCsv } from '../csv.ts'
 
 /**
- * @typedef {import('./CorpsDirectoryRepository.js').CorpsDirectoryRepository} CorpsDirectoryRepository
- * @typedef {import('../../models/Corps.js').Corps} Corps
+ * @typedef {import('./CorpsDirectoryRepository.ts').CorpsDirectoryRepository} CorpsDirectoryRepository
+ * @typedef {import('../../models/Corps.ts').Corps} Corps
  */
 
 const ADDRESS_LIST_FILE = 'Corps address list.csv'

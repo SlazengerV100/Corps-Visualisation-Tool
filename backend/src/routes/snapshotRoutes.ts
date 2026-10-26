@@ -1,9 +1,9 @@
 import express from 'express'
-import { InvalidQueryError } from '../services/InvalidQueryError.js'
-import { parseYear } from './parseYear.js'
+import { InvalidQueryError } from '../services/InvalidQueryError.ts'
+import { parseYear } from './parseYear.ts'
 
 /**
- * @typedef {import('../services/CorpsInsights.js').CorpsInsights} CorpsInsights
+ * @typedef {import('../services/CorpsInsights.ts').CorpsInsights} CorpsInsights
  */
 
 /**

@@ -1,14 +1,14 @@
 import express from 'express'
 import dotenv from 'dotenv'
-import { SamisCsvMissionRepository } from './repositories/mission/SamisCsvMissionRepository.js'
-import { TechOneCsvFinanceRepository } from './repositories/finance/TechOneCsvFinanceRepository.js'
-import { AddressListCsvDirectoryRepository } from './repositories/directory/AddressListCsvDirectoryRepository.js'
-import { CorpsInsights } from './services/CorpsInsights.js'
-import { InvalidQueryError } from './services/InvalidQueryError.js'
-import { NotFoundError } from './services/NotFoundError.js'
-import { createCatalogueRoutes } from './routes/catalogueRoutes.js'
-import { createCorpsRoutes } from './routes/corpsRoutes.js'
-import { createSnapshotRoutes } from './routes/snapshotRoutes.js'
+import { SamisCsvMissionRepository } from './repositories/mission/SamisCsvMissionRepository.ts'
+import { TechOneCsvFinanceRepository } from './repositories/finance/TechOneCsvFinanceRepository.ts'
+import { AddressListCsvDirectoryRepository } from './repositories/directory/AddressListCsvDirectoryRepository.ts'
+import { CorpsInsights } from './services/CorpsInsights.ts'
+import { InvalidQueryError } from './services/InvalidQueryError.ts'
+import { NotFoundError } from './services/NotFoundError.ts'
+import { createCatalogueRoutes } from './routes/catalogueRoutes.ts'
+import { createCorpsRoutes } from './routes/corpsRoutes.ts'
+import { createSnapshotRoutes } from './routes/snapshotRoutes.ts'
 
 // Load environment variables
 dotenv.config()

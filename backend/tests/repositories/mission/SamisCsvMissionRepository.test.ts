@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { SamisCsvMissionRepository } from '../../../src/repositories/mission/SamisCsvMissionRepository.js'
-import { describeMissionRepositoryContract } from './missionRepositoryContract.js'
+import { SamisCsvMissionRepository } from '../../../src/repositories/mission/SamisCsvMissionRepository.ts'
+import { describeMissionRepositoryContract } from './missionRepositoryContract.ts'
 
 describe('SamisCsvMissionRepository', () => {
     describeMissionRepositoryContract(() => SamisCsvMissionRepository.load(process.env.DATA_FOLDER))
