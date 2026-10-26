@@ -1,9 +1,10 @@
 import { beforeAll, describe, expect, test } from 'vitest'
 import { alpha, beta, unknownId, byId } from '../scenario.ts'
+import type { CorpsDirectoryRepository } from '../../../src/repositories/directory/CorpsDirectoryRepository.ts'
 
-export function describeCorpsDirectoryRepositoryContract(loadRepository) {
+export function describeCorpsDirectoryRepositoryContract(loadRepository: () => Promise<CorpsDirectoryRepository>) {
     describe('CorpsDirectoryRepository contract', () => {
-        let repository
+        let repository: CorpsDirectoryRepository
 
         beforeAll(async () => {
             repository = await loadRepository()
@@ -11,7 +12,7 @@ export function describeCorpsDirectoryRepositoryContract(loadRepository) {
 
         describe('all', () => {
             test('should list every corps', () => {
-                expect([...repository.all()].sort(byId).map(c => c.id)).toEqual([alpha.id, beta.id])
+                expect(repository.all().toSorted(byId).map(c => c.id)).toEqual([alpha.id, beta.id])
             })
         })
 
@@ -35,9 +36,9 @@ export function describeCorpsDirectoryRepositoryContract(loadRepository) {
 
             test('should return the closing date and null coordinates when missing', () => {
                 const corps = repository.get(beta.id)
-                expect(corps.closingDate).toEqual(new Date(2014, 11, 23))
-                expect(corps.lat).toBeNull()
-                expect(corps.lng).toBeNull()
+                expect(corps?.closingDate).toEqual(new Date(2014, 11, 23))
+                expect(corps?.lat).toBeNull()
+                expect(corps?.lng).toBeNull()
             })
 
             test('should return null for an unknown corps', () => {

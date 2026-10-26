@@ -10,6 +10,13 @@ import {
   updateCurrentCorps
 } from '../../src/utils/calculations.ts'
 
+const createMockMetrics = () => ({
+  congregationalWorship: { currentYear: null, prevYear: null },
+  firstTimeDecisions: { currentYear: 0, prevYear: 0 },
+  kidsChurch: { currentYear: null, prevYear: null },
+  youthDiscipleship: { currentYear: null, prevYear: null }
+})
+
 describe('Calculation Utilities', () => {
   describe('getGrowthBand', () => {
     test('should return minBand (30) for small congregations', () => {
@@ -211,13 +218,6 @@ describe('Calculation Utilities', () => {
   })
 
   describe('updateCurrentCorps', () => {
-    const createMockMetrics = () => ({
-      congregationalWorship: { currentYear: null, prevYear: null },
-      firstTimeDecisions: { currentYear: 0, prevYear: 0 },
-      kidsChurch: { currentYear: null, prevYear: null },
-      youthDiscipleship: { currentYear: null, prevYear: null }
-    })
-
     test('should update congregational worship current year', () => {
       const metrics = createMockMetrics()
       const result = updateCurrentCorps(metrics, '01-Congregational Worship', 50, 'currentYear')
@@ -283,6 +283,7 @@ describe('Calculation Utilities', () => {
 
     test('should handle invalid year types gracefully', () => {
       const metrics = createMockMetrics()
+      // @ts-expect-error -- exercises the runtime guard against an invalid year type
       expect(() => updateCurrentCorps(metrics, '01-Congregational Worship', 50, 'invalidYearType')).toThrow('Year type must be either currentYear or prevYear')
     })
 

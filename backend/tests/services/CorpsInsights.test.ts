@@ -6,6 +6,7 @@ import { calculateGrowth, calculateSustainability } from '../../src/utils/calcul
 import { FakeMissionRepository } from '../fakes/FakeMissionRepository.ts'
 import { FakeFinanceRepository } from '../fakes/FakeFinanceRepository.ts'
 import { FakeCorpsDirectoryRepository } from '../fakes/FakeCorpsDirectoryRepository.ts'
+import type { MissionIndicators } from '../../src/models/MissionIndicator.ts'
 
 const alpha = { id: '100001', name: 'Alpha Corps' }
 const beta = { id: '100002', name: 'Beta Corps' }
@@ -13,7 +14,7 @@ const gamma = { id: '100003', name: 'Gamma Corps' }
 const delta = { id: '100004', name: 'Delta Corps' }
 const epsilon = { id: '100005', name: 'Epsilon Corps' }
 
-const indicators = (congregationalWorship, firstTimeDecisions, kidsChurch, youthDiscipleship) =>
+const indicators = (congregationalWorship: number | null, firstTimeDecisions: number | null, kidsChurch: number | null, youthDiscipleship: number | null): MissionIndicators =>
     ({ congregationalWorship, firstTimeDecisions, kidsChurch, youthDiscipleship })
 
 const alphaListing = {
@@ -122,8 +123,12 @@ describe('CorpsInsights', () => {
         })
 
         test('should return every month in date order without a year filter', () => {
-            expect(insights.series(alpha.id, 'congregationalWorship', { granularity: 'month' }).map(p => `${p.year}-${p.month}`))
-                .toEqual(['2022-7', '2023-6', '2023-7', '2024-6'])
+            expect(insights.series(alpha.id, 'congregationalWorship', { granularity: 'month' })).toMatchObject([
+                { year: 2022, month: 7 },
+                { year: 2023, month: 6 },
+                { year: 2023, month: 7 },
+                { year: 2024, month: 6 }
+            ])
         })
 
         test('should reject an unknown metric, an unsupported granularity or a year outside the data', () => {
@@ -163,8 +168,8 @@ describe('CorpsInsights', () => {
 
         test('should show tithing without a surplus/deficit figure and default the previous year to zero', () => {
             const snapshot = insights.snapshots({ year: 2024 }).find(s => s.id === beta.id)
-            expect(snapshot.metrics.tithing).toEqual({ currentYear: 1000, prevYear: 0 })
-            expect(snapshot.metrics.surplusDeficit).toBeNull()
+            expect(snapshot?.metrics.tithing).toEqual({ currentYear: 1000, prevYear: 0 })
+            expect(snapshot?.metrics.surplusDeficit).toBeNull()
         })
 
         test('should leave a corps unscored when the previous year has no or zero worship', () => {

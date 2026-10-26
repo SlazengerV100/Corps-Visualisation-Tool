@@ -1,17 +1,14 @@
 import express from 'express'
 import { InvalidQueryError } from '../services/InvalidQueryError.ts'
 import { parseYear } from './parseYear.ts'
-
-/**
- * @typedef {import('../services/CorpsInsights.ts').CorpsInsights} CorpsInsights
- */
+import type { CorpsInsights } from '../services/CorpsInsights.ts'
 
 /**
  * Create snapshot routes with dependency injection for services
- * @param {CorpsInsights} insights - The combined corps insights
- * @returns {express.Router} Express router with snapshot routes
+ * @param insights - The combined corps insights
+ * @returns Express router with snapshot routes
  */
-export function createSnapshotRoutes(insights) {
+export function createSnapshotRoutes(insights: CorpsInsights): express.Router {
     const router = express.Router()
 
     // Get per-corps records, optionally for one year and only those with scores

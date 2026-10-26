@@ -3,30 +3,21 @@ import csv from 'csv-parser'
 
 /**
  * Read every row of a CSV file, with any byte-order mark stripped from the headers.
- * @param {string} filePath
- * @returns {Promise<Record<string, string>[]>} Rejects naming the file when it cannot be read
+ * @returns Rejects naming the file when it cannot be read
  */
-export function readCsv(filePath) {
+export function readCsv(filePath: string): Promise<Record<string, string>[]> {
     return new Promise((resolve, reject) => {
-        /** @type {Record<string, string>[]} */
-        const rows = []
+        const rows: Record<string, string>[] = []
         fs.createReadStream(filePath)
             .on('error', err => reject(new Error(`Failed to read ${filePath}: ${err.message}`)))
             .pipe(csv({ mapHeaders: ({ header }) => header.replace(/^﻿/, '') }))
-            .on('data', row => rows.push(row))
+            .on('data', (row: Record<string, string>) => rows.push(row))
             .on('end', () => resolve(rows))
             .on('error', err => reject(new Error(`Failed to parse ${filePath}: ${err.message}`)))
     })
 }
 
-/**
- * @template K, V
- * @param {Map<K, V>} map
- * @param {K} key
- * @param {() => NoInfer<V>} create
- * @returns {V}
- */
-export const getOrCreate = (map, key, create) => {
+export const getOrCreate = <K, V>(map: Map<K, V>, key: K, create: () => NoInfer<V>): V => {
     let value = map.get(key)
     if (value === undefined) {
         value = create()

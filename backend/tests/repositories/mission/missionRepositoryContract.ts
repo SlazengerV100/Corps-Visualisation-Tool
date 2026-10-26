@@ -1,9 +1,10 @@
 import { beforeAll, describe, expect, test } from 'vitest'
 import { alpha, beta, unknownId, byId } from '../scenario.ts'
+import type { MissionRepository } from '../../../src/repositories/mission/MissionRepository.ts'
 
-export function describeMissionRepositoryContract(loadRepository) {
+export function describeMissionRepositoryContract(loadRepository: () => Promise<MissionRepository>) {
     describe('MissionRepository contract', () => {
-        let repository
+        let repository: MissionRepository
 
         beforeAll(async () => {
             repository = await loadRepository()
@@ -17,7 +18,7 @@ export function describeMissionRepositoryContract(loadRepository) {
 
         describe('corps', () => {
             test('should list every corps including the last in the source', () => {
-                expect([...repository.corps()].sort(byId)).toEqual([alpha, beta])
+                expect(repository.corps().toSorted(byId)).toEqual([alpha, beta])
             })
         })
 
@@ -41,7 +42,7 @@ export function describeMissionRepositoryContract(loadRepository) {
             })
 
             test('should return data for the last corps in the source', () => {
-                expect(repository.yearly(beta.id, 2024).congregationalWorship).toBe(20)
+                expect(repository.yearly(beta.id, 2024)?.congregationalWorship).toBe(20)
             })
 
             test('should return null when the corps has no data that year', () => {

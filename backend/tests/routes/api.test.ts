@@ -1,12 +1,17 @@
 import { beforeAll, describe, expect, test } from 'vitest'
 import request from 'supertest'
 import { createApp, createInsights } from '../../src/app.ts'
+import { dataFolder } from '../repositories/scenario.ts'
+import type { Application } from 'express'
+import type { Corps } from '../../src/models/Corps.ts'
+import type { MonthlyPoint } from '../../src/models/MonthlyPoint.ts'
+import type { Snapshot } from '../../src/models/Snapshot.ts'
 
 describe('API', () => {
-    let app
+    let app: Application
 
     beforeAll(async () => {
-        app = createApp(await createInsights(process.env.DATA_FOLDER))
+        app = createApp(await createInsights(dataFolder))
     })
 
     describe('createInsights', () => {
@@ -40,7 +45,7 @@ describe('API', () => {
         test('should list corps with coordinates', async () => {
             const res = await request(app).get('/api/corps')
             expect(res.status).toBe(200)
-            expect(res.body.map(c => c.id)).toEqual(['100001'])
+            expect(res.body.map((c: Corps) => c.id)).toEqual(['100001'])
         })
     })
 
@@ -54,7 +59,7 @@ describe('API', () => {
         test('should return the months of one financial year', async () => {
             const res = await request(app).get('/api/corps/100001/series/tithing?granularity=month&year=2023')
             expect(res.status).toBe(200)
-            expect(res.body.map(p => `${p.year}-${p.month}`)).toEqual(['2022-7', '2022-8', '2023-6'])
+            expect(res.body.map((p: MonthlyPoint) => `${p.year}-${p.month}`)).toEqual(['2022-7', '2022-8', '2023-6'])
         })
 
         test.each([
@@ -80,7 +85,7 @@ describe('API', () => {
         test('should return every year without filters', async () => {
             const res = await request(app).get('/api/snapshots')
             expect(res.status).toBe(200)
-            expect(res.body.map(s => `${s.id}-${s.year}`)).toEqual(['100001-2023', '100001-2024', '100002-2024'])
+            expect(res.body.map((s: Snapshot) => `${s.id}-${s.year}`)).toEqual(['100001-2023', '100001-2024', '100002-2024'])
         })
 
         test('should return only scored records for one year', async () => {
@@ -100,10 +105,10 @@ describe('API', () => {
     })
 
     describe('GET /', () => {
-        let appWithFrontend
+        let appWithFrontend: Application
 
         beforeAll(async () => {
-            appWithFrontend = createApp(await createInsights(process.env.DATA_FOLDER), './test-data/frontend')
+            appWithFrontend = createApp(await createInsights(dataFolder), './test-data/frontend')
         })
 
         test.each([
@@ -118,7 +123,7 @@ describe('API', () => {
         test('should still serve the API', async () => {
             const res = await request(appWithFrontend).get('/api/corps')
             expect(res.status).toBe(200)
-            expect(res.body.map(c => c.id)).toEqual(['100001'])
+            expect(res.body.map((c: Corps) => c.id)).toEqual(['100001'])
         })
 
         test('should not serve the frontend without a static folder', async () => {

@@ -13,8 +13,7 @@ import { createSnapshotRoutes } from './routes/snapshotRoutes.ts'
 // Load environment variables
 dotenv.config()
 
-/** @type {express.ErrorRequestHandler} */
-const handleError = (err, req, res, _next) => {
+const handleError: express.ErrorRequestHandler = (err, req, res, _next) => {
     if (err instanceof InvalidQueryError) {
         res.status(400).json({ error: err.message })
         return
@@ -32,11 +31,11 @@ const handleError = (err, req, res, _next) => {
 
 /**
  * Create and configure the Express application
- * @param {CorpsInsights} insights - The combined corps insights
- * @param {string} [staticFolder] - Folder holding the built frontend, served for every non-API path
- * @returns {express.Application} Configured Express app
+ * @param insights - The combined corps insights
+ * @param staticFolder - Folder holding the built frontend, served for every non-API path
+ * @returns Configured Express app
  */
-export function createApp(insights, staticFolder) {
+export function createApp(insights: CorpsInsights, staticFolder?: string): express.Application {
     const app = express()
 
     // Middleware
@@ -68,10 +67,10 @@ export function createApp(insights, staticFolder) {
 
 /**
  * Load every source once from the data folder and combine them
- * @param {string | undefined} dataFolder - Folder holding the source CSV exports
- * @returns {Promise<CorpsInsights>} Rejects naming any source that cannot be read
+ * @param dataFolder - Folder holding the source CSV exports
+ * @returns Rejects naming any source that cannot be read
  */
-export async function createInsights(dataFolder) {
+export async function createInsights(dataFolder: string | undefined): Promise<CorpsInsights> {
     if (!dataFolder) {
         throw new Error('DATA_FOLDER environment variable is required')
     }

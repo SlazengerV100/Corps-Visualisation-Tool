@@ -1,44 +1,35 @@
-/**
- * @typedef {import('./FinancialYear.ts').FinancialYear} FinancialYear
- */
+import type { FinancialYear } from './FinancialYear.ts'
 
-/**
- * @typedef {Object} YearPair
- * @property {number | null} currentYear
- * @property {number | null} prevYear
- */
+export interface YearPair {
+    currentYear: number | null
+    prevYear: number | null
+}
 
-/**
- * @typedef {Object} TithingPair
- * @property {number} currentYear
- * @property {number} prevYear
- */
+export interface TithingPair {
+    currentYear: number
+    prevYear: number
+}
 
-/**
- * @typedef {Object} Scores
- * @property {number} growth
- * @property {number} sustainability
- * @property {number} size
- */
+export interface Scores {
+    growth: number
+    sustainability: number
+    size: number
+}
 
-/**
- * @typedef {Object} SnapshotMetrics
- * @property {YearPair} congregationalWorship
- * @property {YearPair} firstTimeDecisions
- * @property {YearPair} kidsChurch
- * @property {YearPair} youthDiscipleship
- * @property {TithingPair | null} tithing
- * @property {number | null} surplusDeficit
- * @property {number | null} population
- */
+export interface SnapshotMetrics {
+    congregationalWorship: YearPair
+    firstTimeDecisions: YearPair
+    kidsChurch: YearPair
+    youthDiscipleship: YearPair
+    tithing: TithingPair | null
+    surplusDeficit: number | null
+    population: number | null
+}
 
-/**
- * @typedef {Object} Snapshot
- * @property {string} id
- * @property {string} name
- * @property {FinancialYear} year
- * @property {SnapshotMetrics} metrics
- * @property {Scores} [scores]
- */
-
-export {}
+export interface Snapshot {
+    id: string
+    name: string
+    year: FinancialYear
+    metrics: SnapshotMetrics
+    scores?: Scores
+}

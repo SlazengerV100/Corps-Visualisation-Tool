@@ -1,11 +1,6 @@
-/**
- * @typedef {import('./FinancialYear.ts').FinancialYear} FinancialYear
- */
+import type { FinancialYear } from './FinancialYear.ts'
 
-/**
- * @typedef {Object} YearlyPoint
- * @property {FinancialYear} year
- * @property {number} metric
- */
-
-export {}
+export interface YearlyPoint {
+    year: FinancialYear
+    metric: number
+}

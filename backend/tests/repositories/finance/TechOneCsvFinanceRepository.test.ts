@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'vitest'
 import { TechOneCsvFinanceRepository } from '../../../src/repositories/finance/TechOneCsvFinanceRepository.ts'
 import { describeFinanceRepositoryContract } from './financeRepositoryContract.ts'
+import { dataFolder } from '../scenario.ts'
 
 describe('TechOneCsvFinanceRepository', () => {
-    describeFinanceRepositoryContract(() => TechOneCsvFinanceRepository.load(process.env.DATA_FOLDER))
+    describeFinanceRepositoryContract(() => TechOneCsvFinanceRepository.load(dataFolder))
 
     describe('load', () => {
         test('should reject naming the export that cannot be read', async () => {
@@ -13,7 +14,7 @@ describe('TechOneCsvFinanceRepository', () => {
 
     describe('surplusDeficit', () => {
         test('should use the location the corps tithed under that year, not an earlier one', async () => {
-            const repository = await TechOneCsvFinanceRepository.load(process.env.DATA_FOLDER)
+            const repository = await TechOneCsvFinanceRepository.load(dataFolder)
             expect(repository.surplusDeficit('100001', 2024)).toBe(2500)
         })
     })

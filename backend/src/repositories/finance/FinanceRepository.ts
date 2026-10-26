@@ -1,16 +1,11 @@
-/**
- * @typedef {import('../../models/Corps.ts').Corps} Corps
- * @typedef {import('../../models/FinancialYear.ts').FinancialYear} FinancialYear
- * @typedef {import('../../models/MonthlyPoint.ts').MonthlyPoint} MonthlyPoint
- */
+import type { Corps } from '../../models/Corps.ts'
+import type { FinancialYear } from '../../models/FinancialYear.ts'
+import type { MonthlyPoint } from '../../models/MonthlyPoint.ts'
 
-/**
- * @typedef {Object} FinanceRepository
- * @property {() => FinancialYear[]} years
- * @property {() => Pick<Corps, 'id' | 'name'>[]} corps
- * @property {(centreId: string, year: FinancialYear) => number | null} tithing
- * @property {(centreId: string, year: FinancialYear) => MonthlyPoint[]} monthlyTithing
- * @property {(centreId: string, year: FinancialYear) => number | null} surplusDeficit
- */
-
-export {}
+export interface FinanceRepository {
+    years(): FinancialYear[]
+    corps(): Pick<Corps, 'id' | 'name'>[]
+    tithing(centreId: string, year: FinancialYear): number | null
+    monthlyTithing(centreId: string, year: FinancialYear): MonthlyPoint[]
+    surplusDeficit(centreId: string, year: FinancialYear): number | null
+}

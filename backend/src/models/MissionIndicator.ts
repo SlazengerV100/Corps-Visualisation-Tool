@@ -1,9 +1,3 @@
-/**
- * @typedef {'congregationalWorship' | 'firstTimeDecisions' | 'kidsChurch' | 'youthDiscipleship'} MissionIndicator
- */
+export type MissionIndicator = 'congregationalWorship' | 'firstTimeDecisions' | 'kidsChurch' | 'youthDiscipleship'
 
-/**
- * @typedef {Record<MissionIndicator, number | null>} MissionIndicators
- */
-
-export {}
+export type MissionIndicators = Record<MissionIndicator, number | null>

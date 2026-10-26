@@ -2,10 +2,9 @@ import { InvalidQueryError } from '../services/InvalidQueryError.ts'
 
 /**
  * Read an optional financial year from a query parameter.
- * @param {unknown} value
- * @returns {number | undefined} Throws InvalidQueryError when the value is not a four-digit year
+ * @returns Throws InvalidQueryError when the value is not a four-digit year
  */
-export function parseYear(value) {
+export function parseYear(value: unknown): number | undefined {
     if (value === undefined) {
         return undefined
     }

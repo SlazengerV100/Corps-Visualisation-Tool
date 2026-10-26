@@ -1,7 +1,4 @@
-/**
- * @typedef {Object} Population
- * @property {number} year
- * @property {number} value
- */
-
-export {}
+export interface Population {
+    year: number
+    value: number
+}

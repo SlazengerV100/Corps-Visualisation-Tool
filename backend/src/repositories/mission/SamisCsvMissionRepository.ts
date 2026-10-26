@@ -1,39 +1,26 @@
 import path from 'path'
 import { getOrCreate, readCsv } from '../csv.ts'
-
-/**
- * @typedef {import('./MissionRepository.ts').MissionRepository} MissionRepository
- * @typedef {import('../../models/FinancialYear.ts').FinancialYear} FinancialYear
- * @typedef {import('../../models/MissionIndicator.ts').MissionIndicator} MissionIndicator
- * @typedef {import('../../models/MissionIndicator.ts').MissionIndicators} MissionIndicators
- * @typedef {import('../../models/MonthlyPoint.ts').MonthlyPoint} MonthlyPoint
- */
+import type { MissionRepository } from './MissionRepository.ts'
+import type { FinancialYear } from '../../models/FinancialYear.ts'
+import type { MissionIndicator, MissionIndicators } from '../../models/MissionIndicator.ts'
+import type { MonthlyPoint } from '../../models/MonthlyPoint.ts'
 
 const YEARLY_FILE = 'Territory_Indicators_Yr2000_2025.csv'
 const MONTHLY_FILE = 'Territory_Indicators_Mth2000_2025.csv'
 
-/** @type {Map<string, MissionIndicator>} */
-const INDICATORS = new Map([
+const INDICATORS = new Map<string, MissionIndicator>([
     ['01-Congregational Worship', 'congregationalWorship'],
     ['03A-First Time Decisions', 'firstTimeDecisions'],
     ['04-Kids Church', 'kidsChurch'],
     ['05-Youth Discipleship', 'youthDiscipleship']
 ])
 
-/**
- * @param {string} endYear
- * @returns {FinancialYear | null}
- */
-const toFinancialYear = (endYear) => {
+const toFinancialYear = (endYear: string): FinancialYear | null => {
     const match = /^(\d{4})\/\d{2}$/.exec(endYear)
     return match ? parseInt(match[1], 10) + 1 : null
 }
 
-/**
- * @param {string} periodCode
- * @returns {number | null}
- */
-const toMonth = (periodCode) => {
+const toMonth = (periodCode: string): number | null => {
     const match = /^M\d{2}(\d{2})$/.exec(periodCode)
     const month = match ? parseInt(match[1], 10) : 0
     return month >= 1 && month <= 12 ? month : null
@@ -41,15 +28,18 @@ const toMonth = (periodCode) => {
 
 /**
  * MissionRepository backed by the SAMIS yearly and monthly indicator exports.
- * @implements {MissionRepository}
  */
-export class SamisCsvMissionRepository {
+export class SamisCsvMissionRepository implements MissionRepository {
+    private readonly names: Map<string, string>
+    private readonly yearlyByCorps: Map<string, Map<FinancialYear, MissionIndicators>>
+    private readonly monthlyByCorps: Map<string, Map<FinancialYear, Map<MissionIndicator, MonthlyPoint[]>>>
+    private readonly financialYears: FinancialYear[]
+
     /**
      * Read both indicator exports once from the data folder.
-     * @param {string} dataFolder
-     * @returns {Promise<SamisCsvMissionRepository>} Rejects naming the export that cannot be read
+     * @returns Rejects naming the export that cannot be read
      */
-    static async load(dataFolder) {
+    static async load(dataFolder: string): Promise<SamisCsvMissionRepository> {
         const [yearlyRows, monthlyRows] = await Promise.all([
             readCsv(path.join(dataFolder, YEARLY_FILE)),
             readCsv(path.join(dataFolder, MONTHLY_FILE))
@@ -57,19 +47,11 @@ export class SamisCsvMissionRepository {
         return new SamisCsvMissionRepository(yearlyRows, monthlyRows)
     }
 
-    /**
-     * @param {Record<string, string>[]} yearlyRows
-     * @param {Record<string, string>[]} monthlyRows
-     */
-    constructor(yearlyRows, monthlyRows) {
-        /** @type {Map<string, string>} */
+    constructor(yearlyRows: Record<string, string>[], monthlyRows: Record<string, string>[]) {
         this.names = new Map()
-        /** @type {Map<string, Map<FinancialYear, MissionIndicators>>} */
         this.yearlyByCorps = new Map()
-        /** @type {Map<string, Map<FinancialYear, Map<MissionIndicator, MonthlyPoint[]>>>} */
         this.monthlyByCorps = new Map()
-        /** @type {Set<FinancialYear>} */
-        const years = new Set()
+        const years = new Set<FinancialYear>()
 
         for (const row of yearlyRows) {
             const indicator = INDICATORS.get(row.indicator)
@@ -115,7 +97,6 @@ export class SamisCsvMissionRepository {
             }
         }
 
-        /** @type {FinancialYear[]} */
         this.financialYears = [...years].toSorted((a, b) => a - b)
     }
 
@@ -127,20 +108,11 @@ export class SamisCsvMissionRepository {
         return [...this.names].map(([id, name]) => ({ id, name }))
     }
 
-    /**
-     * @param {string} centreId
-     * @param {FinancialYear} year
-     */
-    yearly(centreId, year) {
+    yearly(centreId: string, year: FinancialYear) {
         return this.yearlyByCorps.get(centreId)?.get(year) ?? null
     }
 
-    /**
-     * @param {string} centreId
-     * @param {FinancialYear} year
-     * @param {MissionIndicator} indicator
-     */
-    monthly(centreId, year, indicator) {
+    monthly(centreId: string, year: FinancialYear, indicator: MissionIndicator) {
         return this.monthlyByCorps.get(centreId)?.get(year)?.get(indicator) ?? []
     }
 }

@@ -1,15 +1,12 @@
 import express from 'express'
-
-/**
- * @typedef {import('../services/CorpsInsights.ts').CorpsInsights} CorpsInsights
- */
+import type { CorpsInsights } from '../services/CorpsInsights.ts'
 
 /**
  * Create catalogue routes with dependency injection for services
- * @param {CorpsInsights} insights - The combined corps insights
- * @returns {express.Router} Express router with catalogue routes
+ * @param insights - The combined corps insights
+ * @returns Express router with catalogue routes
  */
-export function createCatalogueRoutes(insights) {
+export function createCatalogueRoutes(insights: CorpsInsights): express.Router {
     const router = express.Router()
 
     // Get every metric and the years with data

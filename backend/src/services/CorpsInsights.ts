@@ -1,65 +1,48 @@
 import { calculateGrowth, calculateSustainability } from '../utils/calculations.ts'
 import { InvalidQueryError } from './InvalidQueryError.ts'
 import { NotFoundError } from './NotFoundError.ts'
+import type { MissionRepository } from '../repositories/mission/MissionRepository.ts'
+import type { FinanceRepository } from '../repositories/finance/FinanceRepository.ts'
+import type { CorpsDirectoryRepository } from '../repositories/directory/CorpsDirectoryRepository.ts'
+import type { Catalogue } from '../models/Catalogue.ts'
+import type { Corps } from '../models/Corps.ts'
+import type { FinancialYear } from '../models/FinancialYear.ts'
+import type { Granularity, MetricDefinition, MetricName } from '../models/Metric.ts'
+import type { MissionIndicator } from '../models/MissionIndicator.ts'
+import type { MonthlyPoint } from '../models/MonthlyPoint.ts'
+import type { Snapshot, YearPair } from '../models/Snapshot.ts'
+import type { YearlyPoint } from '../models/YearlyPoint.ts'
 
-/**
- * @typedef {import('../repositories/mission/MissionRepository.ts').MissionRepository} MissionRepository
- * @typedef {import('../repositories/finance/FinanceRepository.ts').FinanceRepository} FinanceRepository
- * @typedef {import('../repositories/directory/CorpsDirectoryRepository.ts').CorpsDirectoryRepository} CorpsDirectoryRepository
- * @typedef {import('../models/Catalogue.ts').Catalogue} Catalogue
- * @typedef {import('../models/Corps.ts').Corps} Corps
- * @typedef {import('../models/FinancialYear.ts').FinancialYear} FinancialYear
- * @typedef {import('../models/Metric.ts').Granularity} Granularity
- * @typedef {import('../models/Metric.ts').MetricDefinition} MetricDefinition
- * @typedef {import('../models/Metric.ts').MetricName} MetricName
- * @typedef {import('../models/MissionIndicator.ts').MissionIndicator} MissionIndicator
- * @typedef {import('../models/MissionIndicator.ts').MissionIndicators} MissionIndicators
- * @typedef {import('../models/MonthlyPoint.ts').MonthlyPoint} MonthlyPoint
- * @typedef {import('../models/Snapshot.ts').Snapshot} Snapshot
- * @typedef {import('../models/Snapshot.ts').YearPair} YearPair
- * @typedef {import('../models/YearlyPoint.ts').YearlyPoint} YearlyPoint
- */
+type YearlyFigure = (centreId: string, year: FinancialYear) => number | null
 
-/**
- * @typedef {Object} Metric
- * @property {MetricDefinition} definition
- * @property {Map<string, YearlyPoint[]>} yearlyByCorps
- * @property {((centreId: string, year: FinancialYear) => MonthlyPoint[]) | null} monthly
- */
+type MonthlySeries = (centreId: string, year: FinancialYear) => MonthlyPoint[]
 
-/**
- * @param {FinancialYear[]} years
- * @param {FinancialYear | undefined} year
- */
-const outOfRange = (years, year) => year !== undefined && (years.length === 0 || year < years[0] || year > years[years.length - 1])
+interface Metric {
+    definition: MetricDefinition
+    yearlyByCorps: Map<string, YearlyPoint[]>
+    monthly: MonthlySeries | null
+}
+
+const outOfRange = (years: FinancialYear[], year: FinancialYear | undefined) => year !== undefined && (years.length === 0 || year < years[0] || year > years[years.length - 1])
 
 /**
  * Combines the mission, finance and directory repositories into the views the API serves, computed once at construction.
  */
 export class CorpsInsights {
-    /**
-     * @param {MissionRepository} mission
-     * @param {FinanceRepository} finance
-     * @param {CorpsDirectoryRepository} directory
-     */
-    constructor(mission, finance, directory) {
-        /**
-         * @param {MissionIndicator} indicator
-         * @returns {(centreId: string, year: FinancialYear) => number | null}
-         */
-        const monthlyAverage = (indicator) => (centreId, year) => {
+    private readonly metrics: Map<string, Metric>
+    private readonly snapshotsByYear: Map<FinancialYear, Snapshot[]>
+    private readonly catalogueView: Catalogue
+    private readonly mappableCorps: Corps[]
+
+    constructor(mission: MissionRepository, finance: FinanceRepository, directory: CorpsDirectoryRepository) {
+        const monthlyAverage = (indicator: MissionIndicator): YearlyFigure => (centreId, year) => {
             const points = mission.monthly(centreId, year, indicator)
             return points.length ? points.reduce((sum, p) => sum + p.metric, 0) / points.length : null
         }
 
-        /**
-         * @param {MissionIndicator} indicator
-         * @returns {(centreId: string, year: FinancialYear) => MonthlyPoint[]}
-         */
-        const monthlyIndicator = (indicator) => (centreId, year) => mission.monthly(centreId, year, indicator)
+        const monthlyIndicator = (indicator: MissionIndicator): MonthlySeries => (centreId, year) => mission.monthly(centreId, year, indicator)
 
-        /** @type {{ name: MetricName, label: string, yearly: (centreId: string, year: FinancialYear) => number | null, monthly: ((centreId: string, year: FinancialYear) => MonthlyPoint[]) | null }[]} */
-        const sources = [
+        const sources: { name: MetricName, label: string, yearly: YearlyFigure, monthly: MonthlySeries | null }[] = [
             {
                 name: 'congregationalWorship',
                 label: 'Congregational Worship',
@@ -104,15 +87,11 @@ export class CorpsInsights {
         const years = [...new Set([...mission.years(), ...finance.years()])].toSorted((a, b) => a - b)
         const centreIds = [...new Set([...mission.corps(), ...finance.corps()].map(c => c.id))]
 
-        /** @type {Map<string, Metric>} */
         this.metrics = new Map(sources.map(source => {
-            /** @type {Map<string, YearlyPoint[]>} */
-            const yearlyByCorps = new Map()
-            /** @type {Set<FinancialYear>} */
-            const metricYears = new Set()
+            const yearlyByCorps = new Map<string, YearlyPoint[]>()
+            const metricYears = new Set<FinancialYear>()
             for (const centreId of centreIds) {
-                /** @type {YearlyPoint[]} */
-                const points = []
+                const points: YearlyPoint[] = []
                 for (const year of years) {
                     const metric = source.yearly(centreId, year)
                     if (metric !== null) {
@@ -124,8 +103,7 @@ export class CorpsInsights {
                     yearlyByCorps.set(centreId, points)
                 }
             }
-            /** @type {Granularity[]} */
-            const granularities = source.monthly ? ['year', 'month'] : ['year']
+            const granularities: Granularity[] = source.monthly ? ['year', 'month'] : ['year']
             return [source.name, {
                 definition: {
                     name: source.name,
@@ -140,11 +118,9 @@ export class CorpsInsights {
 
         const financeYears = new Set(finance.years())
 
-        /** @type {Map<FinancialYear, Snapshot[]>} */
         this.snapshotsByYear = new Map()
         for (const year of mission.years()) {
-            /** @type {Snapshot[]} */
-            const snapshots = []
+            const snapshots: Snapshot[] = []
             for (const { id, name } of mission.corps()) {
                 const current = mission.yearly(id, year)
                 const previous = mission.yearly(id, year - 1)
@@ -152,12 +128,7 @@ export class CorpsInsights {
                     continue
                 }
 
-                /**
-                 * @param {MissionIndicator} indicator
-                 * @param {number | null} missing
-                 * @returns {YearPair}
-                 */
-                const pair = (indicator, missing) => ({
+                const pair = (indicator: MissionIndicator, missing: number | null): YearPair => ({
                     currentYear: current?.[indicator] ?? missing,
                     prevYear: previous?.[indicator] ?? missing
                 })
@@ -166,8 +137,7 @@ export class CorpsInsights {
                 const currentTithing = finance.tithing(id, year)
                 const tithing = currentTithing === null ? null : { currentYear: currentTithing, prevYear: finance.tithing(id, year - 1) ?? 0 }
 
-                /** @type {Snapshot} */
-                const snapshot = {
+                const snapshot: Snapshot = {
                     id,
                     name,
                     year,
@@ -202,7 +172,6 @@ export class CorpsInsights {
 
         const snapshotYears = [...this.snapshotsByYear.keys()]
 
-        /** @type {Catalogue} */
         this.catalogueView = {
             metrics: [...this.metrics.values()].map(m => m.definition),
             snapshots: {
@@ -211,34 +180,28 @@ export class CorpsInsights {
             }
         }
 
-        /** @type {Corps[]} */
         this.mappableCorps = directory.all().filter(c => c.lat !== null && c.lng !== null)
     }
 
     /**
      * Every registered metric with its granularities and years, plus the years with snapshots and with scores.
-     * @returns {Catalogue}
      */
-    catalogue() {
+    catalogue(): Catalogue {
         return this.catalogueView
     }
 
     /**
      * Corps from the directory that have coordinates.
-     * @returns {Corps[]}
      */
-    corps() {
+    corps(): Corps[] {
         return this.mappableCorps
     }
 
     /**
      * One corps' points for a metric, by year or by month, optionally limited to one financial year.
-     * @param {string} centreId
-     * @param {string} metricName
-     * @param {{ granularity?: Granularity, year?: FinancialYear }} [filters]
-     * @returns {YearlyPoint[] | MonthlyPoint[]} Throws InvalidQueryError for an invalid filter, NotFoundError when there is no data
+     * @returns Throws InvalidQueryError for an invalid filter, NotFoundError when there is no data
      */
-    series(centreId, metricName, { granularity = 'year', year } = {}) {
+    series(centreId: string, metricName: string, { granularity = 'year', year }: { granularity?: Granularity, year?: FinancialYear } = {}): YearlyPoint[] | MonthlyPoint[] {
         const metric = this.metrics.get(metricName)
         if (!metric) {
             throw new InvalidQueryError(`Unknown metric ${metricName}`)
@@ -247,8 +210,7 @@ export class CorpsInsights {
             throw new InvalidQueryError(`${metricName} has no data for ${year}`)
         }
 
-        /** @type {YearlyPoint[] | MonthlyPoint[]} */
-        let points
+        let points: YearlyPoint[] | MonthlyPoint[]
         if (granularity === 'year') {
             points = (metric.yearlyByCorps.get(centreId) ?? []).filter(p => year === undefined || p.year === year)
         } else if (metric.monthly) {
@@ -266,10 +228,9 @@ export class CorpsInsights {
 
     /**
      * Per-corps records for every year, or one year, optionally only those with growth and sustainability scores.
-     * @param {{ year?: FinancialYear, scored?: boolean }} [filters]
-     * @returns {Snapshot[]} Throws InvalidQueryError for a year outside the snapshot years
+     * @returns Throws InvalidQueryError for a year outside the snapshot years
      */
-    snapshots({ year, scored = false } = {}) {
+    snapshots({ year, scored = false }: { year?: FinancialYear, scored?: boolean } = {}): Snapshot[] {
         if (outOfRange(this.catalogueView.snapshots.years, year)) {
             throw new InvalidQueryError(`No snapshots for ${year}`)
         }

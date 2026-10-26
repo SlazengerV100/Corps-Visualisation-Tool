@@ -1,18 +1,13 @@
-/**
- * @typedef {import('./Population.ts').Population} Population
- */
+import type { Population } from './Population.ts'
 
-/**
- * @typedef {Object} Corps
- * @property {string} id
- * @property {string} name
- * @property {string} area
- * @property {string} address
- * @property {string} city
- * @property {Date | null} closingDate
- * @property {number | null} lat
- * @property {number | null} lng
- * @property {Population[]} population
- */
-
-export {}
+export interface Corps {
+    id: string
+    name: string
+    area: string
+    address: string
+    city: string
+    closingDate: Date | null
+    lat: number | null
+    lng: number | null
+    population: Population[]
+}

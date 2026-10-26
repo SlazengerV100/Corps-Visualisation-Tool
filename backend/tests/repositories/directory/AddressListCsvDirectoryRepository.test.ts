@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'vitest'
 import { AddressListCsvDirectoryRepository } from '../../../src/repositories/directory/AddressListCsvDirectoryRepository.ts'
 import { describeCorpsDirectoryRepositoryContract } from './corpsDirectoryRepositoryContract.ts'
+import { dataFolder } from '../scenario.ts'
 
 describe('AddressListCsvDirectoryRepository', () => {
-    describeCorpsDirectoryRepositoryContract(() => AddressListCsvDirectoryRepository.load(process.env.DATA_FOLDER))
+    describeCorpsDirectoryRepositoryContract(() => AddressListCsvDirectoryRepository.load(dataFolder))
 
     describe('load', () => {
         test('should reject naming the export that cannot be read', async () => {

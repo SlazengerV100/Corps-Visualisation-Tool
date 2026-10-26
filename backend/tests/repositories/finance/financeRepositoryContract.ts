@@ -1,9 +1,10 @@
 import { beforeAll, describe, expect, test } from 'vitest'
 import { alpha, beta, unknownId, byId } from '../scenario.ts'
+import type { FinanceRepository } from '../../../src/repositories/finance/FinanceRepository.ts'
 
-export function describeFinanceRepositoryContract(loadRepository) {
+export function describeFinanceRepositoryContract(loadRepository: () => Promise<FinanceRepository>) {
     describe('FinanceRepository contract', () => {
-        let repository
+        let repository: FinanceRepository
 
         beforeAll(async () => {
             repository = await loadRepository()
@@ -17,7 +18,7 @@ export function describeFinanceRepositoryContract(loadRepository) {
 
         describe('corps', () => {
             test('should list every corps with tithing', () => {
-                expect([...repository.corps()].sort(byId)).toEqual([alpha, beta])
+                expect(repository.corps().toSorted(byId)).toEqual([alpha, beta])
             })
         })
 

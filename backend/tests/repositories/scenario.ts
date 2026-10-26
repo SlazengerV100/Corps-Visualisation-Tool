@@ -1,5 +1,6 @@
 export const alpha = { id: '100001', name: 'Alpha Corps' }
 export const beta = { id: '100002', name: 'Beta Corps' }
 export const unknownId = '999999'
+export const dataFolder = './test-data'
 
-export const byId = (a, b) => a.id.localeCompare(b.id)
+export const byId = (a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id)

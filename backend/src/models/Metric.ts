@@ -1,22 +1,13 @@
-/**
- * @typedef {import('./FinancialYear.ts').FinancialYear} FinancialYear
- * @typedef {import('./MissionIndicator.ts').MissionIndicator} MissionIndicator
- */
+import type { FinancialYear } from './FinancialYear.ts'
+import type { MissionIndicator } from './MissionIndicator.ts'
 
-/**
- * @typedef {MissionIndicator | 'tithing' | 'surplusDeficit'} MetricName
- */
+export type MetricName = MissionIndicator | 'tithing' | 'surplusDeficit'
 
-/**
- * @typedef {'year' | 'month'} Granularity
- */
+export type Granularity = 'year' | 'month'
 
-/**
- * @typedef {Object} MetricDefinition
- * @property {MetricName} name
- * @property {string} label
- * @property {Granularity[]} granularities
- * @property {FinancialYear[]} years
- */
-
-export {}
+export interface MetricDefinition {
+    name: MetricName
+    label: string
+    granularities: Granularity[]
+    years: FinancialYear[]
+}

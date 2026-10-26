@@ -1,27 +1,19 @@
 import path from 'path'
 import { getOrCreate, readCsv } from '../csv.ts'
+import type { FinanceRepository } from './FinanceRepository.ts'
+import type { FinancialYear } from '../../models/FinancialYear.ts'
+import type { MonthlyPoint } from '../../models/MonthlyPoint.ts'
 
-/**
- * @typedef {import('./FinanceRepository.ts').FinanceRepository} FinanceRepository
- * @typedef {import('../../models/FinancialYear.ts').FinancialYear} FinancialYear
- * @typedef {import('../../models/MonthlyPoint.ts').MonthlyPoint} MonthlyPoint
- */
-
-/**
- * @typedef {Object} TithingYear
- * @property {string} location
- * @property {number} total
- * @property {MonthlyPoint[]} months
- */
+interface TithingYear {
+    location: string
+    total: number
+    months: MonthlyPoint[]
+}
 
 const TITHING_FILE = 'Territorial_Tithing_2000_2025.csv'
 const SURPLUS_DEFICIT_FILE = 'Surplus-Deficit Summary.csv'
 
-/**
- * @param {string} period
- * @returns {{ year: number, month: number } | null}
- */
-const toCalendarMonth = (period) => {
+const toCalendarMonth = (period: string): { year: number, month: number } | null => {
     const match = /^M(\d{2})(\d{2})$/.exec(period)
     if (!match) {
         return null
@@ -30,26 +22,25 @@ const toCalendarMonth = (period) => {
     return month >= 1 && month <= 12 ? { year: 2000 + parseInt(match[1], 10), month } : null
 }
 
-/**
- * @param {string} column
- * @returns {FinancialYear | null}
- */
-const toSurplusDeficitYear = (column) => {
+const toSurplusDeficitYear = (column: string): FinancialYear | null => {
     const match = /^(\d{2})GLA$/.exec(column)
     return match ? 2000 + parseInt(match[1], 10) : null
 }
 
 /**
  * FinanceRepository backed by the TechOne tithing and surplus/deficit exports.
- * @implements {FinanceRepository}
  */
-export class TechOneCsvFinanceRepository {
+export class TechOneCsvFinanceRepository implements FinanceRepository {
+    private readonly names: Map<string, { name: string, year: FinancialYear }>
+    private readonly tithingByCorps: Map<string, Map<FinancialYear, TithingYear>>
+    private readonly surplusDeficitByLocation: Map<string, Map<FinancialYear, number>>
+    private readonly financialYears: FinancialYear[]
+
     /**
      * Read both finance exports once from the data folder.
-     * @param {string} dataFolder
-     * @returns {Promise<TechOneCsvFinanceRepository>} Rejects naming the export that cannot be read
+     * @returns Rejects naming the export that cannot be read
      */
-    static async load(dataFolder) {
+    static async load(dataFolder: string): Promise<TechOneCsvFinanceRepository> {
         const [tithingRows, surplusDeficitRows] = await Promise.all([
             readCsv(path.join(dataFolder, TITHING_FILE)),
             readCsv(path.join(dataFolder, SURPLUS_DEFICIT_FILE))
@@ -57,19 +48,11 @@ export class TechOneCsvFinanceRepository {
         return new TechOneCsvFinanceRepository(tithingRows, surplusDeficitRows)
     }
 
-    /**
-     * @param {Record<string, string>[]} tithingRows
-     * @param {Record<string, string>[]} surplusDeficitRows
-     */
-    constructor(tithingRows, surplusDeficitRows) {
-        /** @type {Map<string, { name: string, year: FinancialYear }>} */
+    constructor(tithingRows: Record<string, string>[], surplusDeficitRows: Record<string, string>[]) {
         this.names = new Map()
-        /** @type {Map<string, Map<FinancialYear, TithingYear>>} */
         this.tithingByCorps = new Map()
-        /** @type {Map<string, Map<FinancialYear, number>>} */
         this.surplusDeficitByLocation = new Map()
-        /** @type {Set<FinancialYear>} */
-        const years = new Set()
+        const years = new Set<FinancialYear>()
 
         for (const row of tithingRows) {
             const period = toCalendarMonth(row.M_period)
@@ -111,7 +94,6 @@ export class TechOneCsvFinanceRepository {
             }
         }
 
-        /** @type {FinancialYear[]} */
         this.financialYears = [...years].toSorted((a, b) => a - b)
     }
 
@@ -123,27 +105,15 @@ export class TechOneCsvFinanceRepository {
         return [...this.names].map(([id, { name }]) => ({ id, name }))
     }
 
-    /**
-     * @param {string} centreId
-     * @param {FinancialYear} year
-     */
-    tithing(centreId, year) {
+    tithing(centreId: string, year: FinancialYear) {
         return this.tithingByCorps.get(centreId)?.get(year)?.total ?? null
     }
 
-    /**
-     * @param {string} centreId
-     * @param {FinancialYear} year
-     */
-    monthlyTithing(centreId, year) {
+    monthlyTithing(centreId: string, year: FinancialYear) {
         return this.tithingByCorps.get(centreId)?.get(year)?.months ?? []
     }
 
-    /**
-     * @param {string} centreId
-     * @param {FinancialYear} year
-     */
-    surplusDeficit(centreId, year) {
+    surplusDeficit(centreId: string, year: FinancialYear) {
         const location = this.tithingByCorps.get(centreId)?.get(year)?.location
         return location === undefined ? null : this.surplusDeficitByLocation.get(location)?.get(year) ?? null
     }

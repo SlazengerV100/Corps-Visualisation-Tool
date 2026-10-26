@@ -1,8 +1,5 @@
-/**
- * @typedef {Object} MonthlyPoint
- * @property {number} year
- * @property {number} month
- * @property {number} metric
- */
-
-export {}
+export interface MonthlyPoint {
+    year: number
+    month: number
+    metric: number
+}

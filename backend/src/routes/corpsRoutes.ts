@@ -1,17 +1,14 @@
 import express from 'express'
 import { InvalidQueryError } from '../services/InvalidQueryError.ts'
 import { parseYear } from './parseYear.ts'
-
-/**
- * @typedef {import('../services/CorpsInsights.ts').CorpsInsights} CorpsInsights
- */
+import type { CorpsInsights } from '../services/CorpsInsights.ts'
 
 /**
  * Create corps routes with dependency injection for services
- * @param {CorpsInsights} insights - The combined corps insights
- * @returns {express.Router} Express router with corps routes
+ * @param insights - The combined corps insights
+ * @returns Express router with corps routes
  */
-export function createCorpsRoutes(insights) {
+export function createCorpsRoutes(insights: CorpsInsights): express.Router {
     const router = express.Router()
 
     // Get all corps with valid coordinates

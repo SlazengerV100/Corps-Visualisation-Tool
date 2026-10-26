@@ -1,11 +1,8 @@
 import path from 'path'
 import { isValid, parse } from 'date-fns'
 import { readCsv } from '../csv.ts'
-
-/**
- * @typedef {import('./CorpsDirectoryRepository.ts').CorpsDirectoryRepository} CorpsDirectoryRepository
- * @typedef {import('../../models/Corps.ts').Corps} Corps
- */
+import type { CorpsDirectoryRepository } from './CorpsDirectoryRepository.ts'
+import type { Corps } from '../../models/Corps.ts'
 
 const ADDRESS_LIST_FILE = 'Corps address list.csv'
 
@@ -15,43 +12,31 @@ const POPULATION_COLUMNS = new Map([
     [2050, '2050 Projection']
 ])
 
-/**
- * @param {string} value
- * @returns {number | null}
- */
-const toCoordinate = (value) => {
+const toCoordinate = (value: string): number | null => {
     const coordinate = parseFloat(value)
     return Number.isNaN(coordinate) ? null : coordinate
 }
 
-/**
- * @param {string} value
- * @returns {Date | null}
- */
-const toClosingDate = (value) => {
+const toClosingDate = (value: string): Date | null => {
     const date = parse(value, 'dd/MM/yyyy', new Date())
     return isValid(date) ? date : null
 }
 
 /**
  * CorpsDirectoryRepository backed by the corps address list export.
- * @implements {CorpsDirectoryRepository}
  */
-export class AddressListCsvDirectoryRepository {
+export class AddressListCsvDirectoryRepository implements CorpsDirectoryRepository {
+    private readonly corpsById: Map<string, Corps>
+
     /**
      * Read the address list once from the data folder.
-     * @param {string} dataFolder
-     * @returns {Promise<AddressListCsvDirectoryRepository>} Rejects naming the export when it cannot be read
+     * @returns Rejects naming the export when it cannot be read
      */
-    static async load(dataFolder) {
+    static async load(dataFolder: string): Promise<AddressListCsvDirectoryRepository> {
         return new AddressListCsvDirectoryRepository(await readCsv(path.join(dataFolder, ADDRESS_LIST_FILE)))
     }
 
-    /**
-     * @param {Record<string, string>[]} rows
-     */
-    constructor(rows) {
-        /** @type {Map<string, Corps>} */
+    constructor(rows: Record<string, string>[]) {
         this.corpsById = new Map(rows.map(row => [row.code, {
             id: row.code,
             name: row.name,
@@ -69,18 +54,11 @@ export class AddressListCsvDirectoryRepository {
         return [...this.corpsById.values()]
     }
 
-    /**
-     * @param {string} centreId
-     */
-    get(centreId) {
+    get(centreId: string) {
         return this.corpsById.get(centreId) ?? null
     }
 
-    /**
-     * @param {string} centreId
-     * @param {number} year
-     */
-    population(centreId, year) {
+    population(centreId: string, year: number) {
         return this.corpsById.get(centreId)?.population.find(p => p.year === year)?.value ?? null
     }
 }

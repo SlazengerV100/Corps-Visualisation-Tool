@@ -1,17 +1,11 @@
-/**
- * @typedef {import('../../models/Corps.ts').Corps} Corps
- * @typedef {import('../../models/FinancialYear.ts').FinancialYear} FinancialYear
- * @typedef {import('../../models/MissionIndicator.ts').MissionIndicator} MissionIndicator
- * @typedef {import('../../models/MissionIndicator.ts').MissionIndicators} MissionIndicators
- * @typedef {import('../../models/MonthlyPoint.ts').MonthlyPoint} MonthlyPoint
- */
+import type { Corps } from '../../models/Corps.ts'
+import type { FinancialYear } from '../../models/FinancialYear.ts'
+import type { MissionIndicator, MissionIndicators } from '../../models/MissionIndicator.ts'
+import type { MonthlyPoint } from '../../models/MonthlyPoint.ts'
 
-/**
- * @typedef {Object} MissionRepository
- * @property {() => FinancialYear[]} years
- * @property {() => Pick<Corps, 'id' | 'name'>[]} corps
- * @property {(centreId: string, year: FinancialYear) => MissionIndicators | null} yearly
- * @property {(centreId: string, year: FinancialYear, indicator: MissionIndicator) => MonthlyPoint[]} monthly
- */
-
-export {}
+export interface MissionRepository {
+    years(): FinancialYear[]
+    corps(): Pick<Corps, 'id' | 'name'>[]
+    yearly(centreId: string, year: FinancialYear): MissionIndicators | null
+    monthly(centreId: string, year: FinancialYear, indicator: MissionIndicator): MonthlyPoint[]
+}

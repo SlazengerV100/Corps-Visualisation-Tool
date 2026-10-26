@@ -1,12 +1,7 @@
-/**
- * @typedef {import('../../models/Corps.ts').Corps} Corps
- */
+import type { Corps } from '../../models/Corps.ts'
 
-/**
- * @typedef {Object} CorpsDirectoryRepository
- * @property {() => Corps[]} all
- * @property {(centreId: string) => Corps | null} get
- * @property {(centreId: string, year: number) => number | null} population
- */
-
-export {}
+export interface CorpsDirectoryRepository {
+    all(): Corps[]
+    get(centreId: string): Corps | null
+    population(centreId: string, year: number): number | null
+}

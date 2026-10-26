@@ -1,12 +1,7 @@
-/**
- * @typedef {import('./FinancialYear.ts').FinancialYear} FinancialYear
- * @typedef {import('./Metric.ts').MetricDefinition} MetricDefinition
- */
+import type { FinancialYear } from './FinancialYear.ts'
+import type { MetricDefinition } from './Metric.ts'
 
-/**
- * @typedef {Object} Catalogue
- * @property {MetricDefinition[]} metrics
- * @property {{ years: FinancialYear[], scoredYears: FinancialYear[] }} snapshots
- */
-
-export {}
+export interface Catalogue {
+    metrics: MetricDefinition[]
+    snapshots: { years: FinancialYear[], scoredYears: FinancialYear[] }
+}
