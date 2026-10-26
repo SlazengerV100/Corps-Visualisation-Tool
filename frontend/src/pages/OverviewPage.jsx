@@ -1,4 +1,4 @@
-import BubbleChart from '../components/overview/BubbleChart.jsx'
+import BubbleChart from '../components/overview/BubbleChart.tsx'
 import AnimationPanel from '../components/overview/AnimationPanel.tsx'
 import CheckboxSelectorPanel from '../components/overview/CheckboxSelectorPanel.jsx'
 import TogglePanel from '../components/overview/TogglePanel.tsx'

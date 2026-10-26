@@ -1,14 +1,40 @@
-/* eslint-disable -- Untyped legacy file. Add types and remove this when the file is next changed. */
-import { useEffect, useRef, useState } from 'react'
-import { useTheme } from '@mui/material/styles'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Box from '@mui/material/Box'
 import * as d3 from 'd3'
+import type { Corps } from '../map/CorpsDetails.tsx'
 
-export default function BubbleChart({ year, yearData, pointsByYear, corps, selectedCorps, hideUnselected }) {
-    const svgRef = useRef()
-    const containerRef = useRef()
-    const theme = useTheme()
-    const [bubbleHistory, setBubbleHistory] = useState({}) // Store previous positions for selected corps
+export interface BubblePoint {
+    id: string
+    name: string
+    growth: number
+    sustainability: number
+    size: number
+}
+
+interface BubblePosition {
+    year: number
+    x: number
+    y: number
+    data: BubblePoint
+}
+
+type Tooltip = d3.Selection<HTMLDivElement, unknown, HTMLElement, unknown>
+
+// Constant margins
+const margin = { left: 125, right: 20, top: 20, bottom: 30 }
+
+export default function BubbleChart({ year, yearData, pointsByYear, corps, selectedCorps, hideUnselected }: {
+    year: number | null
+    yearData: BubblePoint[] | null
+    pointsByYear: Record<number, BubblePoint[]>
+    corps: Corps[]
+    selectedCorps: string[]
+    hideUnselected: boolean
+}): React.JSX.Element {
+    const svgRef = useRef<SVGSVGElement>(null)
+    const containerRef = useRef<HTMLDivElement>(null)
+    const tooltipRef = useRef<Tooltip>(null)
+    const bubbleHistoryRef = useRef<Record<string, BubblePosition[]>>({}) // Store previous positions for selected corps
     const prevYearRef = useRef(year)
     const prevSelectedCorpsRef = useRef(selectedCorps)
     const [dimensions, setDimensions] = useState({ width: 900, height: 600 })
@@ -30,17 +56,15 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
         return () => window.removeEventListener('resize', updateDimensions)
     }, [])
 
-    // Look up the points for a specific year
-    const getYearData = (yearToGet) => pointsByYear[yearToGet] ?? null
-
-    // Constant margins
-    const margin = { left: 125, right: 20, top: 20, bottom: 30 }
     const innerWidth = dimensions.width - margin.left - margin.right
     const innerHeight = dimensions.height - margin.top - margin.bottom
 
-    const xScale = d3.scaleLinear().domain([0, 100]).range([0, innerWidth])
-    const yScale = d3.scaleLinear().domain([0, 100]).range([innerHeight, 0])
-    const radiusScale = d3.scaleLinear().domain([0, 250]).range([0, Math.min(innerWidth, innerHeight) / 12])
+    const xScale = useMemo(() => d3.scaleLinear().domain([0, 100]).range([0, innerWidth]), [innerWidth])
+    const yScale = useMemo(() => d3.scaleLinear().domain([0, 100]).range([innerHeight, 0]), [innerHeight])
+    const radiusScale = useMemo(
+        () => d3.scaleLinear().domain([0, 250]).range([0, Math.min(innerWidth, innerHeight) / 12]),
+        [innerWidth, innerHeight]
+    )
 
     // Draw axes, labels, and matrix lines once
     useEffect(() => {
@@ -130,7 +154,6 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
             .attr('font-size', `${dimensions.width * 0.15}px`)
             .attr('opacity', '10%')
             .style('user-select', 'none')
-            .text(year)
 
         // Add tooltip
         const tooltip = d3.select("body").append("div")
@@ -144,28 +167,30 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
             .style("pointer-events", "none")
 
         // Store tooltip reference
-        svgRef.current.tooltip = tooltip
+        tooltipRef.current = tooltip
 
-    }, [dimensions]) // Re-run when dimensions change
+    }, [dimensions.width, dimensions.height, xScale, yScale]) // Re-run when dimensions change
 
-        // Update year text and handle bubble history on year/yearData changes
+    // Update year text, including after the plot is redrawn
     useEffect(() => {
-        if (!yearData || yearData.length === 0) return
-
-        const plot = d3.select(svgRef.current).select('.plot-area')
-
-        // Update year text
         d3.select(svgRef.current).select('#year-text').text(year)
+    }, [year, dimensions.width, dimensions.height])
+
+        // Handle bubble history on year/yearData changes
+    useEffect(() => {
+        if (year === null || !yearData || yearData.length === 0) return
+
+        const plot = d3.select(svgRef.current).select<SVGGElement>('.plot-area')
 
         // Update bubble history for selected corps
         const selectedCorpsData = yearData.filter(d => selectedCorps.includes(d.id))
-        const newHistory = { ...bubbleHistory }
+        const newHistory = { ...bubbleHistoryRef.current }
 
         selectedCorpsData.forEach(corp => {
             if (!newHistory[corp.id]) {
                 newHistory[corp.id] = []
             }
-            
+
             const currentPosition = {
                 year: year,
                 x: xScale(corp.growth),
@@ -185,7 +210,7 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
         })
 
         // Handle year changes
-        if (year < prevYearRef.current) {
+        if (prevYearRef.current !== null && year < prevYearRef.current) {
             // Year decreased - remove most recent bubbles and lines
             Object.keys(newHistory).forEach(corpsId => {
                 if (newHistory[corpsId]) {
@@ -194,11 +219,11 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
             })
         }
 
-        setBubbleHistory(newHistory)
+        bubbleHistoryRef.current = newHistory
         prevYearRef.current = year
 
         // Draw historical lines and bubbles when year changes
-        const colourScale = d3.scaleOrdinal()
+        const colourScale = d3.scaleOrdinal<string, string>()
             .domain(corps.map(c => c.id))
             .range(d3.schemeTableau10)
 
@@ -207,20 +232,20 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
         plot.selectAll('.historical-bubble').remove()
 
         // Draw connecting lines for selected corps using actual data
-        const drawConnectingLines = async () => {
+        const drawConnectingLines = () => {
             for (const corpsId of selectedCorps) {
                 const history = newHistory[corpsId] || []
                 if (history.length === 0) continue
 
-                const sortedHistory = history.sort((a, b) => a.year - b.year)
+                const sortedHistory = history.toSorted((a, b) => a.year - b.year)
                 const minYear = sortedHistory[0].year
                 const maxYear = sortedHistory[sortedHistory.length - 1].year
 
                 // Get positions for all years between min and max
-                const allPositions = []
+                const allPositions: BubblePosition[] = []
                 for (let yearToFetch = minYear; yearToFetch <= maxYear; yearToFetch++) {
-                    let position
-                    
+                    let position: BubblePosition | undefined
+
                     if (yearToFetch === year) {
                         // Use current year data from yearData prop
                         const corpsData = yearData.find(d => d.id === corpsId)
@@ -234,7 +259,7 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
                         }
                     } else {
                         // Look up historical data
-                        const yearDataForCorps = getYearData(yearToFetch)
+                        const yearDataForCorps = pointsByYear[yearToFetch] ?? null
                         if (yearDataForCorps) {
                             const corpsData = yearDataForCorps.find(d => d.id === corpsId)
                             if (corpsData) {
@@ -247,7 +272,7 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
                             }
                         }
                     }
-                    
+
                     if (position) {
                         allPositions.push(position)
                     }
@@ -257,7 +282,7 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
                 for (let i = 0; i < allPositions.length - 1; i++) {
                     const start = allPositions[i]
                     const end = allPositions[i + 1]
-                    
+
                     // Only draw line if the years are consecutive (no gaps)
                     if (end.year - start.year === 1) {
                         plot.append('line')
@@ -278,12 +303,12 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
         drawConnectingLines()
 
         // Draw historical bubbles for selected corps using actual data
-        const drawHistoricalBubbles = async () => {
+        const drawHistoricalBubbles = () => {
             for (const corpsId of selectedCorps) {
                 const history = newHistory[corpsId] || []
                 if (history.length === 0) continue
 
-                const sortedHistory = history.sort((a, b) => a.year - b.year)
+                const sortedHistory = history.toSorted((a, b) => a.year - b.year)
                 const minYear = sortedHistory[0].year
                 const maxYear = sortedHistory[sortedHistory.length - 1].year
 
@@ -291,11 +316,11 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
                 for (let yearToFetch = minYear; yearToFetch <= maxYear; yearToFetch++) {
                     if (yearToFetch === year) continue // Skip current year
 
-                    const yearData = getYearData(yearToFetch)
-                    if (!yearData) continue
+                    const pointsForYear = pointsByYear[yearToFetch] ?? null
+                    if (!pointsForYear) continue
 
                     // Find the corps data for this year
-                    const corpsData = yearData.find(d => d.id === corpsId)
+                    const corpsData = pointsForYear.find(d => d.id === corpsId)
                     if (!corpsData) continue
 
                     // Create position data
@@ -317,29 +342,29 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
                         .attr('stroke', 'black')
                         .attr('stroke-width', 1.5)
                         .attr('opacity', 0.6)
-                        .on('mouseover', function(event) {
-                            const tooltip = svgRef.current.tooltip
-                            
+                        .on('mouseover', function(event: MouseEvent) {
+                            const tooltip = tooltipRef.current
+
                             d3.select(this)
                                 .attr('stroke-width', 3)
                                 .attr('opacity', 0.8)
 
-                            tooltip.transition()
+                            tooltip?.transition()
                                 .duration(200)
                                 .style("opacity", .9)
 
-                            tooltip.html(`<strong>${position.data.name} (${position.year})</strong><br/>Size: ${position.data.size}<br/>Growth: ${position.data.growth}<br/>Sustainability: ${position.data.sustainability}`)
+                            tooltip?.html(`<strong>${position.data.name} (${position.year})</strong><br/>Size: ${position.data.size}<br/>Growth: ${position.data.growth}<br/>Sustainability: ${position.data.sustainability}`)
                                 .style("left", (event.pageX + 10) + "px")
                                 .style("top", (event.pageY - 28) + "px")
                         })
                         .on('mouseout', function() {
-                            const tooltip = svgRef.current.tooltip
-                            
+                            const tooltip = tooltipRef.current
+
                             d3.select(this)
                                 .attr('stroke-width', 1.5)
                                 .attr('opacity', 0.6)
 
-                            tooltip.transition()
+                            tooltip?.transition()
                                 .duration(500)
                                 .style("opacity", 0)
                         })
@@ -349,15 +374,15 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
 
         drawHistoricalBubbles()
 
-    }, [year, yearData, dimensions])
+    }, [year, yearData, pointsByYear, corps, selectedCorps, xScale, yScale, radiusScale])
 
     // Handle selectedCorps changes
     useEffect(() => {
-        if (!yearData || yearData.length === 0) return
+        if (year === null || !yearData || yearData.length === 0) return
 
-        const plot = d3.select(svgRef.current).select('.plot-area')
+        const plot = d3.select(svgRef.current).select<SVGGElement>('.plot-area')
         const previouslySelectedCorps = prevSelectedCorpsRef.current || []
-        
+
         // Handle corps deselection - remove historical elements for deselected corps
         const deselectedCorps = previouslySelectedCorps.filter(corp => !selectedCorps.includes(corp))
         if (deselectedCorps.length > 0) {
@@ -367,7 +392,7 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
                     const circle = d3.select(nodes[i])
                     return circle.attr('data-corp') === corpsId
                 }).remove()
-                
+
                 plot.selectAll('.connecting-line').filter((d, i, nodes) => {
                     const line = d3.select(nodes[i])
                     return line.attr('data-corp') === corpsId
@@ -375,27 +400,27 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
             })
 
             // Remove history for deselected corps
-            const newHistory = { ...bubbleHistory }
+            const newHistory = { ...bubbleHistoryRef.current }
             deselectedCorps.forEach(corpsId => {
                 delete newHistory[corpsId]
             })
-            setBubbleHistory(newHistory)
+            bubbleHistoryRef.current = newHistory
         }
 
         // Handle corps selection
-        const newlySelectedCorps = selectedCorps.filter(corps => !previouslySelectedCorps.includes(corps))
+        const newlySelectedCorps = selectedCorps.filter(corpsId => !previouslySelectedCorps.includes(corpsId))
         const hadPreviousSelection = previouslySelectedCorps.length > 0
 
         if (newlySelectedCorps.length > 0) {
             // Add current position to history for newly selected corps
-            const newHistory = { ...bubbleHistory }
+            const newHistory = { ...bubbleHistoryRef.current }
             newlySelectedCorps.forEach(corpsId => {
                 const corpData = yearData.find(d => d.id === corpsId)
                 if (corpData) {
                     if (!newHistory[corpsId]) {
                         newHistory[corpsId] = []
                     }
-                    
+
                     const currentPosition = {
                         year: year,
                         x: xScale(corpData.growth),
@@ -414,7 +439,7 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
                     }
                 }
             })
-            setBubbleHistory(newHistory)
+            bubbleHistoryRef.current = newHistory
 
             if (hadPreviousSelection) {
                 // If there were corps selected before, only redraw the new corps bubble with 100% opacity
@@ -427,7 +452,7 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
                 })
             } else {
                 // If there were no corps selected before, redraw all circles with new opacity
-                plot.selectAll('.current-bubble').attr('opacity', d => {
+                plot.selectAll<SVGCircleElement, BubblePoint>('.current-bubble').attr('opacity', d => {
                     return selectedCorps.includes(d.id) ? 1 : 0.2
                 })
             }
@@ -435,18 +460,18 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
 
         prevSelectedCorpsRef.current = selectedCorps
 
-    }, [selectedCorps])
+    }, [year, yearData, selectedCorps, xScale, yScale])
 
     // Handle corps changes using data join
     useEffect(() => {
         if (!yearData || yearData.length === 0) return
 
-        const plot = d3.select(svgRef.current).select('.plot-area')
-        const tooltip = svgRef.current.tooltip
+        const plot = d3.select(svgRef.current).select<SVGGElement>('.plot-area')
+        const tooltip = tooltipRef.current
 
         const allCorpsIds = corps?.map(c => c.id) || []
         let filteredData = yearData.filter(d => allCorpsIds.includes(d.id))
-        
+
         // If hideUnselected is true and there are selected corps, only show selected corps
         if (hideUnselected && selectedCorps && selectedCorps.length > 0) {
             filteredData = filteredData.filter(d => selectedCorps.includes(d.id))
@@ -463,12 +488,12 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
             })
         }
 
-        const colourScale = d3.scaleOrdinal()
+        const colourScale = d3.scaleOrdinal<string, string>()
             .domain(corps.map(c => c.id))
             .range(d3.schemeTableau10)
 
         // DATA JOIN for current year bubbles
-        const circles = plot.selectAll('.current-bubble')
+        const circles = plot.selectAll<SVGCircleElement, BubblePoint>('.current-bubble')
             .data(filteredData, d => d.id)
 
         // EXIT
@@ -492,7 +517,7 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
                 }
                 return 1
             })
-            .on('mouseover', function(event, d) {
+            .on('mouseover', function(event: MouseEvent, d) {
                 // Only show hover effects on selected corps when corps are selected
                 if (selectedCorps && selectedCorps.length > 0 && !selectedCorps.includes(d.id)) {
                     return
@@ -501,27 +526,27 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
                 d3.select(this)
                     .attr('stroke-width', 3)
 
-                tooltip.transition()
+                tooltip?.transition()
                     .duration(200)
                     .style("opacity", .9)
 
                 // Show year in tooltip if corps is selected (similar to historical bubbles)
                 const showYear = selectedCorps && selectedCorps.length > 0 && selectedCorps.includes(d.id)
                 const nameWithYear = showYear ? `${d.name} (${year})` : d.name
-                tooltip.html(`<strong>${nameWithYear}</strong><br/>Size: ${d.size}<br/>Growth: ${d.growth}<br/>Sustainability: ${d.sustainability}`)
+                tooltip?.html(`<strong>${nameWithYear}</strong><br/>Size: ${d.size}<br/>Growth: ${d.growth}<br/>Sustainability: ${d.sustainability}`)
                     .style("left", (event.pageX + 10) + "px")
                     .style("top", (event.pageY - 28) + "px")
             })
-            .on('mouseout', function() {
+            .on('mouseout', function(_event: MouseEvent, d) {
                 // Only show hover effects on selected corps when corps are selected
-                if (selectedCorps && selectedCorps.length > 0 && !selectedCorps.includes(d3.select(this).datum().id)) {
+                if (selectedCorps && selectedCorps.length > 0 && !selectedCorps.includes(d.id)) {
                     return
                 }
 
                 d3.select(this)
                     .attr('stroke-width', 1.5)
 
-                tooltip.transition()
+                tooltip?.transition()
                     .duration(500)
                     .style("opacity", 0)
             })
@@ -533,13 +558,13 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
                 return 'all'
             })
 
-    }, [corps, yearData, selectedCorps, dimensions, hideUnselected])
+    }, [year, corps, yearData, selectedCorps, hideUnselected, xScale, yScale, radiusScale])
 
     return (
-        <Box 
+        <Box
             ref={containerRef}
-            sx={{ 
-                width: '100%', 
+            sx={{
+                width: '100%',
                 height: '100%',
                 display: 'flex',
                 alignItems: 'center',
