@@ -101,7 +101,7 @@ export class CorpsInsights {
             }
         ]
 
-        const years = [...new Set([...mission.years(), ...finance.years()])].sort((a, b) => a - b)
+        const years = [...new Set([...mission.years(), ...finance.years()])].toSorted((a, b) => a - b)
         const centreIds = [...new Set([...mission.corps(), ...finance.corps()].map(c => c.id))]
 
         /** @type {Map<string, Metric>} */
@@ -131,7 +131,7 @@ export class CorpsInsights {
                     name: source.name,
                     label: source.label,
                     granularities,
-                    years: [...metricYears].sort((a, b) => a - b)
+                    years: [...metricYears].toSorted((a, b) => a - b)
                 },
                 yearlyByCorps,
                 monthly: source.monthly
