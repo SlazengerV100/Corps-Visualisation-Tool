@@ -120,3 +120,9 @@ The tool can instead be run as a single Docker container via Docker Compose, wit
 1. Run `just stack-up`.
 1. The tool is served at http://localhost:8080, with the API under http://localhost:8080/api.
 1. Run `just stack-down` to stop and remove the container.
+
+### Published image
+GitHub Actions builds the image on every pull request, and on every push to `main` publishes it to `ghcr.io/slazengerv100/corps-visualisation-tool`, tagged with the full commit SHA. There is no `latest` tag.
+
+## Deployment
+The published image runs on Azure Container Apps, reading its CSV data from an Azure Files share. See [`infra/README.md`](infra/README.md) for the Terraform that provisions it and how to deploy.
