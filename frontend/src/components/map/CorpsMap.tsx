@@ -86,7 +86,7 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
                         }
                     }}
                 >
-                    <Popup>
+                    <Popup autoPan={false}>
                         <div style={{ fontFamily: theme.typography.fontFamily }}>
                             <h3>{corps.name}</h3>
                             <h4>{corps.area}</h4>
