@@ -11,7 +11,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  IconButton,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import MetricChart from './MetricChart.jsx';
 
 /**
@@ -48,11 +50,11 @@ import MetricChart from './MetricChart.jsx';
  */
 
 /**
- * Details and metric history of one corps
- * @param {{ corps: Corps | null }} props
+ * Details and metric history of one corps, with a button to close them
+ * @param {{ corps: Corps, onClose: () => void }} props
  * @returns {React.JSX.Element}
  */
-const CorpsDetails = ({ corps }) => {
+const CorpsDetails = ({ corps, onClose }) => {
   const [timeRange, setTimeRange] = useState(/** @type {TimeRange} */ ('pastYear'));
   const [selectedMetric, setSelectedMetric] = useState('congregationalWorship');
   const [metricData, setMetricData] = useState(/** @type {ChartPoint[]} */ ([]))
@@ -124,7 +126,7 @@ const CorpsDetails = ({ corps }) => {
      * @param {TimeRange} range
      */
     const fetchMetricData = async (range) => {
-      if (!corps || latestYear === undefined) return
+      if (latestYear === undefined) return
 
       setIsLoading(true)
       try {
@@ -239,18 +241,6 @@ const CorpsDetails = ({ corps }) => {
     void fetchMetricData(effectiveRange)
   }, [corps, effectiveRange, selectedMetric, latestYear])
 
-  if (!corps) {
-    return (
-      <Box sx={{
-        p: 3
-      }}>
-        <Typography variant="h6">
-          Select a corps on the map to view details
-        </Typography>
-      </Box>
-    );
-  }
-
   /**
    * @param {React.MouseEvent<HTMLElement>} event
    * @param {TimeRange | null} newTimeRange
@@ -266,9 +256,14 @@ const CorpsDetails = ({ corps }) => {
       sx={{
         p: 3
       }}>
-      <Typography variant="h4" gutterBottom>
-        {corps.name}
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <Typography variant="h4" gutterBottom>
+          {corps.name}
+        </Typography>
+        <IconButton aria-label="Close" onClick={onClose}>
+          <CloseIcon />
+        </IconButton>
+      </Box>
       <Typography variant="subtitle1" color="text.secondary" gutterBottom>
         {corps.area}
       </Typography>

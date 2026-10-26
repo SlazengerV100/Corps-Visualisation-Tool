@@ -9,7 +9,7 @@ import CorpsDetails from "../components/map/CorpsDetails.jsx";
  */
 
 /**
- * Map of every corps beside the details of the selected one
+ * Map of every corps, beside the details of the selected one when there is one
  * @returns {React.JSX.Element}
  */
 export default function MapPage() {
@@ -43,19 +43,21 @@ export default function MapPage() {
                 overflow: 'hidden',
             }}
         >
-            <Box sx={{ flex: 2, height: '100%' }}>
-                <CorpsMap corpsData={corpsData} selectedCorps={selectedCorps}onCorpsSelect={setSelectedCorps} />
+            <Box sx={{ flex: 1, height: '100%' }}>
+                <CorpsMap corpsData={corpsData} selectedCorps={selectedCorps} onCorpsSelect={setSelectedCorps} />
             </Box>
 
-            <Box
-                sx={{
-                    flex: 1,
-                    height: '100%',
-                    overflowY: 'auto',
-                }}
-            >
-                <CorpsDetails corps={selectedCorps} />
-            </Box>
+            {selectedCorps && (
+                <Box
+                    sx={{
+                        flex: 3,
+                        height: '100%',
+                        overflowY: 'auto',
+                    }}
+                >
+                    <CorpsDetails corps={selectedCorps} onClose={() => setSelectedCorps(null)} />
+                </Box>
+            )}
         </Box>
     )
 }

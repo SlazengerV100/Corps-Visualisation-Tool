@@ -1,12 +1,33 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useTheme } from '@mui/material/styles'
 
+/**
+ * @typedef {import('./CorpsDetails.jsx').Corps} Corps
+ */
+
+const corpsZoom = 13
+
+/**
+ * Map of every corps that centres on the selected one, zooming in to it unless already closer
+ * @param {{ corpsData: Corps[], selectedCorps: Corps | null, onCorpsSelect: (corps: Corps) => void }} props
+ * @returns {React.JSX.Element}
+ */
 const CorpsMap = ({corpsData, selectedCorps,onCorpsSelect}) => {
-    const nzCenter = [-41.2865, 174.7762] // Wellington coordinates as center
+    const nzCenter = /** @type {L.LatLngTuple} */ ([-41.2865, 174.7762]) // Wellington coordinates as center
     const theme = useTheme()
+    const mapRef = useRef(/** @type {L.Map | null} */ (null))
+
+    useEffect(() => {
+        const map = mapRef.current
+        if (!map) return
+
+        map.invalidateSize()
+        if (selectedCorps?.lat == null || selectedCorps.lng == null) return
+        map.setView([selectedCorps.lat, selectedCorps.lng], Math.max(map.getZoom(), corpsZoom))
+    }, [selectedCorps])
 
     // Create custom icons
     const defaultIcon = new L.Icon({
@@ -29,6 +50,7 @@ const CorpsMap = ({corpsData, selectedCorps,onCorpsSelect}) => {
 
     return (
         <MapContainer
+            ref={mapRef}
             center={nzCenter}
             zoom={6}
             style={{ height: '100%' }}
@@ -68,4 +90,4 @@ const CorpsMap = ({corpsData, selectedCorps,onCorpsSelect}) => {
     );
 };
 
-export default CorpsMap; 
+export default CorpsMap;
