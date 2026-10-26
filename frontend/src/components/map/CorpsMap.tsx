@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import { useTheme } from '@mui/material/styles'
 import type { Corps } from './CorpsDetails.tsx'
 
-const corpsZoom = 13
+const corpsZoom = 10
 
 /**
  * Map of every corps that centres on the selected one, zooming in to it unless already closer
