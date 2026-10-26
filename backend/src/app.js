@@ -13,6 +13,23 @@ import { createSnapshotRoutes } from './routes/snapshotRoutes.js'
 // Load environment variables
 dotenv.config()
 
+/** @type {express.ErrorRequestHandler} */
+const handleError = (err, req, res, _next) => {
+    if (err instanceof InvalidQueryError) {
+        res.status(400).json({ error: err.message })
+        return
+    }
+    if (err instanceof NotFoundError) {
+        res.status(404).json({ error: err.message })
+        return
+    }
+    console.error('Unhandled error:', err)
+    res.status(500).json({
+        error: 'Internal server error',
+        message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+    })
+}
+
 /**
  * Create and configure the Express application
  * @param {CorpsInsights} insights - The combined corps insights
@@ -44,22 +61,6 @@ export function createApp(insights, staticFolder) {
     }
 
     // Error handling middleware
-    /** @type {express.ErrorRequestHandler} */
-    const handleError = (err, req, res, _next) => {
-        if (err instanceof InvalidQueryError) {
-            res.status(400).json({ error: err.message })
-            return
-        }
-        if (err instanceof NotFoundError) {
-            res.status(404).json({ error: err.message })
-            return
-        }
-        console.error('Unhandled error:', err)
-        res.status(500).json({
-            error: 'Internal server error',
-            message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
-        })
-    }
     app.use(handleError)
 
     return app
