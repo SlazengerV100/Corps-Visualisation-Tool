@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(/infra/*.tfstate*)",
+      "Read(/infra/terraform.tfvars)",
+      "Read(/infra/tfplan)",
+      "Bash(cat infra/*.tfstate*)",
+      "Bash(cat infra/terraform.tfvars*)",
+      "Bash(terraform state pull*)",
+      "Bash(terraform -chdir=* state pull*)",
+      "Bash(terraform show -json*)",
+      "Bash(terraform -chdir=* show -json*)"
+    ]
+  }
+}
