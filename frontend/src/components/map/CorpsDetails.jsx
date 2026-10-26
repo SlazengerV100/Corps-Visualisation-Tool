@@ -71,7 +71,7 @@ const CorpsDetails = ({ corps }) => {
       }
     }
 
-    fetchCatalogue()
+    void fetchCatalogue()
   }, [])
 
   const definition = metrics.find(metric => metric.name === selectedMetric)
@@ -80,163 +80,163 @@ const CorpsDetails = ({ corps }) => {
   const monthlyRanges = ['pastYear', 'pastTwoYears']
   const effectiveRange = supportsMonthly || !monthlyRanges.includes(timeRange) ? timeRange : 'allTime'
 
-  /**
-   * @param {number} year - Financial year
-   * @returns {Promise<ChartPoint[]>}
-   */
-  const fetchMonthlyData = async (year) => {
-    try {
-      const response = await fetch(`/api/corps/${corps.id}/series/${selectedMetric}?granularity=month&year=${year}`)
-      if (!response.ok) {
-        return []
-      }
-      const data = await response.json()
-      return data
-    } catch {
-      console.error(`Failed to fetch monthly metric data for ${year}`)
-      return []
-    }
-  }
-
-  /**
-   * @returns {Promise<ChartPoint[]>}
-   */
-  const fetchYearlyData = async () => {
-    try {
-      const response = await fetch(`/api/corps/${corps.id}/series/${selectedMetric}`)
-      if (!response.ok) {
-        return []
-      }
-      const data = await response.json()
-      return data.map(item => ({
-        ...item,
-        financialYear: `${item.year - 1}/${item.year.toString().slice(-2)}`,
-        year: item.year
-      }))
-    } catch {
-      console.error(`Failed to fetch yearly metric data`)
-      return []
-    }
-  }
-
-  /**
-   * @param {TimeRange} range
-   */
-  const fetchMetricData = async (range) => {
-    if (!corps || latestYear === undefined) return
-
-    setIsLoading(true)
-    try {
-      let data = []
-      const currentYear = latestYear
-
-      // Use yearly data for 5Y, 10Y, and ALL TIME selections
-      if (range === 'pastFiveYears' || range === 'pastTenYears' || range === 'allTime') {
-        data = await fetchYearlyData()
-
-        // Filter data based on time range
-        if (range !== 'allTime') {
-          const yearsToInclude = range === 'pastFiveYears' ? 5 : 10
-          data = data.filter(item => item.year > currentYear - yearsToInclude)
-        }
-      } else if (range === 'future') {
-        data = await fetchYearlyData()
-        
-        // Check if there's a data point for the current year
-        const currentYearData = data.find(item => item.year === currentYear)
-        if (!currentYearData) {
-          // No current year data available, return empty array
-          data = []
-        } else {
-          // Get the last 5 years of data for trend analysis
-          const lastFiveYears = data.filter(item => item.year > currentYear - 5)
-          
-          if (lastFiveYears.length >= 2) {
-          // Calculate linear changes between consecutive years
-          const linearChanges = []
-          for (let i = 1; i < lastFiveYears.length; i++) {
-            const prevValue = lastFiveYears[i - 1].metric
-            const currentValue = lastFiveYears[i].metric
-            
-            const linearChange = currentValue - prevValue
-            linearChanges.push(linearChange)
-          }
-          
-          // Calculate average linear change
-          const avgLinearChange = linearChanges.length > 0 
-            ? linearChanges.reduce((sum, change) => sum + change, 0) / linearChanges.length
-            : 0
-          
-          // Get the latest value from the last 5 years
-          const latestValue = lastFiveYears[lastFiveYears.length - 1].metric
-          
-          // Project 5 future data points using linear growth
-          const futureData = []
-          for (let i = 1; i <= 5; i++) {
-            const futureYear = currentYear + i
-            const projectedValue = latestValue + (avgLinearChange * i)
-            
-            futureData.push({
-              year: futureYear,
-              metric: Math.round(projectedValue * 100) / 100, // Round to 2 decimal places
-              financialYear: `${futureYear - 1}/${futureYear.toString().slice(-2)}`,
-              isProjected: true
-            })
-          }
-          
-          // Combine historical data with projected future data
-          data = [...lastFiveYears, ...futureData]
-          } else {
-            // If not enough historical data, just return the available data
-            data = lastFiveYears
-          }
-        }
-
-      } else if (range === 'pastYear' || range === 'pastTwoYears') {
-        let yearsToFetch
-
-        switch (range) {
-          case 'pastYear':
-            yearsToFetch = 1
-            break
-          case 'pastTwoYears':
-            yearsToFetch = 2
-            break
-          default:
-            yearsToFetch = 0
-        }
-
-        const fetchPromises = []
-
-        for (let i = 0; i < yearsToFetch; i++) {
-          fetchPromises.push(fetchMonthlyData(currentYear - i))
-        }
-
-        const allYearsData = await Promise.all(fetchPromises)
-
-        data = allYearsData
-          .flat()
-          .sort((a, b) => {
-            // Sort by year first, then by month
-            if (a.year !== b.year) {
-              return a.year - b.year
-            }
-            return a.month - b.month
-          })
-      }
-
-      setMetricData(data)
-    } catch (error) {
-      console.error(error)
-      console.error(`Failed to fetch metric data`)
-      setMetricData([])
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   useEffect(() => {
-    fetchMetricData(effectiveRange)
+    /**
+     * @param {number} year - Financial year
+     * @returns {Promise<ChartPoint[]>}
+     */
+    const fetchMonthlyData = async (year) => {
+      try {
+        const response = await fetch(`/api/corps/${corps.id}/series/${selectedMetric}?granularity=month&year=${year}`)
+        if (!response.ok) {
+          return []
+        }
+        const data = await response.json()
+        return data
+      } catch {
+        console.error(`Failed to fetch monthly metric data for ${year}`)
+        return []
+      }
+    }
+
+    /**
+     * @returns {Promise<ChartPoint[]>}
+     */
+    const fetchYearlyData = async () => {
+      try {
+        const response = await fetch(`/api/corps/${corps.id}/series/${selectedMetric}`)
+        if (!response.ok) {
+          return []
+        }
+        const data = await response.json()
+        return data.map(item => ({
+          ...item,
+          financialYear: `${item.year - 1}/${item.year.toString().slice(-2)}`,
+          year: item.year
+        }))
+      } catch {
+        console.error(`Failed to fetch yearly metric data`)
+        return []
+      }
+    }
+
+    /**
+     * @param {TimeRange} range
+     */
+    const fetchMetricData = async (range) => {
+      if (!corps || latestYear === undefined) return
+
+      setIsLoading(true)
+      try {
+        let data = []
+        const currentYear = latestYear
+
+        // Use yearly data for 5Y, 10Y, and ALL TIME selections
+        if (range === 'pastFiveYears' || range === 'pastTenYears' || range === 'allTime') {
+          data = await fetchYearlyData()
+
+          // Filter data based on time range
+          if (range !== 'allTime') {
+            const yearsToInclude = range === 'pastFiveYears' ? 5 : 10
+            data = data.filter(item => item.year > currentYear - yearsToInclude)
+          }
+        } else if (range === 'future') {
+          data = await fetchYearlyData()
+          
+          // Check if there's a data point for the current year
+          const currentYearData = data.find(item => item.year === currentYear)
+          if (!currentYearData) {
+            // No current year data available, return empty array
+            data = []
+          } else {
+            // Get the last 5 years of data for trend analysis
+            const lastFiveYears = data.filter(item => item.year > currentYear - 5)
+            
+            if (lastFiveYears.length >= 2) {
+            // Calculate linear changes between consecutive years
+            const linearChanges = []
+            for (let i = 1; i < lastFiveYears.length; i++) {
+              const prevValue = lastFiveYears[i - 1].metric
+              const currentValue = lastFiveYears[i].metric
+              
+              const linearChange = currentValue - prevValue
+              linearChanges.push(linearChange)
+            }
+            
+            // Calculate average linear change
+            const avgLinearChange = linearChanges.length > 0 
+              ? linearChanges.reduce((sum, change) => sum + change, 0) / linearChanges.length
+              : 0
+            
+            // Get the latest value from the last 5 years
+            const latestValue = lastFiveYears[lastFiveYears.length - 1].metric
+            
+            // Project 5 future data points using linear growth
+            const futureData = []
+            for (let i = 1; i <= 5; i++) {
+              const futureYear = currentYear + i
+              const projectedValue = latestValue + (avgLinearChange * i)
+              
+              futureData.push({
+                year: futureYear,
+                metric: Math.round(projectedValue * 100) / 100, // Round to 2 decimal places
+                financialYear: `${futureYear - 1}/${futureYear.toString().slice(-2)}`,
+                isProjected: true
+              })
+            }
+            
+            // Combine historical data with projected future data
+            data = [...lastFiveYears, ...futureData]
+            } else {
+              // If not enough historical data, just return the available data
+              data = lastFiveYears
+            }
+          }
+
+        } else if (range === 'pastYear' || range === 'pastTwoYears') {
+          let yearsToFetch
+
+          switch (range) {
+            case 'pastYear':
+              yearsToFetch = 1
+              break
+            case 'pastTwoYears':
+              yearsToFetch = 2
+              break
+            default:
+              yearsToFetch = 0
+          }
+
+          const fetchPromises = []
+
+          for (let i = 0; i < yearsToFetch; i++) {
+            fetchPromises.push(fetchMonthlyData(currentYear - i))
+          }
+
+          const allYearsData = await Promise.all(fetchPromises)
+
+          data = allYearsData
+            .flat()
+            .toSorted((a, b) => {
+              // Sort by year first, then by month
+              if (a.year !== b.year) {
+                return a.year - b.year
+              }
+              return a.month - b.month
+            })
+        }
+
+        setMetricData(data)
+      } catch (error) {
+        console.error(error)
+        console.error(`Failed to fetch metric data`)
+        setMetricData([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    void fetchMetricData(effectiveRange)
   }, [corps, effectiveRange, selectedMetric, latestYear])
 
   if (!corps) {

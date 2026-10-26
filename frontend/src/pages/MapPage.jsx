@@ -31,7 +31,7 @@ export default function MapPage() {
                 setCorpsData([])
             }
         }
-        fetchCorpsData()
+        void fetchCorpsData()
     }, [])
 
     return (

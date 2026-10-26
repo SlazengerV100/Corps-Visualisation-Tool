@@ -41,14 +41,10 @@ export default function OverviewPage() {
             }
         }
 
-        fetchBubbleData()
+        void fetchBubbleData()
     }, [])
 
     const yearData = pointsByYear[year] ?? null
-
-    const handleCorpsDataLoaded = (corpsData) => {
-        setCorps(corpsData)
-    }
 
     return (
         <Box sx={{ 
@@ -114,7 +110,7 @@ export default function OverviewPage() {
                         <CheckboxSelectorPanel 
                             selectedCorps={selectedCorps} 
                             setSelectedCorps={setSelectedCorps}
-                            onCorpsDataLoaded={handleCorpsDataLoaded}
+                            onCorpsDataLoaded={setCorps}
                             year={year}
                             yearData={yearData}
                         />
