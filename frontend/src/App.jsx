@@ -8,7 +8,7 @@ import Box from '@mui/material/Box'
 import Toolbar from '@mui/material/Toolbar'
 import AppBar from './components/common/AppBar.jsx'
 import OverviewPage from './pages/OverviewPage.jsx'
-import MapPage from './pages/MapPage.jsx'
+import MapPage from './pages/MapPage.tsx'
 import PopulationPage from './pages/PopulationPage.jsx'
 import DefinitionsPage from './pages/DefinitionsPage.jsx'
 

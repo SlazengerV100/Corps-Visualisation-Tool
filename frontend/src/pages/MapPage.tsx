@@ -1,20 +1,15 @@
 import * as React from 'react'
 import { useEffect, useState } from "react";
 import Box from '@mui/material/Box'
-import CorpsMap from "../components/map/CorpsMap.jsx";
-import CorpsDetails from "../components/map/CorpsDetails.jsx";
-
-/**
- * @typedef {import('../components/map/CorpsDetails.jsx').Corps} Corps
- */
+import CorpsMap from "../components/map/CorpsMap.tsx";
+import CorpsDetails, { type Corps } from "../components/map/CorpsDetails.tsx";
 
 /**
  * Map of every corps, beside the details of the selected one when there is one
- * @returns {React.JSX.Element}
  */
-export default function MapPage() {
-    const [selectedCorps, setSelectedCorps] = useState(/** @type {Corps | null} */ (null));
-    const [corpsData, setCorpsData] = useState(/** @type {Corps[]} */ ([]))
+export default function MapPage(): React.JSX.Element {
+    const [selectedCorps, setSelectedCorps] = useState<Corps | null>(null);
+    const [corpsData, setCorpsData] = useState<Corps[]>([])
 
     useEffect(() => {
         const fetchCorpsData = async () => {

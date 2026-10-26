@@ -16,57 +16,51 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import MetricChart from './MetricChart.jsx';
 
-/**
- * @typedef {Object} Corps
- * @property {string} id
- * @property {string} name
- * @property {string} area
- * @property {string} address
- * @property {string} city
- * @property {string | null} closingDate
- * @property {number | null} lat
- * @property {number | null} lng
- */
+export interface Corps {
+  id: string
+  name: string
+  area: string
+  address: string
+  city: string
+  closingDate: string | null
+  lat: number
+  lng: number
+}
 
-/**
- * @typedef {Object} MetricDefinition
- * @property {string} name
- * @property {string} label
- * @property {('year' | 'month')[]} granularities
- * @property {number[]} years
- */
+interface MetricDefinition {
+  name: string
+  label: string
+  granularities: ('year' | 'month')[]
+  years: number[]
+}
 
-/**
- * @typedef {'pastYear' | 'pastTwoYears' | 'pastFiveYears' | 'pastTenYears' | 'allTime' | 'future'} TimeRange
- */
+type TimeRange = 'pastYear' | 'pastTwoYears' | 'pastFiveYears' | 'pastTenYears' | 'allTime' | 'future'
 
-/**
- * @typedef {Object} ChartPoint
- * @property {number} year
- * @property {number} [month]
- * @property {number} metric
- * @property {string} [financialYear]
- * @property {boolean} [isProjected]
- */
+interface ChartPoint {
+  year: number
+  month?: number
+  metric: number
+  financialYear?: string
+  isProjected?: boolean
+}
 
 /**
  * Details and metric history of one corps, with a button to close them
- * @param {{ corps: Corps, onClose: () => void }} props
- * @returns {React.JSX.Element}
  */
-const CorpsDetails = ({ corps, onClose }) => {
-  const [timeRange, setTimeRange] = useState(/** @type {TimeRange} */ ('pastYear'));
+const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void }): React.JSX.Element => {
+  const [timeRange, setTimeRange] = useState<TimeRange>('pastYear');
   const [selectedMetric, setSelectedMetric] = useState('congregationalWorship');
-  const [metricData, setMetricData] = useState(/** @type {ChartPoint[]} */ ([]))
+  const [metricData, setMetricData] = useState<ChartPoint[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [metrics, setMetrics] = useState(/** @type {MetricDefinition[]} */ ([]))
+  const [metrics, setMetrics] = useState<MetricDefinition[]>([])
 
   useEffect(() => {
     const fetchCatalogue = async () => {
       try {
         const response = await fetch('/api/catalogue')
         if (response.ok) {
-          setMetrics((await response.json()).metrics)
+          const catalogue: { metrics: MetricDefinition[] } = await response.json()
+          setMetrics(catalogue.metrics)
         }
       } catch {
         console.error('Failed to fetch the metric catalogue')
@@ -79,21 +73,17 @@ const CorpsDetails = ({ corps, onClose }) => {
   const definition = metrics.find(metric => metric.name === selectedMetric)
   const supportsMonthly = definition?.granularities.includes('month') ?? false
   const latestYear = definition?.years[definition.years.length - 1]
-  const monthlyRanges = ['pastYear', 'pastTwoYears']
+  const monthlyRanges: TimeRange[] = ['pastYear', 'pastTwoYears']
   const effectiveRange = supportsMonthly || !monthlyRanges.includes(timeRange) ? timeRange : 'allTime'
 
   useEffect(() => {
-    /**
-     * @param {number} year - Financial year
-     * @returns {Promise<ChartPoint[]>}
-     */
-    const fetchMonthlyData = async (year) => {
+    const fetchMonthlyData = async (year: number): Promise<ChartPoint[]> => {
       try {
         const response = await fetch(`/api/corps/${corps.id}/series/${selectedMetric}?granularity=month&year=${year}`)
         if (!response.ok) {
           return []
         }
-        const data = await response.json()
+        const data: ChartPoint[] = await response.json()
         return data
       } catch {
         console.error(`Failed to fetch monthly metric data for ${year}`)
@@ -101,16 +91,13 @@ const CorpsDetails = ({ corps, onClose }) => {
       }
     }
 
-    /**
-     * @returns {Promise<ChartPoint[]>}
-     */
-    const fetchYearlyData = async () => {
+    const fetchYearlyData = async (): Promise<ChartPoint[]> => {
       try {
         const response = await fetch(`/api/corps/${corps.id}/series/${selectedMetric}`)
         if (!response.ok) {
           return []
         }
-        const data = await response.json()
+        const data: ChartPoint[] = await response.json()
         return data.map(item => ({
           ...item,
           financialYear: `${item.year - 1}/${item.year.toString().slice(-2)}`,
@@ -122,15 +109,12 @@ const CorpsDetails = ({ corps, onClose }) => {
       }
     }
 
-    /**
-     * @param {TimeRange} range
-     */
-    const fetchMetricData = async (range) => {
+    const fetchMetricData = async (range: TimeRange) => {
       if (latestYear === undefined) return
 
       setIsLoading(true)
       try {
-        let data = []
+        let data: ChartPoint[] = []
         const currentYear = latestYear
 
         // Use yearly data for 5Y, 10Y, and ALL TIME selections
@@ -144,7 +128,7 @@ const CorpsDetails = ({ corps, onClose }) => {
           }
         } else if (range === 'future') {
           data = await fetchYearlyData()
-          
+
           // Check if there's a data point for the current year
           const currentYearData = data.find(item => item.year === currentYear)
           if (!currentYearData) {
@@ -153,32 +137,32 @@ const CorpsDetails = ({ corps, onClose }) => {
           } else {
             // Get the last 5 years of data for trend analysis
             const lastFiveYears = data.filter(item => item.year > currentYear - 5)
-            
+
             if (lastFiveYears.length >= 2) {
             // Calculate linear changes between consecutive years
-            const linearChanges = []
+            const linearChanges: number[] = []
             for (let i = 1; i < lastFiveYears.length; i++) {
               const prevValue = lastFiveYears[i - 1].metric
               const currentValue = lastFiveYears[i].metric
-              
+
               const linearChange = currentValue - prevValue
               linearChanges.push(linearChange)
             }
-            
+
             // Calculate average linear change
-            const avgLinearChange = linearChanges.length > 0 
+            const avgLinearChange = linearChanges.length > 0
               ? linearChanges.reduce((sum, change) => sum + change, 0) / linearChanges.length
               : 0
-            
+
             // Get the latest value from the last 5 years
             const latestValue = lastFiveYears[lastFiveYears.length - 1].metric
-            
+
             // Project 5 future data points using linear growth
-            const futureData = []
+            const futureData: ChartPoint[] = []
             for (let i = 1; i <= 5; i++) {
               const futureYear = currentYear + i
               const projectedValue = latestValue + (avgLinearChange * i)
-              
+
               futureData.push({
                 year: futureYear,
                 metric: Math.round(projectedValue * 100) / 100, // Round to 2 decimal places
@@ -186,7 +170,7 @@ const CorpsDetails = ({ corps, onClose }) => {
                 isProjected: true
               })
             }
-            
+
             // Combine historical data with projected future data
             data = [...lastFiveYears, ...futureData]
             } else {
@@ -196,7 +180,7 @@ const CorpsDetails = ({ corps, onClose }) => {
           }
 
         } else if (range === 'pastYear' || range === 'pastTwoYears') {
-          let yearsToFetch
+          let yearsToFetch: number
 
           switch (range) {
             case 'pastYear':
@@ -209,7 +193,7 @@ const CorpsDetails = ({ corps, onClose }) => {
               yearsToFetch = 0
           }
 
-          const fetchPromises = []
+          const fetchPromises: Promise<ChartPoint[]>[] = []
 
           for (let i = 0; i < yearsToFetch; i++) {
             fetchPromises.push(fetchMonthlyData(currentYear - i))
@@ -224,7 +208,7 @@ const CorpsDetails = ({ corps, onClose }) => {
               if (a.year !== b.year) {
                 return a.year - b.year
               }
-              return a.month - b.month
+              return (a.month ?? 0) - (b.month ?? 0)
             })
         }
 
@@ -241,11 +225,7 @@ const CorpsDetails = ({ corps, onClose }) => {
     void fetchMetricData(effectiveRange)
   }, [corps, effectiveRange, selectedMetric, latestYear])
 
-  /**
-   * @param {React.MouseEvent<HTMLElement>} event
-   * @param {TimeRange | null} newTimeRange
-   */
-  const handleTimeRangeChange = (event, newTimeRange) => {
+  const handleTimeRangeChange = (event: React.MouseEvent<HTMLElement>, newTimeRange: TimeRange | null) => {
     if (newTimeRange !== null) {
       setTimeRange(newTimeRange);
     }
