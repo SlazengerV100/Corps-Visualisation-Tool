@@ -70,8 +70,6 @@ The backend is TypeScript, run directly by Node with no build step. Linting type
 1. Open your terminal to the `backend` folder.
 1. Run `npm run lint`
 
-Any backend file you add or change should be fully typed so that linting passes.
-
 ## Frontend
 ### Setup
 In order to setup the frontend, you need to create a `.env` file to store your environment variables.
@@ -101,8 +99,6 @@ The frontend has support for linting.
 
 1. Install pre-commit, for example with `brew install pre-commit`.
 1. In the repository root, run `pre-commit install`.
-
-The codebase is moving to TypeScript. The frontend is already TypeScript only; the backend is typed with JSDoc until it is converted.
 
 ## Docker
 The tool can instead be run as a single Docker container via Docker Compose, without installing Node.js locally. The backend serves both the API and the built frontend.
