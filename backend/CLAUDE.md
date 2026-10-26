@@ -7,10 +7,6 @@
 - A new metric is a registry entry, not a new route.
 - Every repository implementation must pass its contract's shared test suite.
 
-## Typing
-
-The codebase is moving to TypeScript. `npm run lint` runs oxlint over `src` and type-checks its JSDoc strictly (tsgolint with `checkJs`). It runs on commit and in CI, and must pass with no warnings. Lint rules for both packages live in `.oxlintrc.jsonc` at the repo root, and `jsconfig.json` extends the shared compiler policy in `tsconfig.base.json`. Give any file you add or touch full JSDoc types. Tests under `tests` are not type-checked yet.
-
 ## Data quirks
 
 ### SAMIS

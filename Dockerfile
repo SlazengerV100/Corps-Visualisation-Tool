@@ -38,4 +38,4 @@ USER app
 
 EXPOSE 8080
 
-CMD ["node", "backend/src/server.js"]
+CMD ["node", "backend/src/server.ts"]

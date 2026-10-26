@@ -6,6 +6,6 @@
 **/.gitignore
 backend/tests
 backend/test-data
-backend/jest.config.js
+backend/vitest.config.ts
 data
 infra

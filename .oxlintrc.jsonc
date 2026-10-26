@@ -12,13 +12,6 @@
   },
   "overrides": [
     {
-      "files": ["backend/**"],
-      "rules": {
-        // JSDoc typedef-only modules need an empty export; turn this back on once the backend is TypeScript.
-        "unicorn/require-module-specifiers": "off"
-      }
-    },
-    {
       "files": ["frontend/**"],
       "plugins": ["react"],
       "env": {
@@ -30,9 +23,7 @@
         // The JSX transform has not needed React in scope since React 17.
         "react/react-in-jsx-scope": "off",
         // Duplicates react/exhaustive-deps.
-        "react/exhaustive-effect-dependencies": "off",
-        // Flags fetching in effects; revisit if the app adopts a data-fetching library.
-        "react/set-state-in-effect": "off"
+        "react/exhaustive-effect-dependencies": "off"
       }
     }
   ],
