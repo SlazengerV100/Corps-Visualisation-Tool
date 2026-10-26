@@ -25,7 +25,6 @@
         "browser": true
       },
       "rules": {
-        "eslint/no-unused-vars": ["error", { "varsIgnorePattern": "^[A-Z_]" }],
         "react/rules-of-hooks": "error",
         "react/only-export-components": ["warn", { "allowConstantExport": true }],
         // The JSX transform has not needed React in scope since React 17.
