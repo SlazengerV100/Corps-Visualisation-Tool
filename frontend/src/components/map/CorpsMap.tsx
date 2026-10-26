@@ -1,12 +1,42 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useTheme } from '@mui/material/styles'
+import type { Corps } from './CorpsDetails.tsx'
 
-const CorpsMap = ({corpsData, selectedCorps,onCorpsSelect}) => {
-    const nzCenter = [-41.2865, 174.7762] // Wellington coordinates as center
+const corpsZoom = 10
+
+/**
+ * Map of every corps that zooms in to the selected one when further out, and otherwise only pans to keep it in view
+ */
+const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
+    corpsData: Corps[]
+    selectedCorps: Corps | null
+    onCorpsSelect: (corps: Corps) => void
+}): React.JSX.Element => {
+    const nzCenter: L.LatLngTuple = [-41.2865, 174.7762] // Wellington coordinates as center
     const theme = useTheme()
+    const mapRef = useRef<L.Map | null>(null)
+
+    useEffect(() => {
+        const map = mapRef.current
+        if (!map) return
+
+        const centre = map.getCenter()
+        map.invalidateSize()
+        if (selectedCorps) {
+            const position: L.LatLngTuple = [selectedCorps.lat, selectedCorps.lng]
+            if (map.getZoom() < corpsZoom) {
+                map.setView(position, corpsZoom)
+            } else {
+                map.panInside(position)
+            }
+        } else {
+            map.closePopup()
+            map.setView(centre, map.getZoom())
+        }
+    }, [selectedCorps])
 
     // Create custom icons
     const defaultIcon = new L.Icon({
@@ -29,6 +59,7 @@ const CorpsMap = ({corpsData, selectedCorps,onCorpsSelect}) => {
 
     return (
         <MapContainer
+            ref={mapRef}
             center={nzCenter}
             zoom={6}
             style={{ height: '100%' }}
@@ -55,7 +86,7 @@ const CorpsMap = ({corpsData, selectedCorps,onCorpsSelect}) => {
                         }
                     }}
                 >
-                    <Popup>
+                    <Popup autoPan={false}>
                         <div style={{ fontFamily: theme.typography.fontFamily }}>
                             <h3>{corps.name}</h3>
                             <h4>{corps.area}</h4>
@@ -68,4 +99,4 @@ const CorpsMap = ({corpsData, selectedCorps,onCorpsSelect}) => {
     );
 };
 
-export default CorpsMap; 
+export default CorpsMap;
