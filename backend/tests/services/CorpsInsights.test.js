@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest'
 import { CorpsInsights } from '../../src/services/CorpsInsights.js'
 import { InvalidQueryError } from '../../src/services/InvalidQueryError.js'
 import { NotFoundError } from '../../src/services/NotFoundError.js'

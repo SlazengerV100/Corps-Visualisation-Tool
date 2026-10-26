@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest'
 import { AddressListCsvDirectoryRepository } from '../../../src/repositories/directory/AddressListCsvDirectoryRepository.js'
 import { describeCorpsDirectoryRepositoryContract } from './corpsDirectoryRepositoryContract.js'
 

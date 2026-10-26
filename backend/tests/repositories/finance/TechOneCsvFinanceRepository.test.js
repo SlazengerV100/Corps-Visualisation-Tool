@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest'
 import { TechOneCsvFinanceRepository } from '../../../src/repositories/finance/TechOneCsvFinanceRepository.js'
 import { describeFinanceRepositoryContract } from './financeRepositoryContract.js'
 

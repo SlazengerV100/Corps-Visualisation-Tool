@@ -1,3 +1,4 @@
+import { beforeAll, describe, expect, test } from 'vitest'
 import { alpha, beta, unknownId, byId } from '../scenario.js'
 
 export function describeFinanceRepositoryContract(loadRepository) {

@@ -1,3 +1,4 @@
+import { beforeAll, describe, expect, test } from 'vitest'
 import request from 'supertest'
 import { createApp, createInsights } from '../../src/app.js'
 

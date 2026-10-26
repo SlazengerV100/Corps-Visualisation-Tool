@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest'
 import { SamisCsvMissionRepository } from '../../../src/repositories/mission/SamisCsvMissionRepository.js'
 import { describeMissionRepositoryContract } from './missionRepositoryContract.js'
 
