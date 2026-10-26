@@ -35,7 +35,7 @@ export default function AnimationPanel({year, setYear, years}: {
     year: number | null
     setYear: React.Dispatch<React.SetStateAction<number | null>>
     years: number[]
-}): React.JSX.Element | null {
+}) {
     const MIN_YEAR = years[0]
     const MAX_YEAR = years[years.length - 1]
     const animationSpeed = 1000 // ms

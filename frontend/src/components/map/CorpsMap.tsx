@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -14,7 +14,7 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
     corpsData: Corps[]
     selectedCorps: Corps | null
     onCorpsSelect: (corps: Corps) => void
-}): React.JSX.Element => {
+}) => {
     const nzCenter: L.LatLngTuple = [-41.2865, 174.7762] // Wellington coordinates as center
     const theme = useTheme()
     const mapRef = useRef<L.Map | null>(null)

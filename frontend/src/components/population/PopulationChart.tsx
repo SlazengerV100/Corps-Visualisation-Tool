@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTheme } from '@mui/material/styles'
 import * as d3 from 'd3'
 import { Box, Typography, CircularProgress } from '@mui/material'
@@ -21,7 +21,7 @@ interface ChartDatum {
   percentage: number
 }
 
-const PopulationChart = (): React.JSX.Element => {
+const PopulationChart = () => {
   const svgRef = useRef<SVGSVGElement>(null)
   const theme = useTheme()
   const [data, setData] = useState<PopulationSnapshot[]>([])

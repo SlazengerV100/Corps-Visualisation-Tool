@@ -47,7 +47,7 @@ export interface ChartPoint {
 /**
  * Details and metric history of one corps, with a button to close them
  */
-const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void }): React.JSX.Element => {
+const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void }) => {
   const [timeRange, setTimeRange] = useState<TimeRange>('pastYear');
   const [selectedMetric, setSelectedMetric] = useState('congregationalWorship');
   const [metricData, setMetricData] = useState<ChartPoint[]>([])

@@ -9,7 +9,7 @@ export default function TogglePanel({ hideUnselected, setHideUnselected, selecte
     hideUnselected: boolean
     setHideUnselected: (hideUnselected: boolean) => void
     selectedCorps: string[]
-}): React.JSX.Element {
+}) {
     const handleToggleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setHideUnselected(event.target.checked)
     }

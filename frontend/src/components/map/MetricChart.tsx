@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import type { ChartPoint, TimeRange } from './CorpsDetails.tsx';
 
@@ -7,7 +7,7 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }: {
   timeRange: TimeRange
   selectedMetric: string
   height?: number
-}): React.JSX.Element => {
+}) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {

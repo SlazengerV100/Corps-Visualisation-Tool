@@ -20,7 +20,7 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
     onCorpsDataLoaded: (corps: Corps[]) => void
     year: number | null
     yearData: BubblePoint[] | null
-}): React.JSX.Element {
+}) {
     const [corpsData, setCorpsData] = useState<Corps[]>([])
     const [areas, setAreas] = useState<Record<string, Corps[]>>({})
     const [expandedAreas, setExpandedAreas] = useState<Record<string, boolean>>({})

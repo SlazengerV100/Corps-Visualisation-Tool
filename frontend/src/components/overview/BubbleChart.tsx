@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Box from '@mui/material/Box'
 import * as d3 from 'd3'
 import type { Corps } from '../map/CorpsDetails.tsx'
@@ -30,7 +30,7 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
     corps: Corps[]
     selectedCorps: string[]
     hideUnselected: boolean
-}): React.JSX.Element {
+}) {
     const svgRef = useRef<SVGSVGElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const tooltipRef = useRef<Tooltip>(null)

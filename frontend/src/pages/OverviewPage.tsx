@@ -1,4 +1,3 @@
-import React from 'react'
 import BubbleChart, { type BubblePoint } from '../components/overview/BubbleChart.tsx'
 import AnimationPanel from '../components/overview/AnimationPanel.tsx'
 import CheckboxSelectorPanel from '../components/overview/CheckboxSelectorPanel.tsx'
@@ -14,7 +13,7 @@ interface ScoredSnapshot {
     scores: Omit<BubblePoint, 'id' | 'name'>
 }
 
-export default function OverviewPage(): React.JSX.Element {
+export default function OverviewPage() {
     const [year, setYear] = useState<number | null>(null)
     const [years, setYears] = useState<number[]>([])
     const [pointsByYear, setPointsByYear] = useState<Record<number, BubblePoint[]>>({})
