@@ -117,7 +117,7 @@ export function calculateGrowth(metrics) {
             growth = growth * (1 + percentage)
         }
         return Math.round(growth)
-    } catch (error) {
+    } catch {
         return null
     }
 }

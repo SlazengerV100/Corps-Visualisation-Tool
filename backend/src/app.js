@@ -45,7 +45,7 @@ export function createApp(insights, staticFolder) {
 
     // Error handling middleware
     /** @type {express.ErrorRequestHandler} */
-    const handleError = (err, req, res, next) => {
+    const handleError = (err, req, res, _next) => {
         if (err instanceof InvalidQueryError) {
             res.status(400).json({ error: err.message })
             return
