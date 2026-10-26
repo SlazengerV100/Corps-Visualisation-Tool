@@ -4,10 +4,10 @@ import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import { Link, useLocation } from 'react-router-dom'
-import { styled, useTheme } from '@mui/material/styles'
+import { useTheme, type SxProps, type Theme } from '@mui/material/styles'
 
-// Custom navigation button component using MUI theme
-const NavButton = styled(Button)(({ theme, active }) => ({
+// Navigation button style using MUI theme
+const navButtonSx = (active: boolean): SxProps<Theme> => theme => ({
     fontFamily: 'inherit',
     border: active 
         ? `1px solid ${theme.palette.common.white}` // Full opacity white border
@@ -23,12 +23,12 @@ const NavButton = styled(Button)(({ theme, active }) => ({
         backgroundColor: theme.palette.action.selected,
         borderColor: theme.palette.common.white
     }
-}))
+})
 
 export default function ButtonAppBar() {
     const location = useLocation()
     const theme = useTheme()
-    const isActive = (path) => location.pathname === path
+    const isActive = (path: string) => location.pathname === path
 
     return (
         <Box>
@@ -48,42 +48,42 @@ export default function ButtonAppBar() {
                     </Typography>
 
                     <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
-                        <NavButton
+                        <Button
                             component={Link}
                             to="/"
                             color="inherit"
                             variant="text"
-                            active={isActive('/')}
+                            sx={navButtonSx(isActive('/'))}
                         >
                             Overview
-                        </NavButton>
-                        <NavButton
+                        </Button>
+                        <Button
                             component={Link}
                             to="/map"
                             color="inherit"
                             variant="text"
-                            active={isActive('/map')}
+                            sx={navButtonSx(isActive('/map'))}
                         >
                             Map
-                        </NavButton>
-                        <NavButton
+                        </Button>
+                        <Button
                             component={Link}
                             to="/population"
                             color="inherit"
                             variant="text"
-                            active={isActive('/population')}
+                            sx={navButtonSx(isActive('/population'))}
                         >
                             Population
-                        </NavButton>
-                        <NavButton
+                        </Button>
+                        <Button
                             component={Link}
                             to="/definitions"
                             color="inherit"
                             variant="text"
-                            active={isActive('/definitions')}
+                            sx={navButtonSx(isActive('/definitions'))}
                         >
                             Definitions
-                        </NavButton>
+                        </Button>
                     </Box>
                 </Toolbar>
             </AppBar>

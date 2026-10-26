@@ -1,4 +1,3 @@
-import * as React from 'react'
 import { useEffect, useState } from "react";
 import Box from '@mui/material/Box'
 import CorpsMap from "../components/map/CorpsMap.tsx";
@@ -7,7 +6,7 @@ import CorpsDetails, { type Corps } from "../components/map/CorpsDetails.tsx";
 /**
  * Map of every corps, beside the details of the selected one when there is one
  */
-export default function MapPage(): React.JSX.Element {
+export default function MapPage() {
     const [selectedCorps, setSelectedCorps] = useState<Corps | null>(null);
     const [corpsData, setCorpsData] = useState<Corps[]>([])
 

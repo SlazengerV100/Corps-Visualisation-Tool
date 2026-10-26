@@ -6,11 +6,11 @@ import CssBaseline from '@mui/material/CssBaseline'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Toolbar from '@mui/material/Toolbar'
-import AppBar from './components/common/AppBar.jsx'
-import OverviewPage from './pages/OverviewPage.jsx'
+import AppBar from './components/common/AppBar.tsx'
+import OverviewPage from './pages/OverviewPage.tsx'
 import MapPage from './pages/MapPage.tsx'
-import PopulationPage from './pages/PopulationPage.jsx'
-import DefinitionsPage from './pages/DefinitionsPage.jsx'
+import PopulationPage from './pages/PopulationPage.tsx'
+import DefinitionsPage from './pages/DefinitionsPage.tsx'
 
 const theme = createTheme({
     typography: {

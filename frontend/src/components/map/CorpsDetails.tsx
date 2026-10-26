@@ -14,7 +14,7 @@ import {
   IconButton,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import MetricChart from './MetricChart.jsx';
+import MetricChart from './MetricChart.tsx';
 
 export interface Corps {
   id: string
@@ -34,9 +34,9 @@ interface MetricDefinition {
   years: number[]
 }
 
-type TimeRange = 'pastYear' | 'pastTwoYears' | 'pastFiveYears' | 'pastTenYears' | 'allTime' | 'future'
+export type TimeRange = 'pastYear' | 'pastTwoYears' | 'pastFiveYears' | 'pastTenYears' | 'allTime' | 'future'
 
-interface ChartPoint {
+export interface ChartPoint {
   year: number
   month?: number
   metric: number
@@ -47,7 +47,7 @@ interface ChartPoint {
 /**
  * Details and metric history of one corps, with a button to close them
  */
-const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void }): React.JSX.Element => {
+const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void }) => {
   const [timeRange, setTimeRange] = useState<TimeRange>('pastYear');
   const [selectedMetric, setSelectedMetric] = useState('congregationalWorship');
   const [metricData, setMetricData] = useState<ChartPoint[]>([])

@@ -11,11 +11,19 @@ import ListItemText from '@mui/material/ListItemText'
 import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
 import Typography from '@mui/material/Typography'
+import type { Corps } from '../map/CorpsDetails.tsx'
+import type { BubblePoint } from './BubbleChart.tsx'
 
-export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps, onCorpsDataLoaded, year, yearData }) {
-    const [corpsData, setCorpsData] = useState([])
-    const [areas, setAreas] = useState({})
-    const [expandedAreas, setExpandedAreas] = useState({})
+export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps, onCorpsDataLoaded, year, yearData }: {
+    selectedCorps: string[]
+    setSelectedCorps: React.Dispatch<React.SetStateAction<string[]>>
+    onCorpsDataLoaded: (corps: Corps[]) => void
+    year: number | null
+    yearData: BubblePoint[] | null
+}) {
+    const [corpsData, setCorpsData] = useState<Corps[]>([])
+    const [areas, setAreas] = useState<Record<string, Corps[]>>({})
+    const [expandedAreas, setExpandedAreas] = useState<Record<string, boolean>>({})
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -26,11 +34,11 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
                     console.error('Failed to fetch corps data')
                     return
                 }
-                const data = await response.json()
+                const data: Corps[] = await response.json()
                 setCorpsData(data)
                 
                 // Group corps by area
-                const groupedByArea = {}
+                const groupedByArea: Record<string, Corps[]> = {}
                 data.forEach(corps => {
                     if (!groupedByArea[corps.area]) {
                         groupedByArea[corps.area] = []
@@ -40,7 +48,7 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
                 setAreas(groupedByArea)
                 
                 // Initialize all areas as collapsed
-                const initialExpanded = {}
+                const initialExpanded: Record<string, boolean> = {}
                 Object.keys(groupedByArea).forEach(area => {
                     initialExpanded[area] = false
                 })
@@ -61,7 +69,7 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
         void fetchCorpsData()
     }, [onCorpsDataLoaded])
 
-    const handleToggle = (id) => {
+    const handleToggle = (id: string) => {
         setSelectedCorps(prevSelected => {
             const isCurrentlySelected = prevSelected.includes(id)
             if (isCurrentlySelected) {
@@ -74,14 +82,14 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
         })
     }
 
-    const handleAreaToggle = (areaName) => {
+    const handleAreaToggle = (areaName: string) => {
         setExpandedAreas(prev => ({
             ...prev,
             [areaName]: !prev[areaName]
         }))
     }
 
-    const handleAreaSelectAll = (areaName) => {
+    const handleAreaSelectAll = (areaName: string) => {
         const areaCorps = areas[areaName] || []
         const areaCorpsIds = areaCorps.map(corps => corps.id)
         const allSelected = areaCorpsIds.every(id => selectedCorps.includes(id))
@@ -103,24 +111,24 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
         }
     }
 
-    const isAreaFullySelected = (areaName) => {
+    const isAreaFullySelected = (areaName: string) => {
         const areaCorps = areas[areaName] || []
         return areaCorps.length > 0 && areaCorps.every(corp => selectedCorps.includes(corp.id))
     }
 
-    const isAreaPartiallySelected = (areaName) => {
+    const isAreaPartiallySelected = (areaName: string) => {
         const areaCorps = areas[areaName] || []
         const selectedCount = areaCorps.filter(corp => selectedCorps.includes(corp.id)).length
         return selectedCount > 0 && selectedCount < areaCorps.length
     }
 
-    const isClosed = (centreId) => {
+    const isClosed = (centreId: string) => {
         if (!corpsData || !Array.isArray(corpsData)) {
             return false
         }
         
         const corps = corpsData.find(corp => corp.id === centreId)
-        if (!corps || !corps.closingDate) {
+        if (!corps || !corps.closingDate || year === null) {
             return false
         }
         
@@ -132,7 +140,7 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
     }
 
     // Check if a corps has data for the current year's bubble chart
-    const hasBubbleData = (centreId) => {
+    const hasBubbleData = (centreId: string) => {
         if (!yearData || !Array.isArray(yearData)) {
             return false
         }
@@ -147,7 +155,7 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
     }
 
     // Get the styling for a corps based on its status
-    const getCorpsStyling = (centreId) => {
+    const getCorpsStyling = (centreId: string) => {
         if (isClosed(centreId)) {
             return {
                 textDecoration: 'line-through',

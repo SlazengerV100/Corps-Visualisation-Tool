@@ -1,43 +1,40 @@
-/* eslint-disable -- Untyped legacy file. Add types and remove this when the file is next changed. */
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
+import type { ChartPoint, TimeRange } from './CorpsDetails.tsx';
 
-const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
-  const svgRef = useRef();
+const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }: {
+  data: ChartPoint[]
+  timeRange: TimeRange
+  selectedMetric: string
+  height?: number
+}) => {
+  const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
-    if (!data || data.length === 0) return
+    const svgElement = svgRef.current
+    if (!svgElement || !data || data.length === 0) return undefined
 
     // Clear any existing chart
-    d3.select(svgRef.current).selectAll('*').remove();
+    d3.select(svgElement).selectAll('*').remove();
 
     // Create SVG
-    const svg = d3.select(svgRef.current)
+    const svg = d3.select(svgElement)
         .attr('width', '100%')
         .attr('height', height);
 
     // Set margins
     const margin = { top: 20, right: 30, bottom: 40, left: 40 };
-    const innerWidth = svg.node().getBoundingClientRect().width - margin.left - margin.right;
+    const innerWidth = svgElement.getBoundingClientRect().width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
     // Determine if data is monthly or yearly based on data structure
     const isMonthlyData = data.some(d => d.month !== undefined);
+    const monthDate = (d: ChartPoint) => new Date(d.year, (d.month ?? 1) - 1);
 
-    const yDomain = () => {
-      const min = d3.min(data, d => d.metric)
-      const max = d3.max(data, d => d.metric)
-      if (min < 0) {
-        return [min, max]
-      }
-      if (max === 0) {
-        return [0, 1]
-      }
-      return [0, d3.max(data, d => d.metric)]
-    }
-
+    const minMetric = d3.min(data, d => d.metric) ?? 0
+    const maxMetric = d3.max(data, d => d.metric) ?? 0
     const y = d3.scaleLinear()
-      .domain(selectedMetric === 'surplusDeficit' ? [d3.min(data, d => d.metric), d3.max(data, d => d.metric)] : [0, d3.max(data, d => d.metric)])
+      .domain(selectedMetric === 'surplusDeficit' ? [minMetric, maxMetric] : [0, maxMetric])
       .nice()
       .range([innerHeight, 0]);
 
@@ -51,19 +48,18 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
       .attr('opacity', 0.1)
       .call(d3.axisLeft(y)
         .tickSize(-innerWidth)
-        .tickFormat('')
+        .tickFormat(() => '')
       );
 
     // Improved axis handling with overlap prevention
-    const createSmartAxis = (data, innerWidth, timeRange) => {
-      const isMonthlyData = data.some(d => d.month !== undefined);
-      
+    const createSmartAxis = (): { x: (value: Date | number) => number, axis: d3.Axis<Date | d3.NumberValue> } => {
       if (isMonthlyData) {
         // Use time scale for monthly data
+        const [start, end] = d3.extent(data, monthDate);
         const x = d3.scaleTime()
-          .domain(d3.extent(data, d => new Date(d.year, d.month - 1)))
+          .domain(start && end ? [start, end] : [])
           .range([0, innerWidth]);
-        
+
         // Smart tick selection based on time range
         let tickInterval, tickFormat;
         switch (timeRange) {
@@ -79,38 +75,38 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
             tickInterval = d3.timeMonth.every(3);
             tickFormat = d3.timeFormat("%b %y");
         }
-        
+
         return {
           x,
-          axis: d3.axisBottom(x)
+          axis: d3.axisBottom<Date | d3.NumberValue>(x)
             .ticks(tickInterval)
-            .tickFormat(tickFormat)
+            .tickFormat(d => tickFormat(new Date(d.valueOf())))
         };
       } else {
         // For yearly data, use linear scale with smart spacing
         const x = d3.scaleLinear()
           .domain([0, data.length - 1])
           .range([0, innerWidth]);
-        
+
         // Calculate optimal number of ticks
         const maxTicks = Math.floor(innerWidth / 80); // 80px per label
         const tickStep = Math.max(1, Math.floor(data.length / maxTicks));
-        
+
         // Create tick positions that are always in between data points
         // We want ticks at positions: 0.5, 1.5, 2.5, etc. (between data points)
-        const tickPositions = [];
+        const tickPositions: number[] = [];
         for (let i = 0; i < data.length - 1; i += tickStep) {
           tickPositions.push(i + 0.5); // Always place ticks between data points
         }
-        
+
         return {
           x,
-          axis: d3.axisBottom(x)
+          axis: d3.axisBottom<Date | d3.NumberValue>(x)
             .tickValues(tickPositions)
-            .tickFormat((d, i) => {
-              const dataIndex = Math.floor(d);
+            .tickFormat(d => {
+              const dataIndex = Math.floor(d.valueOf());
               if (dataIndex < data.length) {
-                return data[dataIndex].year;
+                return String(data[dataIndex].year);
               }
               return '';
             })
@@ -118,13 +114,13 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
       }
     };
 
-    const { x, axis: xAxisGenerator } = createSmartAxis(data, innerWidth, timeRange);
+    const { x, axis: xAxisGenerator } = createSmartAxis();
 
     // Create line generator
-    const line = d3.line()
+    const line = d3.line<ChartPoint>()
       .x((d, i) => {
         if (isMonthlyData) {
-          return x(new Date(d.year, d.month - 1));
+          return x(monthDate(d));
         } else {
           return x(i);
         }
@@ -133,23 +129,23 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
       .curve(d3.curveMonotoneX);
 
     // Create x-axis
-    const xAxis = g.append('g')
+    g.append('g')
       .attr('transform', `translate(0,${innerHeight})`)
       .call(xAxisGenerator)
-      .call(g => g.select('.domain').attr('stroke-opacity', 0.2));
+      .call(axis => axis.select('.domain').attr('stroke-opacity', 0.2));
 
     // Add y-axis
     g.append('g')
       .call(d3.axisLeft(y)
         .tickSize(0))
-      .call(g => g.select('.domain').attr('stroke-opacity', 0.2));
+      .call(axis => axis.select('.domain').attr('stroke-opacity', 0.2));
 
     // Create a custom line that changes from solid to dotted at the first projected point
     const futureStartIndex = data.findIndex(d => d.isProjected);
-    
+
     if (futureStartIndex === -1) {
       // No future data, draw solid line
-      const path = g.append('path')
+      g.append('path')
         .datum(data)
         .attr('fill', 'none')
         .attr('stroke', '#8884d8')
@@ -166,12 +162,12 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
           .attr('stroke-width', 2)
           .attr('d', line);
       }
-      
+
       // Create a custom line generator for future data that uses original indices
-      const futureLine = d3.line()
-        .x((d, i) => {
+      const futureLine = d3.line<ChartPoint>()
+        .x(d => {
           if (isMonthlyData) {
-            return x(new Date(d.year, d.month - 1));
+            return x(monthDate(d));
           } else {
             // Find the original index in the full data array
             const originalIndex = data.findIndex(item => item.year === d.year);
@@ -180,7 +176,7 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
         })
         .y(d => Math.min(y(d.metric), y(0))) // Clip at y=0 (x-axis)
         .curve(d3.curveMonotoneX);
-      
+
       // Draw future line (dotted) starting from the last historical point
       const futureData = data.slice(futureStartIndex - 1); // Include last historical point for connection
       g.append('path')
@@ -200,7 +196,7 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
       .attr('class', 'dot')
       .attr('cx', (d, i) => {
         if (isMonthlyData) {
-          return x(new Date(d.year, d.month - 1));
+          return x(monthDate(d));
         } else {
           return x(i);
         }
@@ -229,73 +225,70 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
       .style('z-index', 1000);
 
     // Add hover effects to dots
-    dots.on('mouseenter', function(event, d) {
+    dots.on('mouseenter', function() {
       d3.select(this)
         .transition()
         .duration(150)
         .attr('r', 8)
         .attr('fill', '#5a67d8');
     })
-    .on('mouseleave', function(event, d) {
+    .on('mouseleave', function() {
       d3.select(this)
         .transition()
         .duration(150)
         .attr('r', 6)
         .attr('fill', '#8884d8');
     })
-    .on('mouseover', (event, d) => {
-      let metricTextValue = selectedMetric === 'firstTimeDecisions' ? d.metric : d.metric.toFixed(2)
-      metricTextValue = metricTextValue < 0 ? 0 : metricTextValue
-      let tooltipTextContent = `Value: ${metricTextValue}`;
-      if (isMonthlyData) {
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        tooltipTextContent = `${monthNames[d.month - 1]} ${d.year}: ${metricTextValue}`;
-      } else {
-        tooltipTextContent = `${d.financialYear}: ${metricTextValue}`;
-      }
-      
+    .on('mouseover', (event: MouseEvent, d) => {
+      const metricTextValue = d.metric < 0 ? 0 : selectedMetric === 'firstTimeDecisions' ? d.metric : d.metric.toFixed(2)
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const tooltipTextContent = isMonthlyData
+        ? `${monthNames[(d.month ?? 1) - 1]} ${d.year}: ${metricTextValue}`
+        : `${d.financialYear}: ${metricTextValue}`;
+
       // Set tooltip text
       tooltip.html(tooltipTextContent);
-      
+
       // Get tooltip dimensions after setting content
       const tooltipNode = tooltip.node();
+      if (!tooltipNode) return;
       const tooltipRect = tooltipNode.getBoundingClientRect();
-      
+
       // Get chart container dimensions
-      const chartRect = svg.node().getBoundingClientRect();
-      
+      const chartRect = svgElement.getBoundingClientRect();
+
       // Calculate smart positioning
       let left = event.pageX + 10;
       let top = event.pageY - 28;
-      
+
       // Check if tooltip would extend beyond right edge of chart
       if (left + tooltipRect.width > chartRect.right) {
         left = event.pageX - tooltipRect.width - 10;
       }
-      
+
       // Check if tooltip would extend beyond left edge of chart
       if (left < chartRect.left) {
         left = chartRect.left + 10;
       }
-      
+
       // Check if tooltip would extend beyond top edge of chart
       if (top < chartRect.top) {
         top = event.pageY + 10;
       }
-      
+
       // Check if tooltip would extend beyond bottom edge of chart
       if (top + tooltipRect.height > chartRect.bottom) {
         top = event.pageY - tooltipRect.height - 10;
       }
-      
+
       // Position tooltip
       tooltip
         .style('left', left + 'px')
         .style('top', top + 'px')
         .style('width', 'auto')
         .style('height', 'auto');
-      
+
       // Show tooltip
       tooltip.transition()
         .duration(200)
@@ -314,12 +307,12 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
     });
 
     // Animation for the lines
-    const paths = g.selectAll('path');
-    
+    const paths = g.selectAll<SVGPathElement, unknown>('path');
+
     paths.each(function() {
       const pathElement = d3.select(this);
       const pathLength = this.getTotalLength();
-      
+
       if (pathElement.attr('stroke-dasharray') === '5,5') {
         // Future line (already dotted) - fade in
         pathElement
@@ -349,11 +342,11 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }) => {
     return () => {
       d3.select('body').selectAll('.tooltip').remove();
     };
-  }, [data, timeRange, height]);
+  }, [data, timeRange, selectedMetric, height]);
 
   if (!data || data.length === 0) return <p>No data available for this metric in the selected time period.</p>
 
   return <svg ref={svgRef}></svg>
 };
 
-export default MetricChart; 
+export default MetricChart;
