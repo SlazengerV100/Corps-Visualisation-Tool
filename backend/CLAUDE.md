@@ -9,7 +9,7 @@
 
 ## Typing
 
-The codebase is moving to TypeScript. `npm run lint` runs oxlint over `src` and type-checks its JSDoc strictly (tsgolint with `checkJs`). It runs on commit and in CI, and must pass with no warnings. Rules shared with the frontend live in `oxlint.base.jsonc` at the repo root. Give any file you add or touch full JSDoc types. Tests under `tests` are not type-checked yet.
+The codebase is moving to TypeScript. `npm run lint` runs oxlint over `src` and type-checks its JSDoc strictly (tsgolint with `checkJs`). It runs on commit and in CI, and must pass with no warnings. Lint rules for both packages live in `.oxlintrc.jsonc` at the repo root, and `jsconfig.json` extends the shared compiler policy in `tsconfig.base.json`. Give any file you add or touch full JSDoc types. Tests under `tests` are not type-checked yet.
 
 ## Data quirks
 
