@@ -8,7 +8,7 @@ import type { Corps } from './CorpsDetails.tsx'
 const corpsZoom = 10
 
 /**
- * Map of every corps that centres on the selected one, zooming in to it unless already closer
+ * Map of every corps that zooms in to the selected one when further out, and otherwise only pans to keep it in view
  */
 const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
     corpsData: Corps[]
@@ -26,7 +26,12 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
         const centre = map.getCenter()
         map.invalidateSize()
         if (selectedCorps) {
-            map.setView([selectedCorps.lat, selectedCorps.lng], Math.max(map.getZoom(), corpsZoom))
+            const position: L.LatLngTuple = [selectedCorps.lat, selectedCorps.lng]
+            if (map.getZoom() < corpsZoom) {
+                map.setView(position, corpsZoom)
+            } else {
+                map.panInside(position)
+            }
         } else {
             map.closePopup()
             map.setView(centre, map.getZoom())
