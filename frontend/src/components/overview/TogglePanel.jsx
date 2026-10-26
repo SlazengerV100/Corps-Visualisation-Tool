@@ -12,7 +12,7 @@ export default function TogglePanel({ hideUnselected, setHideUnselected, selecte
 
     useEffect(() => {
         setHideUnselected(false)
-    }, [selectedCorps])
+    }, [selectedCorps, setHideUnselected])
 
     // Disable the toggle if no corps are selected
     const isDisabled = !selectedCorps || selectedCorps.length === 0

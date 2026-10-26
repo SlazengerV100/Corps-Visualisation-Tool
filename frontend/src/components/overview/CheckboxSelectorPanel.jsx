@@ -58,8 +58,8 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
             }
         }
 
-        fetchCorpsData()
-    }, [])
+        void fetchCorpsData()
+    }, [onCorpsDataLoaded])
 
     const handleToggle = (id) => {
         setSelectedCorps(prevSelected => {
@@ -180,7 +180,7 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
                 Select Corps
             </Typography>
             <FormGroup>
-                {Object.keys(areas).sort().map(areaName => {
+                {Object.keys(areas).toSorted().map(areaName => {
                     const areaCorps = areas[areaName]
                     const isExpanded = expandedAreas[areaName]
                     const isFullySelected = isAreaFullySelected(areaName)
@@ -229,7 +229,7 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
                             {/* Corps list for this area */}
                             <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                                 <List component="div" disablePadding>
-                                    {areaCorps.sort((a, b) => a.name.localeCompare(b.name)).map(corps => (
+                                    {areaCorps.toSorted((a, b) => a.name.localeCompare(b.name)).map(corps => (
                                         <ListItem key={corps.id} sx={{ pl: 2, py: 0.25, overflow: 'hidden' }}>
                                             <FormControlLabel
                                                 control={

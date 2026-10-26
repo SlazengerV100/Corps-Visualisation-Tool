@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["../oxlint.base.jsonc"],
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "react"],
+  "env": {
+    "browser": true
+  },
+  "ignorePatterns": ["dist"],
+  "rules": {
+    "eslint/no-unused-vars": ["error", { "varsIgnorePattern": "^[A-Z_]" }],
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": ["warn", { "allowConstantExport": true }],
+    // The JSX transform has not needed React in scope since React 17.
+    "react/react-in-jsx-scope": "off",
+    // Duplicates react/exhaustive-deps.
+    "react/exhaustive-effect-dependencies": "off",
+    // Flags fetching in effects; revisit if the app adopts a data-fetching library.
+    "react/set-state-in-effect": "off"
+  },
+  "options": {
+    "typeAware": true,
+    "typeCheck": true,
+    "maxWarnings": 0
+  }
+}

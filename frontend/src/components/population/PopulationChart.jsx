@@ -31,11 +31,11 @@ const PopulationChart = () => {
       }
     }
 
-    fetchData()
+    void fetchData()
   }, [])
 
   useEffect(() => {
-    if (!data || data.length === 0) return
+    if (!data || data.length === 0) return undefined
 
     // Clear any existing chart
     d3.select(svgRef.current).selectAll('*').remove()
@@ -71,7 +71,7 @@ const PopulationChart = () => {
         .attr('font-size', '18px')
         .attr('fill', '#666')
         .text('No data available for the selected criteria')
-      return
+      return undefined
     }
 
     // Calculate percentage values
@@ -133,7 +133,7 @@ const PopulationChart = () => {
         .tickSize(0)
         .tickFormat('') // Hide tick labels since we'll add custom labels
       )
-      .call(g => g.select('.domain').attr('stroke-opacity', 0.2))
+      .call(axis => axis.select('.domain').attr('stroke-opacity', 0.2))
 
     // Add custom x-axis labels (corps names)
     g.selectAll('.x-label')
@@ -156,7 +156,7 @@ const PopulationChart = () => {
         .tickSize(0)
         .tickFormat(d => `${d.toFixed(1)}%`)
       )
-      .call(g => g.select('.domain').attr('stroke-opacity', 0.2))
+      .call(axis => axis.select('.domain').attr('stroke-opacity', 0.2))
 
     // Add axis labels
     // X-axis label
@@ -235,7 +235,7 @@ const PopulationChart = () => {
     return () => {
       d3.select('body').selectAll('.tooltip').remove()
     }
-  }, [data])
+  }, [data, year, theme])
 
   if (loading) {
     return (

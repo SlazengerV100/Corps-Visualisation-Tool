@@ -1,0 +1,12 @@
+// Rules shared by both packages. Each package's .oxlintrc.jsonc extends this and adds its own type-checking options.
+{
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "rules": {
+    // Prefers mutating objects in map over spreading them; the arrays here are too small for that to pay off.
+    "oxc/no-map-spread": "off"
+  }
+}

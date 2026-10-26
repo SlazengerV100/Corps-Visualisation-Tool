@@ -10,7 +10,7 @@ export function parseYear(value) {
         return undefined
     }
     if (typeof value !== 'string' || !/^\d{4}$/.test(value)) {
-        throw new InvalidQueryError(`Invalid year ${value}`)
+        throw new InvalidQueryError(`Invalid year ${JSON.stringify(value)}`)
     }
     return parseInt(value, 10)
 }

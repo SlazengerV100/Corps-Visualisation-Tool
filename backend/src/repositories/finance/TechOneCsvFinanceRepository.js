@@ -112,7 +112,7 @@ export class TechOneCsvFinanceRepository {
         }
 
         /** @type {FinancialYear[]} */
-        this.financialYears = [...years].sort((a, b) => a - b)
+        this.financialYears = [...years].toSorted((a, b) => a - b)
     }
 
     years() {

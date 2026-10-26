@@ -27,4 +27,4 @@ The backend scales to zero and starts on the first request, so start-up time mat
 
 PRDs or planning documents are not to be checked in.
 
-The codebase is moving to TypeScript. Any file you touch should get types and pass `npm run lint` in its package. If the file opens with a lint-disable annotation, remove it as part of the same change.
+The codebase is moving to TypeScript only. Convert any file you touch to `.ts` or `.tsx` (rename with `git mv`) and make it pass `npm run lint` in its package. If the file opens with a lint-disable annotation, remove it as part of the same change.
