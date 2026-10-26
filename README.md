@@ -15,7 +15,7 @@ The backend handles and parses various CSV files provided by The Salvation Army 
 | React                 | Frontend library for building user interfaces with reusable components. |
 | D3                    | JavaScript library for creating dynamic, interactive data visualisations. |
 | Node.js               | JavaScript runtime for executing backend server code.                   |
-| Jest                  | Testing framework for writing and running unit and integration tests.   |
+| Vitest                | Testing framework for writing and running unit and integration tests.   |
 | Express               | Web framework for building RESTful APIs and handling HTTP requests.     |
 | Vite                  | Frontend build tool for fast development and optimized production builds. |
 | CSV Parser            | Parses CSV files to extract and process data for backend use.           |
@@ -58,14 +58,14 @@ To run the backend:
 1. Run `npm run dev` for development or `npm start` for production.
 
 ### Testing
-To run [Jest](https://jestjs.io/) unit tests for the backend: 
+To run [Vitest](https://vitest.dev/) unit tests for the backend: 
 
 1. In the repository root, run `npm i`.
 1. Open your terminal to the `backend` folder.
 1. Run `npm run test`
 
 ### Linting
-The backend is typed with JSDoc comments, and linting type-checks them with the TypeScript compiler in strict mode. Tests under `backend/tests` are not type-checked yet.
+The backend is TypeScript, run directly by Node with no build step. Linting type-checks the source and tests with the TypeScript compiler in strict mode.
 
 1. Open your terminal to the `backend` folder.
 1. Run `npm run lint`
