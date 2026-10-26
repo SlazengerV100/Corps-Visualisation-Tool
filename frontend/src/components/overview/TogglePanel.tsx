@@ -5,8 +5,12 @@ import Switch from '@mui/material/Switch'
 import Typography from '@mui/material/Typography'
 import { useEffect } from 'react'
 
-export default function TogglePanel({ hideUnselected, setHideUnselected, selectedCorps }) {
-    const handleToggleChange = (event) => {
+export default function TogglePanel({ hideUnselected, setHideUnselected, selectedCorps }: {
+    hideUnselected: boolean
+    setHideUnselected: (hideUnselected: boolean) => void
+    selectedCorps: string[]
+}): React.JSX.Element {
+    const handleToggleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setHideUnselected(event.target.checked)
     }
 

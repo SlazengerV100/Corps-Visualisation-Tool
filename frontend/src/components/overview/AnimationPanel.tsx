@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
@@ -31,13 +31,17 @@ const Slider = styled(MUISlider)(({ theme }) => ({
     },
 }))
 
-export default function AnimationPanel({year, setYear, years}) {
+export default function AnimationPanel({year, setYear, years}: {
+    year: number | null
+    setYear: React.Dispatch<React.SetStateAction<number | null>>
+    years: number[]
+}): React.JSX.Element | null {
     const MIN_YEAR = years[0]
     const MAX_YEAR = years[years.length - 1]
     const animationSpeed = 1000 // ms
 
     const [playing, setPlaying] = useState(false)
-    const intervalRef = useRef(null)
+    const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined)
 
     // Generate marks for every year between MIN_YEAR and MAX_YEAR
     const yearMarks = Array.from({ length: MAX_YEAR - MIN_YEAR + 1 }, (_, index) => ({
@@ -55,7 +59,7 @@ export default function AnimationPanel({year, setYear, years}) {
 
             intervalRef.current = setInterval(() => {
                 setYear(prev => {
-                    if (prev >= MAX_YEAR) {
+                    if (prev === null || prev >= MAX_YEAR) {
                         clearInterval(intervalRef.current)
                         setPlaying(false)
                         return prev
@@ -70,7 +74,8 @@ export default function AnimationPanel({year, setYear, years}) {
         return () => clearInterval(intervalRef.current)
     }, [playing, setYear, MIN_YEAR, MAX_YEAR])
 
-    const handleSliderChange = (_, newValue) => {
+    const handleSliderChange = (_: Event, newValue: number | number[]) => {
+        if (Array.isArray(newValue)) return
         setPlaying(false)
         setYear(newValue)
     }

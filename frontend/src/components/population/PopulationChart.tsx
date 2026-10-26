@@ -3,13 +3,31 @@ import { useTheme } from '@mui/material/styles'
 import * as d3 from 'd3'
 import { Box, Typography, CircularProgress } from '@mui/material'
 
-const PopulationChart = () => {
-  const svgRef = useRef()
+interface PopulationSnapshot {
+  id: string
+  name: string
+  year: number
+  metrics: {
+    congregationalWorship: { currentYear: number | null }
+    population: number | null
+  }
+}
+
+interface ChartDatum {
+  id: string
+  name: string
+  congregationalWorship: number
+  population: number
+  percentage: number
+}
+
+const PopulationChart = (): React.JSX.Element => {
+  const svgRef = useRef<SVGSVGElement>(null)
   const theme = useTheme()
-  const [data, setData] = useState([])
+  const [data, setData] = useState<PopulationSnapshot[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [year, setYear] = useState(null)
+  const [error, setError] = useState<string | null>(null)
+  const [year, setYear] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -19,13 +37,13 @@ const PopulationChart = () => {
         if (!response.ok) {
           throw new Error('Failed to fetch data')
         }
-        const result = await response.json()
+        const result: PopulationSnapshot[] = await response.json()
         // Show the latest year that has population figures
-        const latestYear = Math.max(...result.filter(d => d.metrics.population > 0).map(d => d.year))
+        const latestYear = Math.max(...result.filter(d => (d.metrics.population ?? 0) > 0).map(d => d.year))
         setYear(latestYear)
         setData(result.filter(d => d.year === latestYear))
       } catch (err) {
-        setError(err.message)
+        setError(err instanceof Error ? err.message : String(err))
       } finally {
         setLoading(false)
       }
@@ -35,18 +53,20 @@ const PopulationChart = () => {
   }, [])
 
   useEffect(() => {
-    if (!data || data.length === 0) return undefined
+    const svgElement = svgRef.current
+    if (!svgElement || !data || data.length === 0) return undefined
 
     // Clear any existing chart
-    d3.select(svgRef.current).selectAll('*').remove()
+    d3.select(svgElement).selectAll('*').remove()
 
     // Get container dimensions
-    const container = svgRef.current.parentElement
+    const container = svgElement.parentElement
+    if (!container) return undefined
     const containerWidth = container.clientWidth
     const containerHeight = container.clientHeight
 
     // Create SVG
-    const svg = d3.select(svgRef.current)
+    const svg = d3.select(svgElement)
       .attr('width', containerWidth)
       .attr('height', containerHeight)
 
@@ -55,14 +75,23 @@ const PopulationChart = () => {
     const innerWidth = containerWidth - margin.left - margin.right
     const innerHeight = containerHeight - margin.top - margin.bottom
 
-    // Filter data to only include corps with population data
-    const filteredData = data.filter(d => 
-      d.metrics.population && 
-      d.metrics.population > 0 && 
-      d.metrics.congregationalWorship.currentYear > 0
-    )
+    // Keep only corps with population data, and calculate percentage values
+    const chartData: ChartDatum[] = data.flatMap(d => {
+      const population = d.metrics.population
+      const congregationalWorship = d.metrics.congregationalWorship.currentYear
+      if (!population || population <= 0 || !congregationalWorship || congregationalWorship <= 0) {
+        return []
+      }
+      return [{
+        id: d.id,
+        name: d.name,
+        congregationalWorship,
+        population,
+        percentage: (congregationalWorship / population) * 100
+      }]
+    })
 
-    if (filteredData.length === 0) {
+    if (chartData.length === 0) {
       // Show no data message
       svg.append('text')
         .attr('x', containerWidth / 2)
@@ -74,15 +103,6 @@ const PopulationChart = () => {
       return undefined
     }
 
-    // Calculate percentage values
-    const chartData = filteredData.map(d => ({
-      id: d.id,
-      name: d.name,
-      congregationalWorship: d.metrics.congregationalWorship.currentYear,
-      population: d.metrics.population,
-      percentage: (d.metrics.congregationalWorship.currentYear / d.metrics.population) * 100
-    }))
-
     // Sort by percentage (descending)
     chartData.sort((a, b) => b.percentage - a.percentage)
 
@@ -91,9 +111,10 @@ const PopulationChart = () => {
       .domain(chartData.map(d => d.id))
       .range([0, innerWidth])
       .padding(0) // No gaps between bars
+    const barX = (d: ChartDatum) => xScale(d.id) ?? 0
 
     const yScale = d3.scaleLinear()
-      .domain([0, d3.max(chartData, d => d.percentage)])
+      .domain([0, d3.max(chartData, d => d.percentage) ?? 0])
       .nice()
       .range([innerHeight, 0])
 
@@ -109,7 +130,7 @@ const PopulationChart = () => {
       .attr('opacity', 0.1)
       .call(d3.axisLeft(yScale)
         .tickSize(-innerWidth)
-        .tickFormat('')
+        .tickFormat(() => '')
       )
 
     // Add bars
@@ -118,7 +139,7 @@ const PopulationChart = () => {
       .enter()
       .append('rect')
       .attr('class', 'bar')
-      .attr('x', d => xScale(d.id))
+      .attr('x', barX)
       .attr('y', d => yScale(d.percentage))
       .attr('width', xScale.bandwidth())
       .attr('height', d => innerHeight - yScale(d.percentage))
@@ -131,7 +152,7 @@ const PopulationChart = () => {
       .attr('transform', `translate(0,${innerHeight})`)
       .call(d3.axisBottom(xScale)
         .tickSize(0)
-        .tickFormat('') // Hide tick labels since we'll add custom labels
+        .tickFormat(() => '') // Hide tick labels since we'll add custom labels
       )
       .call(axis => axis.select('.domain').attr('stroke-opacity', 0.2))
 
@@ -141,20 +162,20 @@ const PopulationChart = () => {
       .enter()
       .append('text')
       .attr('class', 'x-label')
-      .attr('x', d => xScale(d.id) + xScale.bandwidth() / 2)
+      .attr('x', d => barX(d) + xScale.bandwidth() / 2)
       .attr('y', d => yScale(d.percentage) - 10)
       .attr('dy', '0.35em')
       .attr('font-size', '12px')
       .attr('fill', '#333')
       .style('user-select', 'none')
       .text(d => d.name.replace(' Corps', ''))
-      .attr('transform', d => `rotate(-90, ${xScale(d.id) + xScale.bandwidth() / 2}, ${yScale(d.percentage) - 10})`)
+      .attr('transform', d => `rotate(-90, ${barX(d) + xScale.bandwidth() / 2}, ${yScale(d.percentage) - 10})`)
 
     // Add y-axis
     g.append('g')
       .call(d3.axisLeft(yScale)
         .tickSize(0)
-        .tickFormat(d => `${d.toFixed(1)}%`)
+        .tickFormat(d => `${d.valueOf().toFixed(1)}%`)
       )
       .call(axis => axis.select('.domain').attr('stroke-opacity', 0.2))
 
@@ -207,8 +228,8 @@ const PopulationChart = () => {
       .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)')
 
     // Add hover effects
-    g.selectAll('.bar')
-      .on('mouseover', function(event, d) {
+    g.selectAll<SVGRectElement, ChartDatum>('.bar')
+      .on('mouseover', function(event: MouseEvent, d) {
         d3.select(this)
           .attr('fill', theme.palette.primary.light)
 
@@ -239,11 +260,11 @@ const PopulationChart = () => {
 
   if (loading) {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
+      <Box sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh'
       }}>
         <CircularProgress />
       </Box>
@@ -252,11 +273,11 @@ const PopulationChart = () => {
 
   if (error) {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
+      <Box sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh'
       }}>
         <Typography color="error">Error: {error}</Typography>
       </Box>
