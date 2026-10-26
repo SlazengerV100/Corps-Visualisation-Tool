@@ -23,9 +23,13 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
         const map = mapRef.current
         if (!map) return
 
+        const centre = map.getCenter()
         map.invalidateSize()
-        if (!selectedCorps) return
-        map.setView([selectedCorps.lat, selectedCorps.lng], Math.max(map.getZoom(), corpsZoom))
+        if (selectedCorps) {
+            map.setView([selectedCorps.lat, selectedCorps.lng], Math.max(map.getZoom(), corpsZoom))
+        } else {
+            map.setView(centre, map.getZoom())
+        }
     }, [selectedCorps])
 
     // Create custom icons
