@@ -497,6 +497,42 @@ describe('Calculation Utilities', () => {
       const result2 = calculateSustainability(metrics, 100)
       expect(result1).toBe(result2)
     })
+
+    test('should add the percentage change bonus for a rise in tithing of the benchmark or more', () => {
+      const metrics = {
+        tithing: {
+          currentYear: 12000,
+          prevYear: 10000
+        }
+      }
+
+      // Band 48.67 + nominal 0.75 + bonus 15
+      expect(calculateSustainability(metrics, 10)).toBe(64)
+    })
+
+    test('should scale the score down by the percentage fall in tithing', () => {
+      const metrics = {
+        tithing: {
+          currentYear: 9000,
+          prevYear: 12000
+        }
+      }
+
+      // (Band 40.67 + nominal -1.125) * 0.75
+      expect(calculateSustainability(metrics, 10)).toBe(30)
+    })
+
+    test('should skip the percentage change when there was no tithing the year before', () => {
+      const metrics = {
+        tithing: {
+          currentYear: 10000,
+          prevYear: 0
+        }
+      }
+
+      // Band 43.33 + nominal 3.75
+      expect(calculateSustainability(metrics, 10)).toBe(47)
+    })
   })
 
   describe('Integration Tests', () => {

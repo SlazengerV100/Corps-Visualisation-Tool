@@ -119,12 +119,20 @@ export function calculateGrowth(metrics: { congregationalWorship: YearPair }): n
  * Calculate overall sustainability score based on metrics and size
  * @param metrics - Sustainability metrics object
  * @param size - Congregational size
- * @returns Rounded sustainability score
+ * @returns Rounded sustainability score, without the percentage change when there was no tithing the year before
  */
 export function calculateSustainability(metrics: { tithing: TithingPair }, size: number): number {
     const tithingPerPersonCurrentYear = metrics.tithing.currentYear / size
     let sustainability = getSustainabilityBand(tithingPerPersonCurrentYear)
     sustainability += calculateNominalSustainability(metrics.tithing.prevYear, metrics.tithing.currentYear)
+    if (metrics.tithing.prevYear > 0) {
+        const percentage = calculatePercentageChange(metrics.tithing.prevYear, metrics.tithing.currentYear)
+        if (percentage >= benchmark) {
+            sustainability += maxPointsChange
+        } else {
+            sustainability = sustainability * (1 + percentage)
+        }
+    }
     return Math.round(sustainability)
 }
 
