@@ -247,7 +247,7 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
       <Typography variant="subtitle1" color="text.secondary" gutterBottom>
         {corps.area}
       </Typography>
-      <Typography variant="body1" paragraph>
+      <Typography variant="body1" sx={{ mb: 2 }}>
         {corps.address}, {corps.city}
       </Typography>
 
