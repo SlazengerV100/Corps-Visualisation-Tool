@@ -406,7 +406,8 @@ describe('Calculation Utilities', () => {
         tithing: {
           currentYear: 10000,
           prevYear: 8000
-        }
+        },
+        surplusDeficit: null
       }
 
       const result = calculateSustainability(metrics, 100)
@@ -420,7 +421,8 @@ describe('Calculation Utilities', () => {
         tithing: {
           currentYear: 20000,
           prevYear: 18000
-        }
+        },
+        surplusDeficit: null
       }
 
       const resultSmall = calculateSustainability(metrics, 50) // 400 per person
@@ -437,7 +439,8 @@ describe('Calculation Utilities', () => {
         tithing: {
           currentYear: 10000,
           prevYear: 8000
-        }
+        },
+        surplusDeficit: null
       }
 
       // This should result in division by zero (tithingPerPersonCurrentYear = 10000/0)
@@ -451,7 +454,8 @@ describe('Calculation Utilities', () => {
         tithing: {
           currentYear: -1000,
           prevYear: -2000
-        }
+        },
+        surplusDeficit: null
       }
 
       const result = calculateSustainability(metrics, 100)
@@ -464,7 +468,8 @@ describe('Calculation Utilities', () => {
         tithing: {
           currentYear: 0,
           prevYear: 0
-        }
+        },
+        surplusDeficit: null
       }
 
       const result = calculateSustainability(metrics, 100)
@@ -477,7 +482,8 @@ describe('Calculation Utilities', () => {
         tithing: {
           currentYear: 100000,
           prevYear: 80000
-        }
+        },
+        surplusDeficit: null
       }
 
       const result = calculateSustainability(metrics, 100)
@@ -490,7 +496,8 @@ describe('Calculation Utilities', () => {
         tithing: {
           currentYear: 10000,
           prevYear: 8000
-        }
+        },
+        surplusDeficit: null
       }
 
       const result1 = calculateSustainability(metrics, 100)
@@ -503,7 +510,8 @@ describe('Calculation Utilities', () => {
         tithing: {
           currentYear: 12000,
           prevYear: 10000
-        }
+        },
+        surplusDeficit: null
       }
 
       // Band 48.67 + nominal 0.75 + bonus 15
@@ -515,7 +523,8 @@ describe('Calculation Utilities', () => {
         tithing: {
           currentYear: 9000,
           prevYear: 12000
-        }
+        },
+        surplusDeficit: null
       }
 
       // (Band 40.67 + nominal -1.125) * 0.75
@@ -527,11 +536,101 @@ describe('Calculation Utilities', () => {
         tithing: {
           currentYear: 10000,
           prevYear: 0
-        }
+        },
+        surplusDeficit: null
       }
 
       // Band 43.33 + nominal 3.75
       expect(calculateSustainability(metrics, 10)).toBe(47)
+    })
+
+    test('should average tithing with a deficit per person', () => {
+      const metrics = {
+        tithing: {
+          currentYear: 10000,
+          prevYear: 10000
+        },
+        surplusDeficit: -5000
+      }
+
+      // (Tithing 43.33 + deficit of $500/person 37.5) / 2
+      expect(calculateSustainability(metrics, 10)).toBe(40)
+    })
+
+    test('should cap a surplus of $2,000/person or more at 100', () => {
+      const metrics = {
+        tithing: {
+          currentYear: 10000,
+          prevYear: 10000
+        },
+        surplusDeficit: 25000
+      }
+
+      // (Tithing 43.33 + surplus 100) / 2
+      expect(calculateSustainability(metrics, 10)).toBe(72)
+    })
+
+    test('should floor a deficit of $2,000/person or more at zero', () => {
+      const metrics = {
+        tithing: {
+          currentYear: 10000,
+          prevYear: 10000
+        },
+        surplusDeficit: -25000
+      }
+
+      // (Tithing 43.33 + deficit 0) / 2
+      expect(calculateSustainability(metrics, 10)).toBe(22)
+    })
+
+    test('should score a break-even year at the midpoint', () => {
+      const metrics = {
+        tithing: {
+          currentYear: 10000,
+          prevYear: 10000
+        },
+        surplusDeficit: 0
+      }
+
+      // (Tithing 43.33 + break-even 50) / 2
+      expect(calculateSustainability(metrics, 10)).toBe(47)
+    })
+
+    test('should score from tithing alone without a surplus/deficit figure', () => {
+      const metrics = {
+        tithing: {
+          currentYear: 10000,
+          prevYear: 10000
+        },
+        surplusDeficit: null
+      }
+
+      expect(calculateSustainability(metrics, 10)).toBe(43)
+    })
+
+    test('should score the surplus/deficit of a corps without tithing', () => {
+      const metrics = {
+        tithing: {
+          currentYear: 0,
+          prevYear: 0
+        },
+        surplusDeficit: -10000
+      }
+
+      // (Tithing 30 + deficit of $1,000/person 25) / 2
+      expect(calculateSustainability(metrics, 10)).toBe(28)
+    })
+
+    test('should score from tithing alone without worship to share the surplus/deficit across', () => {
+      const metrics = {
+        tithing: {
+          currentYear: 10000,
+          prevYear: 10000
+        },
+        surplusDeficit: -1000
+      }
+
+      expect(calculateSustainability(metrics, 0)).toBe(70)
     })
   })
 
@@ -549,7 +648,8 @@ describe('Calculation Utilities', () => {
         tithing: {
           currentYear: 15000,
           prevYear: 12000
-        }
+        },
+        surplusDeficit: null
       }
 
       const growthScore = calculateGrowth(growthMetrics)
@@ -574,7 +674,8 @@ describe('Calculation Utilities', () => {
         tithing: {
           currentYear: 1,
           prevYear: 1
-        }
+        },
+        surplusDeficit: null
       }
 
       const growthScore = calculateGrowth(smallMetrics)

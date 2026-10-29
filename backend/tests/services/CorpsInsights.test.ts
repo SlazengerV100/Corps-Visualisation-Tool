@@ -160,7 +160,7 @@ describe('CorpsInsights', () => {
                 },
                 scores: {
                     growth: calculateGrowth({ congregationalWorship: worship }),
-                    sustainability: calculateSustainability({ tithing }, 110),
+                    sustainability: calculateSustainability({ tithing, surplusDeficit: 0 }, 110),
                     size: 110
                 }
             })
