@@ -14,7 +14,6 @@ const maxTithingPerPerson = 2000
 const maxScore = 100
 const minProgramme = 5
 const maxProgramme = 50
-const maxDecisions = 25
 const growthWeights = { congregationalWorship: 0.5, firstTimeDecisions: 0.2, kidsChurch: 0.15, youthDiscipleship: 0.15 }
 
 /**
@@ -125,9 +124,10 @@ export function calculateGrowth(metrics: Record<MissionIndicator, YearPair>): nu
         return null
     }
 
+    const decisionsPerPerson = worship.currentYear > 0 ? (metrics.firstTimeDecisions.currentYear ?? 0) / worship.currentYear : 0
     const scores = [
         { weight: growthWeights.congregationalWorship, score: calculateIndicatorGrowth(worship.prevYear, worship.currentYear, minCongregation, maxCongregation) },
-        { weight: growthWeights.firstTimeDecisions, score: Math.min((metrics.firstTimeDecisions.currentYear ?? 0) / maxDecisions, 1) * maxScore }
+        { weight: growthWeights.firstTimeDecisions, score: Math.min(decisionsPerPerson / benchmark, 1) * maxScore }
     ]
     for (const indicator of ['kidsChurch', 'youthDiscipleship'] as const) {
         const { prevYear, currentYear } = metrics[indicator]

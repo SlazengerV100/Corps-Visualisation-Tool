@@ -455,22 +455,33 @@ describe('Calculation Utilities', () => {
       expect(calculateGrowth(metrics)).toBe(36)
     })
 
-    test('should score first-time decisions on the current year alone, capped at 25 decisions', () => {
+    test('should score first-time decisions per worshipper on the current year alone, capped at one per ten worshippers', () => {
       const metrics = {
         ...createMockMetrics(),
         congregationalWorship: { currentYear: 100, prevYear: 100 }
       }
 
-      expect(calculateGrowth({ ...metrics, firstTimeDecisions: { currentYear: 10, prevYear: 50 } })).toBe(45)
+      expect(calculateGrowth({ ...metrics, firstTimeDecisions: { currentYear: 5, prevYear: 50 } })).toBe(48)
       expect(calculateGrowth({ ...metrics, firstTimeDecisions: { currentYear: 100, prevYear: 0 } })).toBe(62)
       expect(calculateGrowth({ ...metrics, firstTimeDecisions: { currentYear: null, prevYear: 5 } })).toBe(34)
+      expect(calculateGrowth({ ...metrics, congregationalWorship: { currentYear: 0, prevYear: 100 }, firstTimeDecisions: { currentYear: 5, prevYear: 0 } })).toBe(0)
+    })
+
+    test('should weigh the same first-time decisions more at a smaller corps', () => {
+      const small = { ...createMockMetrics(), congregationalWorship: { currentYear: 10, prevYear: 10 } }
+      const large = { ...createMockMetrics(), congregationalWorship: { currentYear: 200, prevYear: 200 } }
+
+      expect(calculateGrowth(small)).toBe(21)
+      expect(calculateGrowth({ ...small, firstTimeDecisions: { currentYear: 5, prevYear: 0 } })).toBe(50)
+      expect(calculateGrowth(large)).toBe(50)
+      expect(calculateGrowth({ ...large, firstTimeDecisions: { currentYear: 5, prevYear: 0 } })).toBe(57)
     })
 
     test('should score 100 at the top of every component', () => {
       const metrics = {
         ...createMockMetrics(),
         congregationalWorship: { currentYear: 400, prevYear: 300 },
-        firstTimeDecisions: { currentYear: 25, prevYear: 0 }
+        firstTimeDecisions: { currentYear: 100, prevYear: 0 }
       }
 
       expect(calculateGrowth(metrics)).toBe(100)
