@@ -85,12 +85,12 @@ export default function AnimationPanel({year, setYear, years}: {
     }
 
     return (
-        <Box display="flex" alignItems="center" gap={2} width="100%">
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
             <IconButton onClick={togglePlay}>
                 {playing ? <PauseIcon /> : <PlayArrowIcon />}
             </IconButton>
 
-            <Box flexGrow={1}>
+            <Box sx={{ flexGrow: 1 }}>
                 <Slider
                     value={year}
                     min={MIN_YEAR}

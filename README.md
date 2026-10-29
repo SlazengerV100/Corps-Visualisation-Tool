@@ -26,7 +26,7 @@ To run the Corps Analytics tool, you need the following pre-requisites installed
 
 | Pre-requisite | Version |
 | ------ | ------ |
-| Node.js | ^24.0.0 |
+| Node.js | ^26.0.0 |
 | Node Package Manager (npm) | ^11.0.0 |
 
 To run the tool with [Docker](#docker), you need:
