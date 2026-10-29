@@ -406,23 +406,23 @@ describe('Calculation Utilities', () => {
       expect(() => calculateGrowth(metrics)).toThrow('Cannot calculate growth score when previous year is zero')
     })
 
-    test('should score worship alone when kids church and youth are missing in both years', () => {
+    test('should score worship and decisions alone when kids church and youth are missing in both years', () => {
       const metrics = {
         ...createMockMetrics(),
         congregationalWorship: { currentYear: 100, prevYear: 100 }
       }
 
-      expect(calculateGrowth(metrics)).toBe(47)
+      expect(calculateGrowth(metrics)).toBe(34)
     })
 
     test('should average kids church into the score at its weight', () => {
       const metrics = {
         ...createMockMetrics(),
         congregationalWorship: { currentYear: 100, prevYear: 100 },
-        kidsChurch: { currentYear: 10, prevYear: 10 }
+        kidsChurch: { currentYear: 30, prevYear: 30 }
       }
 
-      expect(calculateGrowth(metrics)).toBe(43)
+      expect(calculateGrowth(metrics)).toBe(37)
     })
 
     test('should cap the kids church percentage change bonus', () => {
@@ -432,7 +432,7 @@ describe('Calculation Utilities', () => {
         kidsChurch: { currentYear: 20, prevYear: 10 }
       }
 
-      expect(calculateGrowth(metrics)).toBe(56)
+      expect(calculateGrowth(metrics)).toBe(41)
     })
 
     test('should count kids church missing this year as zero when recorded last year', () => {
@@ -442,7 +442,7 @@ describe('Calculation Utilities', () => {
         kidsChurch: { currentYear: null, prevYear: 10 }
       }
 
-      expect(calculateGrowth(metrics)).toBe(31)
+      expect(calculateGrowth(metrics)).toBe(28)
     })
 
     test('should skip the youth percentage change when the previous year is zero', () => {
@@ -452,20 +452,21 @@ describe('Calculation Utilities', () => {
         youthDiscipleship: { currentYear: 10, prevYear: null }
       }
 
-      expect(calculateGrowth(metrics)).toBe(48)
+      expect(calculateGrowth(metrics)).toBe(36)
     })
 
-    test('should add a first-time decisions bonus capped at 15 points', () => {
+    test('should score first-time decisions on the current year alone, capped at 25 decisions', () => {
       const metrics = {
         ...createMockMetrics(),
         congregationalWorship: { currentYear: 100, prevYear: 100 }
       }
 
-      expect(calculateGrowth({ ...metrics, firstTimeDecisions: { currentYear: 10, prevYear: 50 } })).toBe(53)
+      expect(calculateGrowth({ ...metrics, firstTimeDecisions: { currentYear: 10, prevYear: 50 } })).toBe(45)
       expect(calculateGrowth({ ...metrics, firstTimeDecisions: { currentYear: 100, prevYear: 0 } })).toBe(62)
+      expect(calculateGrowth({ ...metrics, firstTimeDecisions: { currentYear: null, prevYear: 5 } })).toBe(34)
     })
 
-    test('should cap the growth score at 100', () => {
+    test('should score 100 at the top of every component', () => {
       const metrics = {
         ...createMockMetrics(),
         congregationalWorship: { currentYear: 400, prevYear: 300 },

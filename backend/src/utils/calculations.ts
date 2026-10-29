@@ -15,7 +15,7 @@ const maxScore = 100
 const minProgramme = 5
 const maxProgramme = 50
 const maxDecisions = 25
-const growthWeights = { congregationalWorship: 0.5, kidsChurch: 0.25, youthDiscipleship: 0.25 }
+const growthWeights = { congregationalWorship: 0.5, firstTimeDecisions: 0.2, kidsChurch: 0.15, youthDiscipleship: 0.15 }
 
 /**
  * Calculate growth band based on attendance, scaled between minSize and maxSize
@@ -114,7 +114,7 @@ function calculateIndicatorGrowth(prevYear: number, currentYear: number, minSize
 /**
  * Calculate overall growth score based on metrics
  * @param metrics - Growth metrics object
- * @returns Rounded weighted average of the worship, kids church and youth scores plus a first-time decisions bonus, capped at maxScore, or null without worship in both years
+ * @returns Rounded weighted average of the worship, first-time decisions, kids church and youth scores, or null without worship in both years
  */
 export function calculateGrowth(metrics: Record<MissionIndicator, YearPair>): number | null {
     const worship = metrics.congregationalWorship
@@ -125,7 +125,10 @@ export function calculateGrowth(metrics: Record<MissionIndicator, YearPair>): nu
         return null
     }
 
-    const scores = [{ weight: growthWeights.congregationalWorship, score: calculateIndicatorGrowth(worship.prevYear, worship.currentYear, minCongregation, maxCongregation) }]
+    const scores = [
+        { weight: growthWeights.congregationalWorship, score: calculateIndicatorGrowth(worship.prevYear, worship.currentYear, minCongregation, maxCongregation) },
+        { weight: growthWeights.firstTimeDecisions, score: Math.min((metrics.firstTimeDecisions.currentYear ?? 0) / maxDecisions, 1) * maxScore }
+    ]
     for (const indicator of ['kidsChurch', 'youthDiscipleship'] as const) {
         const { prevYear, currentYear } = metrics[indicator]
         if (prevYear !== null || currentYear !== null) {
@@ -133,10 +136,7 @@ export function calculateGrowth(metrics: Record<MissionIndicator, YearPair>): nu
         }
     }
     const totalWeight = scores.reduce((sum, s) => sum + s.weight, 0)
-    const growth = scores.reduce((sum, s) => sum + s.weight * s.score, 0) / totalWeight
-
-    const decisionsBonus = Math.min((metrics.firstTimeDecisions.currentYear ?? 0) / maxDecisions, 1) * maxPointsChange
-    return Math.round(Math.min(growth + decisionsBonus, maxScore))
+    return Math.round(scores.reduce((sum, s) => sum + s.weight * s.score, 0) / totalWeight)
 }
 
 /**
