@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim AS frontend
+FROM node:26-bookworm-slim AS frontend
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ COPY tsconfig.base.json ./
 COPY frontend ./frontend
 RUN npm run build --workspace frontend
 
-FROM node:24-bookworm-slim AS backend
+FROM node:26-bookworm-slim AS backend
 
 WORKDIR /app
 
@@ -21,7 +21,7 @@ RUN npm ci --workspace backend --omit=dev
 
 COPY backend/src ./backend/src
 
-FROM node:24-bookworm-slim
+FROM node:26-bookworm-slim
 
 RUN addgroup --system --gid 65532 app && \
     adduser --system --uid 65532 --ingroup app app
