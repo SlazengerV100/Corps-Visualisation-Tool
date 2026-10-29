@@ -157,7 +157,7 @@ export class CorpsInsights {
                     if (growth !== null) {
                         snapshot.scores = {
                             growth,
-                            sustainability: calculateSustainability({ tithing }, worship.currentYear),
+                            sustainability: calculateSustainability({ tithing, surplusDeficit: snapshot.metrics.surplusDeficit }, worship.currentYear),
                             size: worship.currentYear
                         }
                     }

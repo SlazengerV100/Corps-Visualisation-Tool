@@ -11,6 +11,7 @@ const benchmark = 0.1
 const maxPointsChange = 15
 const minTithingPerPerson = 500
 const maxTithingPerPerson = 2000
+const maxScore = 100
 
 /**
  * Calculate growth band based on congregational worship size
@@ -119,13 +120,27 @@ export function calculateGrowth(metrics: { congregationalWorship: YearPair }): n
  * Calculate overall sustainability score based on metrics and size
  * @param metrics - Sustainability metrics object
  * @param size - Congregational size
- * @returns Rounded sustainability score
+ * @returns Rounded average of the tithing and surplus/deficit scores, from tithing alone without a surplus/deficit figure or any worship to share it across
  */
-export function calculateSustainability(metrics: { tithing: TithingPair }, size: number): number {
+export function calculateSustainability(metrics: { tithing: TithingPair, surplusDeficit: number | null }, size: number): number {
     const tithingPerPersonCurrentYear = metrics.tithing.currentYear / size
-    let sustainability = getSustainabilityBand(tithingPerPersonCurrentYear)
-    sustainability += calculateNominalSustainability(metrics.tithing.prevYear, metrics.tithing.currentYear)
-    return Math.round(sustainability)
+    let tithingScore = getSustainabilityBand(tithingPerPersonCurrentYear)
+    tithingScore += calculateNominalSustainability(metrics.tithing.prevYear, metrics.tithing.currentYear)
+    if (metrics.tithing.prevYear > 0) {
+        const percentage = calculatePercentageChange(metrics.tithing.prevYear, metrics.tithing.currentYear)
+        if (percentage >= benchmark) {
+            tithingScore += maxPointsChange
+        } else {
+            tithingScore = tithingScore * (1 + percentage)
+        }
+    }
+
+    if (metrics.surplusDeficit === null || size <= 0) {
+        return Math.round(tithingScore)
+    }
+    const surplusDeficitPerPerson = Math.min(Math.max(metrics.surplusDeficit / size, -maxTithingPerPerson), maxTithingPerPerson)
+    const surplusDeficitScore = maxScore * (surplusDeficitPerPerson + maxTithingPerPerson) / (2 * maxTithingPerPerson)
+    return Math.round((tithingScore + surplusDeficitScore) / 2)
 }
 
 /**
