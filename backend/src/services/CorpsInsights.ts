@@ -153,7 +153,7 @@ export class CorpsInsights {
                 }
 
                 if (tithing && financeYears.has(year - 1) && worship.currentYear !== null && worship.prevYear !== null && worship.prevYear !== 0) {
-                    const growth = calculateGrowth({ congregationalWorship: worship })
+                    const growth = calculateGrowth(snapshot.metrics)
                     if (growth !== null) {
                         snapshot.scores = {
                             growth,

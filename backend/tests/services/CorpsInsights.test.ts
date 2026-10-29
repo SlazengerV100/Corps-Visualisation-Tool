@@ -146,20 +146,23 @@ describe('CorpsInsights', () => {
         test('should combine mission, finance and directory figures with scores for one year', () => {
             const worship = { currentYear: 110, prevYear: 100 }
             const tithing = { currentYear: 60000, prevYear: 50000 }
+            const missionIndicators = {
+                congregationalWorship: worship,
+                firstTimeDecisions: { currentYear: 0, prevYear: 3 },
+                kidsChurch: { currentYear: null, prevYear: 10 },
+                youthDiscipleship: { currentYear: 6, prevYear: 5 }
+            }
             expect(insights.snapshots({ year: 2024 }).find(s => s.id === alpha.id)).toEqual({
                 ...alpha,
                 year: 2024,
                 metrics: {
-                    congregationalWorship: worship,
-                    firstTimeDecisions: { currentYear: 0, prevYear: 3 },
-                    kidsChurch: { currentYear: null, prevYear: 10 },
-                    youthDiscipleship: { currentYear: 6, prevYear: 5 },
+                    ...missionIndicators,
                     tithing,
                     surplusDeficit: 0,
                     population: 1200
                 },
                 scores: {
-                    growth: calculateGrowth({ congregationalWorship: worship }),
+                    growth: calculateGrowth(missionIndicators),
                     sustainability: calculateSustainability({ tithing, surplusDeficit: 0 }, 110),
                     size: 110
                 }

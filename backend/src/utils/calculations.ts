@@ -12,17 +12,22 @@ const maxPointsChange = 15
 const minTithingPerPerson = 500
 const maxTithingPerPerson = 2000
 const maxScore = 100
+const minProgramme = 5
+const maxProgramme = 50
+const growthWeights = { congregationalWorship: 0.5, firstTimeDecisions: 0.2, kidsChurch: 0.15, youthDiscipleship: 0.15 }
 
 /**
- * Calculate growth band based on congregational worship size
- * @param congregationalWorship - Current year congregational worship attendance
+ * Calculate growth band based on attendance, scaled between minSize and maxSize
+ * @param attendance - Current year attendance, congregational worship by default
+ * @param minSize - Attendance at or below which the band is minBand
+ * @param maxSize - Attendance above which the band is maxBand
  * @returns Growth band value between minBand and maxBand
  */
-export function getGrowthBand(congregationalWorship: number): number {
+export function getGrowthBand(attendance: number, minSize = minCongregation, maxSize = maxCongregation): number {
     const difference = maxBand - minBand
-    if (congregationalWorship <= minCongregation) return minBand
-    if (congregationalWorship > maxCongregation) return maxBand
-    const value = (congregationalWorship - minCongregation) / (maxCongregation - minCongregation)
+    if (attendance <= minSize) return minBand
+    if (attendance > maxSize) return maxBand
+    const value = (attendance - minSize) / (maxSize - minSize)
     return minBand + difference * value
 }
 
@@ -43,12 +48,12 @@ export function getSustainabilityBand(tithingPerPerson: number): number {
  * Calculate nominal change for growth metrics
  * @param prevYear - Previous year value
  * @param currentYear - Current year value
+ * @param maxSize - Attendance at the top of the band, whose benchmark share earns the full change
  * @returns Nominal change value
  */
-export function calculateNominalChange(prevYear: number, currentYear: number): number {
+export function calculateNominalChange(prevYear: number, currentYear: number, maxSize = maxCongregation): number {
     const nominalChange = currentYear - prevYear
-    const maxSize = maxCongregation * benchmark
-    const value = nominalChange / maxSize * maxPointsChange
+    const value = nominalChange / (maxSize * benchmark) * maxPointsChange
     if (value > maxPointsChange) return maxPointsChange
     if (value < -maxPointsChange) return -maxPointsChange
     return value
@@ -88,32 +93,50 @@ export function calculatePercentageChange(prevYear: number, currentYear: number)
 }
 
 /**
+ * Calculate one indicator's growth score from its band, nominal change and percentage change
+ * @returns Score with no percentage change when the previous year is zero
+ */
+function calculateIndicatorGrowth(prevYear: number, currentYear: number, minSize: number, maxSize: number): number {
+    let score = getGrowthBand(currentYear, minSize, maxSize)
+    score += calculateNominalChange(prevYear, currentYear, maxSize)
+    if (prevYear > 0) {
+        const percentage = calculatePercentageChange(prevYear, currentYear)
+        if (percentage >= benchmark) {
+            score += maxPointsChange
+        } else {
+            score = score * (1 + percentage)
+        }
+    }
+    return score
+}
+
+/**
  * Calculate overall growth score based on metrics
  * @param metrics - Growth metrics object
- * @returns Rounded growth score or null if previous year is less than or equal to zero
+ * @returns Rounded weighted average of the worship, first-time decisions, kids church and youth scores, or null without worship in both years
  */
-export function calculateGrowth(metrics: { congregationalWorship: YearPair }): number | null {
-    if (metrics.congregationalWorship.prevYear === 0) {
+export function calculateGrowth(metrics: Record<MissionIndicator, YearPair>): number | null {
+    const worship = metrics.congregationalWorship
+    if (worship.prevYear === 0) {
         throw new Error('Cannot calculate growth score when previous year is zero')
     }
-    if (metrics.congregationalWorship.prevYear === null || metrics.congregationalWorship.currentYear === null) {
+    if (worship.prevYear === null || worship.currentYear === null || worship.prevYear < 0) {
         return null
     }
 
-    let growth = getGrowthBand(metrics.congregationalWorship.currentYear)
-    growth += calculateNominalChange(metrics.congregationalWorship.prevYear, metrics.congregationalWorship.currentYear)
-
-    try {
-        const percentage = calculatePercentageChange(metrics.congregationalWorship.prevYear, metrics.congregationalWorship.currentYear)
-        if (percentage >= benchmark) {
-            growth += maxPointsChange
-        } else {
-            growth = growth * (1 + percentage)
+    const decisionsPerPerson = worship.currentYear > 0 ? (metrics.firstTimeDecisions.currentYear ?? 0) / worship.currentYear : 0
+    const scores = [
+        { weight: growthWeights.congregationalWorship, score: calculateIndicatorGrowth(worship.prevYear, worship.currentYear, minCongregation, maxCongregation) },
+        { weight: growthWeights.firstTimeDecisions, score: Math.min(decisionsPerPerson / benchmark, 1) * maxScore }
+    ]
+    for (const indicator of ['kidsChurch', 'youthDiscipleship'] as const) {
+        const { prevYear, currentYear } = metrics[indicator]
+        if (prevYear !== null || currentYear !== null) {
+            scores.push({ weight: growthWeights[indicator], score: calculateIndicatorGrowth(prevYear ?? 0, currentYear ?? 0, minProgramme, maxProgramme) })
         }
-        return Math.round(growth)
-    } catch {
-        return null
     }
+    const totalWeight = scores.reduce((sum, s) => sum + s.weight, 0)
+    return Math.round(scores.reduce((sum, s) => sum + s.weight * s.score, 0) / totalWeight)
 }
 
 /**

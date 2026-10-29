@@ -309,6 +309,7 @@ describe('Calculation Utilities', () => {
   describe('calculateGrowth', () => {
     test('should calculate growth score for positive growth', () => {
       const metrics = {
+        ...createMockMetrics(),
         congregationalWorship: {
           currentYear: 120,
           prevYear: 100
@@ -323,6 +324,7 @@ describe('Calculation Utilities', () => {
 
     test('should calculate growth score for negative growth', () => {
       const metrics = {
+        ...createMockMetrics(),
         congregationalWorship: {
           currentYear: 80,
           prevYear: 100
@@ -336,6 +338,7 @@ describe('Calculation Utilities', () => {
 
     test('should calculate growth score for no change', () => {
       const metrics = {
+        ...createMockMetrics(),
         congregationalWorship: {
           currentYear: 100,
           prevYear: 100
@@ -350,6 +353,7 @@ describe('Calculation Utilities', () => {
     test('should handle benchmark threshold correctly', () => {
       // Test case where percentage change equals benchmark (0.1)
       const metrics = {
+        ...createMockMetrics(),
         congregationalWorship: {
           currentYear: 110,
           prevYear: 100
@@ -363,6 +367,7 @@ describe('Calculation Utilities', () => {
 
     test('should handle large congregations', () => {
       const metrics = {
+        ...createMockMetrics(),
         congregationalWorship: {
           currentYear: 250,
           prevYear: 200
@@ -376,6 +381,7 @@ describe('Calculation Utilities', () => {
 
     test('should handle small congregations', () => {
       const metrics = {
+        ...createMockMetrics(),
         congregationalWorship: {
           currentYear: 30,
           prevYear: 25
@@ -389,6 +395,7 @@ describe('Calculation Utilities', () => {
 
     test('should handle edge case with zero previous year', () => {
       const metrics = {
+        ...createMockMetrics(),
         congregationalWorship: {
           currentYear: 100,
           prevYear: 0
@@ -397,6 +404,87 @@ describe('Calculation Utilities', () => {
 
       // This should throw an error due to division by zero in calculatePercentageChange
       expect(() => calculateGrowth(metrics)).toThrow('Cannot calculate growth score when previous year is zero')
+    })
+
+    test('should score worship and decisions alone when kids church and youth are missing in both years', () => {
+      const metrics = {
+        ...createMockMetrics(),
+        congregationalWorship: { currentYear: 100, prevYear: 100 }
+      }
+
+      expect(calculateGrowth(metrics)).toBe(34)
+    })
+
+    test('should average kids church into the score at its weight', () => {
+      const metrics = {
+        ...createMockMetrics(),
+        congregationalWorship: { currentYear: 100, prevYear: 100 },
+        kidsChurch: { currentYear: 30, prevYear: 30 }
+      }
+
+      expect(calculateGrowth(metrics)).toBe(37)
+    })
+
+    test('should cap the kids church percentage change bonus', () => {
+      const metrics = {
+        ...createMockMetrics(),
+        congregationalWorship: { currentYear: 100, prevYear: 100 },
+        kidsChurch: { currentYear: 20, prevYear: 10 }
+      }
+
+      expect(calculateGrowth(metrics)).toBe(41)
+    })
+
+    test('should count kids church missing this year as zero when recorded last year', () => {
+      const metrics = {
+        ...createMockMetrics(),
+        congregationalWorship: { currentYear: 100, prevYear: 100 },
+        kidsChurch: { currentYear: null, prevYear: 10 }
+      }
+
+      expect(calculateGrowth(metrics)).toBe(28)
+    })
+
+    test('should skip the youth percentage change when the previous year is zero', () => {
+      const metrics = {
+        ...createMockMetrics(),
+        congregationalWorship: { currentYear: 100, prevYear: 100 },
+        youthDiscipleship: { currentYear: 10, prevYear: null }
+      }
+
+      expect(calculateGrowth(metrics)).toBe(36)
+    })
+
+    test('should score first-time decisions per worshipper on the current year alone, capped at one per ten worshippers', () => {
+      const metrics = {
+        ...createMockMetrics(),
+        congregationalWorship: { currentYear: 100, prevYear: 100 }
+      }
+
+      expect(calculateGrowth({ ...metrics, firstTimeDecisions: { currentYear: 5, prevYear: 50 } })).toBe(48)
+      expect(calculateGrowth({ ...metrics, firstTimeDecisions: { currentYear: 100, prevYear: 0 } })).toBe(62)
+      expect(calculateGrowth({ ...metrics, firstTimeDecisions: { currentYear: null, prevYear: 5 } })).toBe(34)
+      expect(calculateGrowth({ ...metrics, congregationalWorship: { currentYear: 0, prevYear: 100 }, firstTimeDecisions: { currentYear: 5, prevYear: 0 } })).toBe(0)
+    })
+
+    test('should weigh the same first-time decisions more at a smaller corps', () => {
+      const small = { ...createMockMetrics(), congregationalWorship: { currentYear: 10, prevYear: 10 } }
+      const large = { ...createMockMetrics(), congregationalWorship: { currentYear: 200, prevYear: 200 } }
+
+      expect(calculateGrowth(small)).toBe(21)
+      expect(calculateGrowth({ ...small, firstTimeDecisions: { currentYear: 5, prevYear: 0 } })).toBe(50)
+      expect(calculateGrowth(large)).toBe(50)
+      expect(calculateGrowth({ ...large, firstTimeDecisions: { currentYear: 5, prevYear: 0 } })).toBe(57)
+    })
+
+    test('should score 100 at the top of every component', () => {
+      const metrics = {
+        ...createMockMetrics(),
+        congregationalWorship: { currentYear: 400, prevYear: 300 },
+        firstTimeDecisions: { currentYear: 100, prevYear: 0 }
+      }
+
+      expect(calculateGrowth(metrics)).toBe(100)
     })
   })
 
@@ -638,6 +726,7 @@ describe('Calculation Utilities', () => {
     test('should work together for realistic scenarios', () => {
       // Test a realistic growth scenario
       const growthMetrics = {
+        ...createMockMetrics(),
         congregationalWorship: {
           currentYear: 150,
           prevYear: 120
@@ -664,6 +753,7 @@ describe('Calculation Utilities', () => {
     test('should handle edge case scenarios', () => {
       // Test with very small values
       const smallMetrics = {
+        ...createMockMetrics(),
         congregationalWorship: {
           currentYear: 1,
           prevYear: 1
