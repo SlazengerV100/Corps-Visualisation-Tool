@@ -12,8 +12,10 @@ const maxPointsChange = 15
 const minTithingPerPerson = 500
 const maxTithingPerPerson = 2000
 const maxScore = 100
-const minProgramme = 5
-const maxProgramme = 50
+// Kids church and youth discipleship are measured against 20% of the congregation
+const programmeShare = 0.2
+const minProgramme = minCongregation * programmeShare
+const maxProgramme = maxCongregation * programmeShare
 const growthWeights = { congregationalWorship: 0.5, firstTimeDecisions: 0.2, kidsChurch: 0.15, youthDiscipleship: 0.15 }
 
 /**
