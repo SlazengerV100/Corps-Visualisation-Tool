@@ -73,11 +73,12 @@ describe('CorpsInsights', () => {
             expect(metrics[0]).toEqual({
                 name: 'congregationalWorship',
                 label: 'Congregational Worship',
+                unit: 'people',
                 granularities: ['year', 'month'],
                 years: [2023, 2024]
             })
             expect(metrics[1]).toMatchObject({ granularities: ['year'], years: [2022, 2023, 2024] })
-            expect(metrics[5]).toMatchObject({ granularities: ['year'], years: [2024] })
+            expect(metrics[5]).toMatchObject({ unit: 'dollars', granularities: ['year'], years: [2024] })
         })
 
         test('should list the years with snapshots and the years with scores', () => {
