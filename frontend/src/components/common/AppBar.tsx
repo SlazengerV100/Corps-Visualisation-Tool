@@ -66,15 +66,6 @@ export default function ButtonAppBar() {
                         >
                             Map
                         </Button>
-                        <Button
-                            component={Link}
-                            to="/definitions"
-                            color="inherit"
-                            variant="text"
-                            sx={navButtonSx(isActive('/definitions'))}
-                        >
-                            Definitions
-                        </Button>
                     </Box>
                 </Toolbar>
             </AppBar>

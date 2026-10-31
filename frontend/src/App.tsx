@@ -9,7 +9,6 @@ import Toolbar from '@mui/material/Toolbar'
 import AppBar from './components/common/AppBar.tsx'
 import OverviewPage from './pages/OverviewPage.tsx'
 import MapPage from './pages/MapPage.tsx'
-import DefinitionsPage from './pages/DefinitionsPage.tsx'
 
 const theme = createTheme({
     typography: {
@@ -48,7 +47,6 @@ function App() {
                         <Routes>
                             <Route path="/" element={<OverviewPage />} />
                             <Route path="/map" element={<MapPage />} />
-                            <Route path="/definitions" element={<DefinitionsPage />} />
                         </Routes>
                     </Box>
                 </Router>
