@@ -31,10 +31,14 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }: {
     const isMonthlyData = data.some(d => d.month !== undefined);
     const monthDate = (d: ChartPoint) => new Date(d.year, (d.month ?? 1) - 1);
 
+    // Only a surplus/deficit can fall below zero; a projection of anything else stops at zero
+    const canBeNegative = selectedMetric === 'surplusDeficit'
+    const floored = (d: ChartPoint) => canBeNegative ? d.metric : Math.max(d.metric, 0)
+
     const minMetric = d3.min(data, d => d.metric) ?? 0
     const maxMetric = d3.max(data, d => d.metric) ?? 0
     const y = d3.scaleLinear()
-      .domain(selectedMetric === 'surplusDeficit' ? [minMetric, maxMetric] : [0, maxMetric])
+      .domain(canBeNegative ? [minMetric, maxMetric] : [0, maxMetric])
       .nice()
       .range([innerHeight, 0]);
 
@@ -174,7 +178,7 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }: {
             return x(originalIndex);
           }
         })
-        .y(d => Math.min(y(d.metric), y(0))) // Clip at y=0 (x-axis)
+        .y(d => y(floored(d)))
         .curve(d3.curveMonotoneX);
 
       // Draw future line (dotted) starting from the last historical point
@@ -201,7 +205,7 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }: {
           return x(i);
         }
       })
-      .attr('cy', d => Math.min(y(d.metric), y(0)))
+      .attr('cy', d => y(floored(d)))
       .attr('r', 6)
       .attr('fill', '#8884d8')
       .attr('stroke', 'white')
@@ -240,7 +244,7 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }: {
         .attr('fill', '#8884d8');
     })
     .on('mouseover', (event: MouseEvent, d) => {
-      const metricTextValue = d.metric < 0 ? 0 : selectedMetric === 'firstTimeDecisions' ? d.metric : d.metric.toFixed(2)
+      const metricTextValue = selectedMetric === 'firstTimeDecisions' ? floored(d) : floored(d).toFixed(2)
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const tooltipTextContent = isMonthlyData
