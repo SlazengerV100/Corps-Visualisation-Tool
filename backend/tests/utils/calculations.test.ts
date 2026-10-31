@@ -422,7 +422,7 @@ describe('Calculation Utilities', () => {
         kidsChurch: { currentYear: 30, prevYear: 30 }
       }
 
-      expect(calculateGrowth(metrics)).toBe(37)
+      expect(calculateGrowth(metrics)).toBe(38)
     })
 
     test('should cap the kids church percentage change bonus', () => {
@@ -452,7 +452,7 @@ describe('Calculation Utilities', () => {
         youthDiscipleship: { currentYear: 10, prevYear: null }
       }
 
-      expect(calculateGrowth(metrics)).toBe(36)
+      expect(calculateGrowth(metrics)).toBe(37)
     })
 
     test('should score first-time decisions per worshipper on the current year alone, capped at one per ten worshippers', () => {
@@ -485,6 +485,20 @@ describe('Calculation Utilities', () => {
       }
 
       expect(calculateGrowth(metrics)).toBe(100)
+    })
+
+    test('should size kids church and youth bands and change caps at 20% of a small and large congregation', () => {
+      const metrics = {
+        ...createMockMetrics(),
+        congregationalWorship: { currentYear: 200, prevYear: 200 },
+        // 40 is 20% of a large corps of 200, and a change of 4 is 10% of that, so kids church scores 100
+        kidsChurch: { currentYear: 40, prevYear: 36 },
+        // 5 is 20% of a small corps of 25, so youth scores the bottom of the band, 30
+        youthDiscipleship: { currentYear: 5, prevYear: 5 }
+      }
+
+      // Worship 70 * 0.5 + kids church 100 * 0.15 + youth 30 * 0.15
+      expect(calculateGrowth(metrics)).toBe(55)
     })
   })
 
