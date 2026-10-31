@@ -44,8 +44,6 @@ export default function DefinitionsPage() {
             <p>The sustainability score is the average of the tithing score and the surplus/deficit score. A corps with no surplus/deficit figure for the year, or no congregational worship, is scored on tithing alone.</p>
             <h2>Size</h2>
             <p>Size represents the congregational worship metric for each corps in the year selected. This determines the size of the bubbles on the overview page</p>
-            <h2>Population</h2>
-            <p>Population represents the number of people living in the surrounding area of the corps using the latest data from the NZ Census.</p>
         </Box>
     )
 }

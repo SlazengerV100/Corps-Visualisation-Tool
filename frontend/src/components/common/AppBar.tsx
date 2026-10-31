@@ -68,15 +68,6 @@ export default function ButtonAppBar() {
                         </Button>
                         <Button
                             component={Link}
-                            to="/population"
-                            color="inherit"
-                            variant="text"
-                            sx={navButtonSx(isActive('/population'))}
-                        >
-                            Population
-                        </Button>
-                        <Button
-                            component={Link}
                             to="/definitions"
                             color="inherit"
                             variant="text"
