@@ -12,14 +12,22 @@ import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
 import Typography from '@mui/material/Typography'
 import type { Corps } from '../map/CorpsDetails.tsx'
-import type { BubblePoint } from './BubbleChart.tsx'
+import HoverTooltip from '../common/HoverTooltip.tsx'
+import { gapColours, type FigureGap } from '../common/figureGaps.ts'
 
-export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps, onCorpsDataLoaded, year, yearData }: {
+export interface CorpsStatus {
+    gap?: FigureGap
+    why?: string
+}
+
+const noFigures: CorpsStatus = { gap: 'thisYear', why: 'No figures recorded this year, so it has no scores.' }
+
+export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps, onCorpsDataLoaded, year, statuses }: {
     selectedCorps: string[]
     setSelectedCorps: React.Dispatch<React.SetStateAction<string[]>>
     onCorpsDataLoaded: (corps: Corps[]) => void
     year: number | null
-    yearData: BubblePoint[] | null
+    statuses: Record<string, CorpsStatus> | null
 }) {
     const [corpsData, setCorpsData] = useState<Corps[]>([])
     const [areas, setAreas] = useState<Record<string, Corps[]>>({})
@@ -139,32 +147,21 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
         return closingDate < cutoffDate
     }
 
-    // Check if a corps has data for the current year's bubble chart
-    const hasBubbleData = (centreId: string) => {
-        if (!yearData || !Array.isArray(yearData)) {
-            return false
-        }
-        const bubbleData = yearData.find(data => data.id === centreId)
-        if (bubbleData) {
-            if (bubbleData.growth != null && bubbleData.sustainability != null) {
-                return true
-            }
-            return false
-        }
-        return false
-    }
+    // Why a corps has no scores for the year, if it has none, once the year's statuses have loaded
+    const statusOf = (centreId: string) => statuses === null ? null : statuses[centreId] ?? noFigures
 
     // Get the styling for a corps based on its status
     const getCorpsStyling = (centreId: string) => {
+        const gap = statusOf(centreId)?.gap
         if (isClosed(centreId)) {
             return {
                 textDecoration: 'line-through',
                 color: 'text.secondary'
             }
-        } else if (!hasBubbleData(centreId)) {
+        } else if (gap) {
             return {
                 textDecoration: 'none',
-                color: 'warning.main' // Yellow color
+                color: gapColours[gap]
             }
         } else {
             return {
@@ -172,6 +169,24 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
                 color: 'inherit'
             }
         }
+    }
+
+    // The corps' name and address, with why it is struck through or coloured; its area is the dropdown it sits in
+    const corpsTooltip = (corps: Corps) => {
+        const status = statusOf(corps.id)
+        let summary: React.ReactNode = null
+        if (isClosed(corps.id) && corps.closingDate) {
+            summary = `Closed on ${new Date(corps.closingDate).toLocaleDateString('en-NZ')}.`
+        } else if (status?.gap) {
+            summary = <Box component="span" sx={{ color: gapColours[status.gap] }}>{status.why}</Box>
+        }
+        return (
+            <>
+                <strong>{corps.name}</strong>
+                <br />{corps.address}, {corps.city}
+                {summary && <><br />{summary}</>}
+            </>
+        )
     }
 
     if (loading) {
@@ -247,17 +262,19 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
                                                     />
                                                 }
                                                 label={
-                                                    <Typography
-                                                        sx={{
-                                                            overflow: 'hidden',
-                                                            textOverflow: 'ellipsis',
-                                                            whiteSpace: 'nowrap',
-                                                            maxWidth: '100%',
-                                                            ...getCorpsStyling(corps.id)
-                                                        }}
-                                                    >
-                                                        {corps.name}
-                                                    </Typography>
+                                                    <HoverTooltip title={corpsTooltip(corps)}>
+                                                        <Typography
+                                                            sx={{
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'nowrap',
+                                                                maxWidth: '100%',
+                                                                ...getCorpsStyling(corps.id)
+                                                            }}
+                                                        >
+                                                            {corps.name}
+                                                        </Typography>
+                                                    </HoverTooltip>
                                                 }
                                                 sx={{ 
                                                     width: '100%',

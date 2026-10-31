@@ -1,7 +1,7 @@
 // Calculation utility functions for growth and sustainability metrics
 
 import type { MissionIndicator } from '../models/MissionIndicator.ts'
-import type { TithingPair, YearPair } from '../models/Snapshot.ts'
+import type { ChangeBreakdown, GrowthBreakdown, SustainabilityBreakdown, TithingPair, YearPair } from '../models/Snapshot.ts'
 
 const maxBand = 70
 const minBand = 30
@@ -95,29 +95,35 @@ export function calculatePercentageChange(prevYear: number, currentYear: number)
 }
 
 /**
- * Calculate one indicator's growth score from its band, nominal change and percentage change
- * @returns Score with no percentage change when the previous year is zero
+ * Calculate the points the percentage change adds to a score of band plus nominal change
+ * @returns The full bonus at or above the benchmark, the score scaled by the change below it, and 0 when the previous year is zero
  */
-function calculateIndicatorGrowth(prevYear: number, currentYear: number, minSize: number, maxSize: number): number {
-    let score = getGrowthBand(currentYear, minSize, maxSize)
-    score += calculateNominalChange(prevYear, currentYear, maxSize)
-    if (prevYear > 0) {
-        const percentage = calculatePercentageChange(prevYear, currentYear)
-        if (percentage >= benchmark) {
-            score += maxPointsChange
-        } else {
-            score = score * (1 + percentage)
-        }
+function calculatePercentagePoints(prevYear: number, currentYear: number, score: number): number {
+    if (prevYear <= 0) {
+        return 0
     }
-    return score
+    const percentage = calculatePercentageChange(prevYear, currentYear)
+    return percentage >= benchmark ? maxPointsChange : score * percentage
 }
+
+/**
+ * Calculate one indicator's growth band, nominal change and percentage change points
+ * @returns Parts that sum to the indicator's score, with no percentage change when the previous year is zero
+ */
+function calculateIndicatorGrowth(prevYear: number, currentYear: number, minSize: number, maxSize: number): ChangeBreakdown {
+    const band = getGrowthBand(currentYear, minSize, maxSize)
+    const nominal = calculateNominalChange(prevYear, currentYear, maxSize)
+    return { band, nominal, percentage: calculatePercentagePoints(prevYear, currentYear, band + nominal) }
+}
+
+const sumParts = ({ band, nominal, percentage }: ChangeBreakdown) => band + nominal + percentage
 
 /**
  * Calculate overall growth score based on metrics
  * @param metrics - Growth metrics object
- * @returns Rounded weighted average of the worship, first-time decisions, kids church and youth scores, or null without worship in both years
+ * @returns Rounded weighted average of the worship, first-time decisions, kids church and youth scores with each one's parts, or null without worship in both years
  */
-export function calculateGrowth(metrics: Record<MissionIndicator, YearPair>): number | null {
+export function calculateGrowth(metrics: Record<MissionIndicator, YearPair>): { score: number, breakdown: GrowthBreakdown } | null {
     const worship = metrics.congregationalWorship
     if (worship.prevYear === 0) {
         throw new Error('Cannot calculate growth score when previous year is zero')
@@ -127,45 +133,50 @@ export function calculateGrowth(metrics: Record<MissionIndicator, YearPair>): nu
     }
 
     const decisionsPerPerson = worship.currentYear > 0 ? (metrics.firstTimeDecisions.currentYear ?? 0) / worship.currentYear : 0
+    const programme = (indicator: 'kidsChurch' | 'youthDiscipleship') => {
+        const { prevYear, currentYear } = metrics[indicator]
+        return prevYear === null && currentYear === null ? null : calculateIndicatorGrowth(prevYear ?? 0, currentYear ?? 0, minProgramme, maxProgramme)
+    }
+    const breakdown: GrowthBreakdown = {
+        congregationalWorship: calculateIndicatorGrowth(worship.prevYear, worship.currentYear, minCongregation, maxCongregation),
+        firstTimeDecisions: Math.min(decisionsPerPerson / benchmark, 1) * maxScore,
+        kidsChurch: programme('kidsChurch'),
+        youthDiscipleship: programme('youthDiscipleship')
+    }
+
     const scores = [
-        { weight: growthWeights.congregationalWorship, score: calculateIndicatorGrowth(worship.prevYear, worship.currentYear, minCongregation, maxCongregation) },
-        { weight: growthWeights.firstTimeDecisions, score: Math.min(decisionsPerPerson / benchmark, 1) * maxScore }
+        { weight: growthWeights.congregationalWorship, score: sumParts(breakdown.congregationalWorship) },
+        { weight: growthWeights.firstTimeDecisions, score: breakdown.firstTimeDecisions }
     ]
     for (const indicator of ['kidsChurch', 'youthDiscipleship'] as const) {
-        const { prevYear, currentYear } = metrics[indicator]
-        if (prevYear !== null || currentYear !== null) {
-            scores.push({ weight: growthWeights[indicator], score: calculateIndicatorGrowth(prevYear ?? 0, currentYear ?? 0, minProgramme, maxProgramme) })
+        const parts = breakdown[indicator]
+        if (parts) {
+            scores.push({ weight: growthWeights[indicator], score: sumParts(parts) })
         }
     }
     const totalWeight = scores.reduce((sum, s) => sum + s.weight, 0)
-    return Math.round(scores.reduce((sum, s) => sum + s.weight * s.score, 0) / totalWeight)
+    return { score: Math.round(scores.reduce((sum, s) => sum + s.weight * s.score, 0) / totalWeight), breakdown }
 }
 
 /**
  * Calculate overall sustainability score based on metrics and size
  * @param metrics - Sustainability metrics object
  * @param size - Congregational size
- * @returns Rounded average of the tithing and surplus/deficit scores, from tithing alone without a surplus/deficit figure or any worship to share it across
+ * @returns Rounded average of the tithing and surplus/deficit scores with each one's parts, from tithing alone without a surplus/deficit figure or any worship to share it across
  */
-export function calculateSustainability(metrics: { tithing: TithingPair, surplusDeficit: number | null }, size: number): number {
-    const tithingPerPersonCurrentYear = metrics.tithing.currentYear / size
-    let tithingScore = getSustainabilityBand(tithingPerPersonCurrentYear)
-    tithingScore += calculateNominalSustainability(metrics.tithing.prevYear, metrics.tithing.currentYear)
-    if (metrics.tithing.prevYear > 0) {
-        const percentage = calculatePercentageChange(metrics.tithing.prevYear, metrics.tithing.currentYear)
-        if (percentage >= benchmark) {
-            tithingScore += maxPointsChange
-        } else {
-            tithingScore = tithingScore * (1 + percentage)
-        }
-    }
+export function calculateSustainability(metrics: { tithing: TithingPair, surplusDeficit: number | null }, size: number): { score: number, breakdown: SustainabilityBreakdown } {
+    const { prevYear, currentYear } = metrics.tithing
+    const band = getSustainabilityBand(currentYear / size)
+    const nominal = calculateNominalSustainability(prevYear, currentYear)
+    const tithing = { band, nominal, percentage: calculatePercentagePoints(prevYear, currentYear, band + nominal) }
+    const tithingScore = sumParts(tithing)
 
     if (metrics.surplusDeficit === null || size <= 0) {
-        return Math.round(tithingScore)
+        return { score: Math.round(tithingScore), breakdown: { tithing, surplusDeficit: null } }
     }
     const surplusDeficitPerPerson = Math.min(Math.max(metrics.surplusDeficit / size, -maxTithingPerPerson), maxTithingPerPerson)
     const surplusDeficitScore = maxScore * (surplusDeficitPerPerson + maxTithingPerPerson) / (2 * maxTithingPerPerson)
-    return Math.round((tithingScore + surplusDeficitScore) / 2)
+    return { score: Math.round((tithingScore + surplusDeficitScore) / 2), breakdown: { tithing, surplusDeficit: surplusDeficitScore } }
 }
 
 /**

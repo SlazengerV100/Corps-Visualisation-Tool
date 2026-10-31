@@ -7,7 +7,7 @@ import type { CorpsDirectoryRepository } from '../repositories/directory/CorpsDi
 import type { Catalogue } from '../models/Catalogue.ts'
 import type { Corps } from '../models/Corps.ts'
 import type { FinancialYear } from '../models/FinancialYear.ts'
-import type { Granularity, MetricDefinition, MetricName } from '../models/Metric.ts'
+import type { Granularity, MetricDefinition, MetricName, Unit } from '../models/Metric.ts'
 import type { MissionIndicator } from '../models/MissionIndicator.ts'
 import type { MonthlyPoint } from '../models/MonthlyPoint.ts'
 import type { Snapshot, YearPair } from '../models/Snapshot.ts'
@@ -42,16 +42,18 @@ export class CorpsInsights {
 
         const monthlyIndicator = (indicator: MissionIndicator): MonthlySeries => (centreId, year) => mission.monthly(centreId, year, indicator)
 
-        const sources: { name: MetricName, label: string, yearly: YearlyFigure, monthly: MonthlySeries | null }[] = [
+        const sources: { name: MetricName, label: string, unit: Unit, yearly: YearlyFigure, monthly: MonthlySeries | null }[] = [
             {
                 name: 'congregationalWorship',
                 label: 'Congregational Worship',
+                unit: 'people',
                 yearly: monthlyAverage('congregationalWorship'),
                 monthly: monthlyIndicator('congregationalWorship')
             },
             {
                 name: 'firstTimeDecisions',
                 label: 'First Time Decisions',
+                unit: 'decisions',
                 yearly: (centreId, year) => {
                     const indicators = mission.yearly(centreId, year)
                     return indicators && (indicators.congregationalWorship ?? 0) > 0 ? indicators.firstTimeDecisions ?? 0 : null
@@ -61,24 +63,28 @@ export class CorpsInsights {
             {
                 name: 'kidsChurch',
                 label: 'Kid\'s Church',
+                unit: 'people',
                 yearly: monthlyAverage('kidsChurch'),
                 monthly: monthlyIndicator('kidsChurch')
             },
             {
                 name: 'youthDiscipleship',
                 label: 'Youth Discipleship',
+                unit: 'people',
                 yearly: monthlyAverage('youthDiscipleship'),
                 monthly: monthlyIndicator('youthDiscipleship')
             },
             {
                 name: 'tithing',
                 label: 'Tithing',
+                unit: 'dollars',
                 yearly: (centreId, year) => finance.tithing(centreId, year),
                 monthly: (centreId, year) => finance.monthlyTithing(centreId, year)
             },
             {
                 name: 'surplusDeficit',
                 label: 'Surplus/Deficit',
+                unit: 'dollars',
                 yearly: (centreId, year) => finance.surplusDeficit(centreId, year),
                 monthly: null
             }
@@ -108,6 +114,7 @@ export class CorpsInsights {
                 definition: {
                     name: source.name,
                     label: source.label,
+                    unit: source.unit,
                     granularities,
                     years: [...metricYears].toSorted((a, b) => a - b)
                 },
@@ -135,7 +142,7 @@ export class CorpsInsights {
 
                 const worship = pair('congregationalWorship', null)
                 const currentTithing = finance.tithing(id, year)
-                const tithing = currentTithing === null ? null : { currentYear: currentTithing, prevYear: finance.tithing(id, year - 1) ?? 0 }
+                const tithing = currentTithing === null ? null : { currentYear: currentTithing, prevYear: finance.tithing(id, year - 1) }
 
                 const snapshot: Snapshot = {
                     id,
@@ -155,10 +162,16 @@ export class CorpsInsights {
                 if (tithing && financeYears.has(year - 1) && worship.currentYear !== null && worship.prevYear !== null && worship.prevYear !== 0) {
                     const growth = calculateGrowth(snapshot.metrics)
                     if (growth !== null) {
+                        // No tithing figure last year scores as none given
+                        const sustainability = calculateSustainability(
+                            { tithing: { ...tithing, prevYear: tithing.prevYear ?? 0 }, surplusDeficit: snapshot.metrics.surplusDeficit },
+                            worship.currentYear
+                        )
                         snapshot.scores = {
-                            growth,
-                            sustainability: calculateSustainability({ tithing, surplusDeficit: snapshot.metrics.surplusDeficit }, worship.currentYear),
-                            size: worship.currentYear
+                            growth: growth.score,
+                            sustainability: sustainability.score,
+                            size: worship.currentYear,
+                            breakdown: { growth: growth.breakdown, sustainability: sustainability.breakdown }
                         }
                     }
                 }

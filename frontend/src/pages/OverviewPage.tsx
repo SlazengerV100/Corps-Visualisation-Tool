@@ -1,16 +1,50 @@
 import BubbleChart, { type BubblePoint } from '../components/overview/BubbleChart.tsx'
 import AnimationPanel from '../components/overview/AnimationPanel.tsx'
-import CheckboxSelectorPanel from '../components/overview/CheckboxSelectorPanel.tsx'
+import CheckboxSelectorPanel, { type CorpsStatus } from '../components/overview/CheckboxSelectorPanel.tsx'
+import type { FigureGap } from '../components/common/figureGaps.ts'
 import TogglePanel from '../components/overview/TogglePanel.tsx'
 import Box from '@mui/material/Box'
 import {useEffect, useState} from 'react'
 import type { Corps } from '../components/map/CorpsDetails.tsx'
 
-interface ScoredSnapshot {
+interface YearPair {
+    currentYear: number | null
+    prevYear: number | null
+}
+
+interface Snapshot {
     id: string
     name: string
     year: number
-    scores: Omit<BubblePoint, 'id' | 'name'>
+    metrics: {
+        congregationalWorship: YearPair
+        firstTimeDecisions: YearPair
+        kidsChurch: YearPair
+        youthDiscipleship: YearPair
+        tithing: YearPair | null
+        surplusDeficit: number | null
+    }
+    scores?: Omit<BubblePoint, 'id' | 'name' | 'firstTimeDecisions' | 'surplusDeficit' | 'gaps'>
+}
+
+// Which year a measure has no figure for, this year taking precedence
+const gap = ({ currentYear, prevYear }: YearPair): FigureGap | null => {
+    if (currentYear === null) return 'thisYear'
+    return prevYear === null ? 'lastYear' : null
+}
+
+// Why a corps has no scores for the year, from the figures scoring needs
+const unscoredStatus = ({ congregationalWorship, tithing }: Snapshot['metrics']): CorpsStatus => {
+    if (congregationalWorship.currentYear === null) {
+        return { gap: 'thisYear', why: 'No congregational worship recorded this year, so it has no scores.' }
+    }
+    if (tithing === null) {
+        return { gap: 'thisYear', why: 'No tithing recorded this year, so it has no scores.' }
+    }
+    if (!congregationalWorship.prevYear) {
+        return { gap: 'lastYear', why: 'No congregational worship recorded last year, so growth cannot be measured and it has no scores.' }
+    }
+    return { gap: 'lastYear', why: 'No finance figures for last year, so it has no scores.' }
 }
 
 export default function OverviewPage() {
@@ -20,28 +54,61 @@ export default function OverviewPage() {
     const [selectedCorps, setSelectedCorps] = useState<string[]>([])
     const [corps, setCorps] = useState<Corps[]>([])
     const [hideUnselected, setHideUnselected] = useState(false)
+    const [labels, setLabels] = useState<Record<string, string>>({})
+    const [statusesByYear, setStatusesByYear] = useState<Record<number, Record<string, CorpsStatus>>>({})
 
     useEffect(() => {
         const fetchBubbleData = async () => {
             try {
                 const [catalogueResponse, snapshotsResponse] = await Promise.all([
                     fetch('/api/catalogue'),
-                    fetch('/api/snapshots?scored=true')
+                    fetch('/api/snapshots')
                 ])
                 if (!catalogueResponse.ok || !snapshotsResponse.ok) {
                     return
                 }
-                const catalogue: { snapshots: { scoredYears: number[] } } = await catalogueResponse.json()
-                const snapshots: ScoredSnapshot[] = await snapshotsResponse.json()
+                const catalogue: { metrics: { name: string, label: string }[], snapshots: { scoredYears: number[] } } = await catalogueResponse.json()
+                const snapshots: Snapshot[] = await snapshotsResponse.json()
 
                 const byYear: Record<number, BubblePoint[]> = {}
+                const statuses: Record<number, Record<string, CorpsStatus>> = {}
                 snapshots.forEach(snapshot => {
+                    statuses[snapshot.year] ??= {}
+                    const { scores } = snapshot
+                    if (!scores) {
+                        statuses[snapshot.year][snapshot.id] = unscoredStatus(snapshot.metrics)
+                        return
+                    }
+                    statuses[snapshot.year][snapshot.id] = {}
+
+                    const { firstTimeDecisions, kidsChurch, youthDiscipleship, tithing, surplusDeficit } = snapshot.metrics
+                    // First-time decisions and surplus/deficit are scored on this year alone, so only this year can be missing
+                    const candidates: [string, FigureGap | null][] = [
+                        ['firstTimeDecisions', firstTimeDecisions.currentYear === null ? 'thisYear' : null],
+                        ['kidsChurch', gap(kidsChurch)],
+                        ['youthDiscipleship', gap(youthDiscipleship)],
+                        ['tithing', tithing && gap(tithing)],
+                        ['surplusDeficit', surplusDeficit === null ? 'thisYear' : null]
+                    ]
+                    const gaps: Partial<Record<string, FigureGap>> = {}
+                    for (const [name, figureGap] of candidates) {
+                        if (figureGap) gaps[name] = figureGap
+                    }
                     byYear[snapshot.year] ??= []
-                    byYear[snapshot.year].push({ id: snapshot.id, name: snapshot.name, ...snapshot.scores })
+                    byYear[snapshot.year].push({
+                        id: snapshot.id,
+                        name: snapshot.name,
+                        firstTimeDecisions: firstTimeDecisions.currentYear ?? 0,
+                        surplusDeficit,
+                        gaps,
+                        ...scores
+                    })
                 })
 
                 const scoredYears = catalogue.snapshots.scoredYears
+                setLabels(Object.fromEntries(catalogue.metrics.map(m => [m.name, m.label])))
                 setPointsByYear(byYear)
+                setStatusesByYear(statuses)
                 setYears(scoredYears)
                 setYear(scoredYears[scoredYears.length - 1] ?? null)
             } catch {
@@ -84,6 +151,7 @@ export default function OverviewPage() {
                         corps={corps}
                         selectedCorps={selectedCorps}
                         hideUnselected={hideUnselected}
+                        labels={labels}
                     />
                 </Box>
                 
@@ -120,7 +188,7 @@ export default function OverviewPage() {
                             setSelectedCorps={setSelectedCorps}
                             onCorpsDataLoaded={setCorps}
                             year={year}
-                            yearData={yearData}
+                            statuses={year === null ? null : statusesByYear[year] ?? {}}
                         />
                     </Box>
                     <TogglePanel 

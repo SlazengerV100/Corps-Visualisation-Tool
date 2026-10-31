@@ -73,11 +73,12 @@ describe('CorpsInsights', () => {
             expect(metrics[0]).toEqual({
                 name: 'congregationalWorship',
                 label: 'Congregational Worship',
+                unit: 'people',
                 granularities: ['year', 'month'],
                 years: [2023, 2024]
             })
             expect(metrics[1]).toMatchObject({ granularities: ['year'], years: [2022, 2023, 2024] })
-            expect(metrics[5]).toMatchObject({ granularities: ['year'], years: [2024] })
+            expect(metrics[5]).toMatchObject({ unit: 'dollars', granularities: ['year'], years: [2024] })
         })
 
         test('should list the years with snapshots and the years with scores', () => {
@@ -152,6 +153,8 @@ describe('CorpsInsights', () => {
                 kidsChurch: { currentYear: null, prevYear: 10 },
                 youthDiscipleship: { currentYear: 6, prevYear: 5 }
             }
+            const growth = calculateGrowth(missionIndicators)
+            const sustainability = calculateSustainability({ tithing, surplusDeficit: 0 }, 110)
             expect(insights.snapshots({ year: 2024 }).find(s => s.id === alpha.id)).toEqual({
                 ...alpha,
                 year: 2024,
@@ -162,16 +165,17 @@ describe('CorpsInsights', () => {
                     population: 1200
                 },
                 scores: {
-                    growth: calculateGrowth(missionIndicators),
-                    sustainability: calculateSustainability({ tithing, surplusDeficit: 0 }, 110),
-                    size: 110
+                    growth: growth?.score,
+                    sustainability: sustainability.score,
+                    size: 110,
+                    breakdown: { growth: growth?.breakdown, sustainability: sustainability.breakdown }
                 }
             })
         })
 
-        test('should show tithing without a surplus/deficit figure and default the previous year to zero', () => {
+        test('should show tithing without a surplus/deficit figure or a previous year', () => {
             const snapshot = insights.snapshots({ year: 2024 }).find(s => s.id === beta.id)
-            expect(snapshot?.metrics.tithing).toEqual({ currentYear: 1000, prevYear: 0 })
+            expect(snapshot?.metrics.tithing).toEqual({ currentYear: 1000, prevYear: null })
             expect(snapshot?.metrics.surplusDeficit).toBeNull()
         })
 

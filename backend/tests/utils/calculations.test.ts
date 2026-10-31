@@ -316,7 +316,7 @@ describe('Calculation Utilities', () => {
         }
       }
 
-      const result = calculateGrowth(metrics)
+      const result = calculateGrowth(metrics)?.score
       expect(typeof result).toBe('number')
       expect(result).toBeGreaterThan(0)
       expect(Number.isInteger(result)).toBe(true) // Should be rounded
@@ -331,7 +331,7 @@ describe('Calculation Utilities', () => {
         }
       }
 
-      const result = calculateGrowth(metrics)
+      const result = calculateGrowth(metrics)?.score
       expect(typeof result).toBe('number')
       expect(Number.isInteger(result)).toBe(true) // Should be rounded
     })
@@ -345,7 +345,7 @@ describe('Calculation Utilities', () => {
         }
       }
 
-      const result = calculateGrowth(metrics)
+      const result = calculateGrowth(metrics)?.score
       expect(typeof result).toBe('number')
       expect(Number.isInteger(result)).toBe(true) // Should be rounded
     })
@@ -360,7 +360,7 @@ describe('Calculation Utilities', () => {
         }
       }
 
-      const result = calculateGrowth(metrics)
+      const result = calculateGrowth(metrics)?.score
       expect(typeof result).toBe('number')
       expect(Number.isInteger(result)).toBe(true)
     })
@@ -374,7 +374,7 @@ describe('Calculation Utilities', () => {
         }
       }
 
-      const result = calculateGrowth(metrics)
+      const result = calculateGrowth(metrics)?.score
       expect(typeof result).toBe('number')
       expect(Number.isInteger(result)).toBe(true)
     })
@@ -388,7 +388,7 @@ describe('Calculation Utilities', () => {
         }
       }
 
-      const result = calculateGrowth(metrics)
+      const result = calculateGrowth(metrics)?.score
       expect(typeof result).toBe('number')
       expect(Number.isInteger(result)).toBe(true)
     })
@@ -412,7 +412,7 @@ describe('Calculation Utilities', () => {
         congregationalWorship: { currentYear: 100, prevYear: 100 }
       }
 
-      expect(calculateGrowth(metrics)).toBe(34)
+      expect(calculateGrowth(metrics)?.score).toBe(34)
     })
 
     test('should average kids church into the score at its weight', () => {
@@ -422,7 +422,7 @@ describe('Calculation Utilities', () => {
         kidsChurch: { currentYear: 30, prevYear: 30 }
       }
 
-      expect(calculateGrowth(metrics)).toBe(38)
+      expect(calculateGrowth(metrics)?.score).toBe(38)
     })
 
     test('should cap the kids church percentage change bonus', () => {
@@ -432,7 +432,7 @@ describe('Calculation Utilities', () => {
         kidsChurch: { currentYear: 20, prevYear: 10 }
       }
 
-      expect(calculateGrowth(metrics)).toBe(41)
+      expect(calculateGrowth(metrics)?.score).toBe(41)
     })
 
     test('should count kids church missing this year as zero when recorded last year', () => {
@@ -442,7 +442,7 @@ describe('Calculation Utilities', () => {
         kidsChurch: { currentYear: null, prevYear: 10 }
       }
 
-      expect(calculateGrowth(metrics)).toBe(28)
+      expect(calculateGrowth(metrics)?.score).toBe(28)
     })
 
     test('should skip the youth percentage change when the previous year is zero', () => {
@@ -452,7 +452,7 @@ describe('Calculation Utilities', () => {
         youthDiscipleship: { currentYear: 10, prevYear: null }
       }
 
-      expect(calculateGrowth(metrics)).toBe(37)
+      expect(calculateGrowth(metrics)?.score).toBe(37)
     })
 
     test('should score first-time decisions per worshipper on the current year alone, capped at one per ten worshippers', () => {
@@ -461,20 +461,20 @@ describe('Calculation Utilities', () => {
         congregationalWorship: { currentYear: 100, prevYear: 100 }
       }
 
-      expect(calculateGrowth({ ...metrics, firstTimeDecisions: { currentYear: 5, prevYear: 50 } })).toBe(48)
-      expect(calculateGrowth({ ...metrics, firstTimeDecisions: { currentYear: 100, prevYear: 0 } })).toBe(62)
-      expect(calculateGrowth({ ...metrics, firstTimeDecisions: { currentYear: null, prevYear: 5 } })).toBe(34)
-      expect(calculateGrowth({ ...metrics, congregationalWorship: { currentYear: 0, prevYear: 100 }, firstTimeDecisions: { currentYear: 5, prevYear: 0 } })).toBe(0)
+      expect(calculateGrowth({ ...metrics, firstTimeDecisions: { currentYear: 5, prevYear: 50 } })?.score).toBe(48)
+      expect(calculateGrowth({ ...metrics, firstTimeDecisions: { currentYear: 100, prevYear: 0 } })?.score).toBe(62)
+      expect(calculateGrowth({ ...metrics, firstTimeDecisions: { currentYear: null, prevYear: 5 } })?.score).toBe(34)
+      expect(calculateGrowth({ ...metrics, congregationalWorship: { currentYear: 0, prevYear: 100 }, firstTimeDecisions: { currentYear: 5, prevYear: 0 } })?.score).toBe(0)
     })
 
     test('should weigh the same first-time decisions more at a smaller corps', () => {
       const small = { ...createMockMetrics(), congregationalWorship: { currentYear: 10, prevYear: 10 } }
       const large = { ...createMockMetrics(), congregationalWorship: { currentYear: 200, prevYear: 200 } }
 
-      expect(calculateGrowth(small)).toBe(21)
-      expect(calculateGrowth({ ...small, firstTimeDecisions: { currentYear: 5, prevYear: 0 } })).toBe(50)
-      expect(calculateGrowth(large)).toBe(50)
-      expect(calculateGrowth({ ...large, firstTimeDecisions: { currentYear: 5, prevYear: 0 } })).toBe(57)
+      expect(calculateGrowth(small)?.score).toBe(21)
+      expect(calculateGrowth({ ...small, firstTimeDecisions: { currentYear: 5, prevYear: 0 } })?.score).toBe(50)
+      expect(calculateGrowth(large)?.score).toBe(50)
+      expect(calculateGrowth({ ...large, firstTimeDecisions: { currentYear: 5, prevYear: 0 } })?.score).toBe(57)
     })
 
     test('should score 100 at the top of every component', () => {
@@ -484,21 +484,40 @@ describe('Calculation Utilities', () => {
         firstTimeDecisions: { currentYear: 100, prevYear: 0 }
       }
 
-      expect(calculateGrowth(metrics)).toBe(100)
+      expect(calculateGrowth(metrics)?.score).toBe(100)
     })
 
     test('should size kids church and youth bands and change caps at 20% of a small and large congregation', () => {
       const metrics = {
         ...createMockMetrics(),
-        congregationalWorship: { currentYear: 200, prevYear: 200 },
-        // 40 is 20% of a large corps of 200, and a change of 4 is 10% of that, so kids church scores 100
+        congregationalWorship: { currentYear: 100, prevYear: 100 },
         kidsChurch: { currentYear: 40, prevYear: 36 },
-        // 5 is 20% of a small corps of 25, so youth scores the bottom of the band, 30
         youthDiscipleship: { currentYear: 5, prevYear: 5 }
       }
 
-      // Worship 70 * 0.5 + kids church 100 * 0.15 + youth 30 * 0.15
-      expect(calculateGrowth(metrics)).toBe(55)
+      const breakdown = calculateGrowth(metrics)?.breakdown
+      // 40 is 20% of a large corps of 200, and a change of 4 is 10% of that
+      expect(breakdown?.kidsChurch).toMatchObject({ band: 70, nominal: 15 })
+      // 5 is 20% of a small corps of 25
+      expect(breakdown?.youthDiscipleship).toMatchObject({ band: 30 })
+    })
+
+    test('should break each indicator into its band and change points', () => {
+      const metrics = {
+        ...createMockMetrics(),
+        congregationalWorship: { currentYear: 110, prevYear: 100 },
+        firstTimeDecisions: { currentYear: 5, prevYear: 0 },
+        kidsChurch: { currentYear: 20, prevYear: 25 }
+      }
+
+      expect(calculateGrowth(metrics)?.breakdown).toEqual({
+        // Worship rose by the benchmark, so earns the full percentage bonus
+        congregationalWorship: { band: expect.closeTo(49.43, 2), nominal: 7.5, percentage: 15 },
+        firstTimeDecisions: expect.closeTo(45.45, 2),
+        // (Band 47.14 + nominal -15) * -20%
+        kidsChurch: { band: expect.closeTo(47.14, 2), nominal: -15, percentage: expect.closeTo(-6.43, 2) },
+        youthDiscipleship: null
+      })
     })
   })
 
@@ -512,7 +531,7 @@ describe('Calculation Utilities', () => {
         surplusDeficit: null
       }
 
-      const result = calculateSustainability(metrics, 100)
+      const result = calculateSustainability(metrics, 100).score
       expect(typeof result).toBe('number')
       expect(result).toBeGreaterThan(0)
       expect(Number.isInteger(result)).toBe(true) // Should be rounded
@@ -527,8 +546,8 @@ describe('Calculation Utilities', () => {
         surplusDeficit: null
       }
 
-      const resultSmall = calculateSustainability(metrics, 50) // 400 per person
-      const resultLarge = calculateSustainability(metrics, 200) // 100 per person
+      const resultSmall = calculateSustainability(metrics, 50).score // 400 per person
+      const resultLarge = calculateSustainability(metrics, 200).score // 100 per person
 
       expect(typeof resultSmall).toBe('number')
       expect(typeof resultLarge).toBe('number')
@@ -546,7 +565,7 @@ describe('Calculation Utilities', () => {
       }
 
       // This should result in division by zero (tithingPerPersonCurrentYear = 10000/0)
-      const result = calculateSustainability(metrics, 0)
+      const result = calculateSustainability(metrics, 0).score
       expect(typeof result).toBe('number')
       expect(Number.isInteger(result)).toBe(true)
     })
@@ -560,7 +579,7 @@ describe('Calculation Utilities', () => {
         surplusDeficit: null
       }
 
-      const result = calculateSustainability(metrics, 100)
+      const result = calculateSustainability(metrics, 100).score
       expect(typeof result).toBe('number')
       expect(Number.isInteger(result)).toBe(true)
     })
@@ -574,7 +593,7 @@ describe('Calculation Utilities', () => {
         surplusDeficit: null
       }
 
-      const result = calculateSustainability(metrics, 100)
+      const result = calculateSustainability(metrics, 100).score
       expect(typeof result).toBe('number')
       expect(Number.isInteger(result)).toBe(true)
     })
@@ -588,7 +607,7 @@ describe('Calculation Utilities', () => {
         surplusDeficit: null
       }
 
-      const result = calculateSustainability(metrics, 100)
+      const result = calculateSustainability(metrics, 100).score
       expect(typeof result).toBe('number')
       expect(Number.isInteger(result)).toBe(true)
     })
@@ -602,8 +621,8 @@ describe('Calculation Utilities', () => {
         surplusDeficit: null
       }
 
-      const result1 = calculateSustainability(metrics, 100)
-      const result2 = calculateSustainability(metrics, 100)
+      const result1 = calculateSustainability(metrics, 100).score
+      const result2 = calculateSustainability(metrics, 100).score
       expect(result1).toBe(result2)
     })
 
@@ -617,7 +636,7 @@ describe('Calculation Utilities', () => {
       }
 
       // Band 48.67 + nominal 0.75 + bonus 15
-      expect(calculateSustainability(metrics, 10)).toBe(64)
+      expect(calculateSustainability(metrics, 10).score).toBe(64)
     })
 
     test('should scale the score down by the percentage fall in tithing', () => {
@@ -630,7 +649,7 @@ describe('Calculation Utilities', () => {
       }
 
       // (Band 40.67 + nominal -1.125) * 0.75
-      expect(calculateSustainability(metrics, 10)).toBe(30)
+      expect(calculateSustainability(metrics, 10).score).toBe(30)
     })
 
     test('should skip the percentage change when there was no tithing the year before', () => {
@@ -643,7 +662,7 @@ describe('Calculation Utilities', () => {
       }
 
       // Band 43.33 + nominal 3.75
-      expect(calculateSustainability(metrics, 10)).toBe(47)
+      expect(calculateSustainability(metrics, 10).score).toBe(47)
     })
 
     test('should average tithing with a deficit per person', () => {
@@ -656,7 +675,7 @@ describe('Calculation Utilities', () => {
       }
 
       // (Tithing 43.33 + deficit of $500/person 37.5) / 2
-      expect(calculateSustainability(metrics, 10)).toBe(40)
+      expect(calculateSustainability(metrics, 10).score).toBe(40)
     })
 
     test('should cap a surplus of $2,000/person or more at 100', () => {
@@ -669,7 +688,7 @@ describe('Calculation Utilities', () => {
       }
 
       // (Tithing 43.33 + surplus 100) / 2
-      expect(calculateSustainability(metrics, 10)).toBe(72)
+      expect(calculateSustainability(metrics, 10).score).toBe(72)
     })
 
     test('should floor a deficit of $2,000/person or more at zero', () => {
@@ -682,7 +701,7 @@ describe('Calculation Utilities', () => {
       }
 
       // (Tithing 43.33 + deficit 0) / 2
-      expect(calculateSustainability(metrics, 10)).toBe(22)
+      expect(calculateSustainability(metrics, 10).score).toBe(22)
     })
 
     test('should score a break-even year at the midpoint', () => {
@@ -695,7 +714,7 @@ describe('Calculation Utilities', () => {
       }
 
       // (Tithing 43.33 + break-even 50) / 2
-      expect(calculateSustainability(metrics, 10)).toBe(47)
+      expect(calculateSustainability(metrics, 10).score).toBe(47)
     })
 
     test('should score from tithing alone without a surplus/deficit figure', () => {
@@ -707,7 +726,7 @@ describe('Calculation Utilities', () => {
         surplusDeficit: null
       }
 
-      expect(calculateSustainability(metrics, 10)).toBe(43)
+      expect(calculateSustainability(metrics, 10).score).toBe(43)
     })
 
     test('should score the surplus/deficit of a corps without tithing', () => {
@@ -720,7 +739,7 @@ describe('Calculation Utilities', () => {
       }
 
       // (Tithing 30 + deficit of $1,000/person 25) / 2
-      expect(calculateSustainability(metrics, 10)).toBe(28)
+      expect(calculateSustainability(metrics, 10).score).toBe(28)
     })
 
     test('should score from tithing alone without worship to share the surplus/deficit across', () => {
@@ -732,7 +751,24 @@ describe('Calculation Utilities', () => {
         surplusDeficit: -1000
       }
 
-      expect(calculateSustainability(metrics, 0)).toBe(70)
+      expect(calculateSustainability(metrics, 0).score).toBe(70)
+    })
+
+    test('should break the score into the tithing band and change points and the surplus/deficit score', () => {
+      const metrics = {
+        tithing: {
+          currentYear: 9000,
+          prevYear: 12000
+        },
+        surplusDeficit: -5000
+      }
+
+      // Percentage is (band 40.67 + nominal -1.125) * -25%
+      expect(calculateSustainability(metrics, 10).breakdown).toEqual({
+        tithing: { band: expect.closeTo(40.67, 2), nominal: -1.125, percentage: expect.closeTo(-9.89, 2) },
+        surplusDeficit: 37.5
+      })
+      expect(calculateSustainability({ ...metrics, surplusDeficit: null }, 10).breakdown.surplusDeficit).toBeNull()
     })
   })
 
@@ -755,8 +791,8 @@ describe('Calculation Utilities', () => {
         surplusDeficit: null
       }
 
-      const growthScore = calculateGrowth(growthMetrics)
-      const sustainabilityScore = calculateSustainability(sustainabilityMetrics, 150)
+      const growthScore = calculateGrowth(growthMetrics)?.score
+      const sustainabilityScore = calculateSustainability(sustainabilityMetrics, 150).score
 
       expect(typeof growthScore).toBe('number')
       expect(typeof sustainabilityScore).toBe('number')
@@ -782,8 +818,8 @@ describe('Calculation Utilities', () => {
         surplusDeficit: null
       }
 
-      const growthScore = calculateGrowth(smallMetrics)
-      const sustainabilityScore = calculateSustainability(smallSustainabilityMetrics, 1)
+      const growthScore = calculateGrowth(smallMetrics)?.score
+      const sustainabilityScore = calculateSustainability(smallSustainabilityMetrics, 1).score
 
       expect(typeof growthScore).toBe('number')
       expect(typeof sustainabilityScore).toBe('number')

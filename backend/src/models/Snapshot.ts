@@ -10,10 +10,32 @@ export interface TithingPair {
     prevYear: number
 }
 
+export interface ChangeBreakdown {
+    band: number
+    nominal: number
+    percentage: number
+}
+
+export interface GrowthBreakdown {
+    congregationalWorship: ChangeBreakdown
+    firstTimeDecisions: number
+    kidsChurch: ChangeBreakdown | null
+    youthDiscipleship: ChangeBreakdown | null
+}
+
+export interface SustainabilityBreakdown {
+    tithing: ChangeBreakdown
+    surplusDeficit: number | null
+}
+
 export interface Scores {
     growth: number
     sustainability: number
     size: number
+    breakdown: {
+        growth: GrowthBreakdown
+        sustainability: SustainabilityBreakdown
+    }
 }
 
 export interface SnapshotMetrics {
@@ -21,7 +43,7 @@ export interface SnapshotMetrics {
     firstTimeDecisions: YearPair
     kidsChurch: YearPair
     youthDiscipleship: YearPair
-    tithing: TithingPair | null
+    tithing: { currentYear: number, prevYear: number | null } | null
     surplusDeficit: number | null
     population: number | null
 }
