@@ -2,10 +2,15 @@ import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import type { ChartPoint, TimeRange } from './CorpsDetails.tsx';
 
-const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }: {
+/**
+ * Line chart of a metric across a fixed span of financial years, leaving out the years or months with no figure
+ */
+const MetricChart = ({ data, timeRange, selectedMetric, firstYear, lastYear, height = 300 }: {
   data: ChartPoint[]
   timeRange: TimeRange
   selectedMetric: string
+  firstYear: number
+  lastYear: number
   height?: number
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -58,10 +63,9 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }: {
     // Improved axis handling with overlap prevention
     const createSmartAxis = (): { x: (value: Date | number) => number, axis: d3.Axis<Date | d3.NumberValue> } => {
       if (isMonthlyData) {
-        // Use time scale for monthly data
-        const [start, end] = d3.extent(data, monthDate);
+        // Use time scale for monthly data, from the July starting the first financial year to the June ending the last
         const x = d3.scaleTime()
-          .domain(start && end ? [start, end] : [])
+          .domain([monthDate({ year: firstYear - 1, month: 7, metric: 0 }), monthDate({ year: lastYear, month: 6, metric: 0 })])
           .range([0, innerWidth]);
 
         // Smart tick selection based on time range
@@ -87,48 +91,30 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }: {
             .tickFormat(d => tickFormat(new Date(d.valueOf())))
         };
       } else {
-        // For yearly data, use linear scale with smart spacing
+        // For yearly data, use linear scale across every year in the span
         const x = d3.scaleLinear()
-          .domain([0, data.length - 1])
+          .domain([firstYear, lastYear])
           .range([0, innerWidth]);
 
-        // Calculate optimal number of ticks
+        // Label every year that fits
         const maxTicks = Math.floor(innerWidth / 80); // 80px per label
-        const tickStep = Math.max(1, Math.floor(data.length / maxTicks));
-
-        // Create tick positions that are always in between data points
-        // We want ticks at positions: 0.5, 1.5, 2.5, etc. (between data points)
-        const tickPositions: number[] = [];
-        for (let i = 0; i < data.length - 1; i += tickStep) {
-          tickPositions.push(i + 0.5); // Always place ticks between data points
-        }
+        const tickStep = Math.max(1, Math.ceil((lastYear - firstYear + 1) / maxTicks));
 
         return {
           x,
           axis: d3.axisBottom<Date | d3.NumberValue>(x)
-            .tickValues(tickPositions)
-            .tickFormat(d => {
-              const dataIndex = Math.floor(d.valueOf());
-              if (dataIndex < data.length) {
-                return String(data[dataIndex].year);
-              }
-              return '';
-            })
+            .tickValues(d3.range(firstYear, lastYear + 1, tickStep))
+            .tickFormat(d => String(d.valueOf()))
         };
       }
     };
 
     const { x, axis: xAxisGenerator } = createSmartAxis();
+    const xOf = (d: ChartPoint) => isMonthlyData ? x(monthDate(d)) : x(d.year);
 
-    // Create line generator
+    // Create line generator, joining the points either side of a missing year or month
     const line = d3.line<ChartPoint>()
-      .x((d, i) => {
-        if (isMonthlyData) {
-          return x(monthDate(d));
-        } else {
-          return x(i);
-        }
-      })
+      .x(xOf)
       .y(d => y(d.metric))
       .curve(d3.curveMonotoneX);
 
@@ -167,17 +153,9 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }: {
           .attr('d', line);
       }
 
-      // Create a custom line generator for future data that uses original indices
+      // Create a custom line generator for future data
       const futureLine = d3.line<ChartPoint>()
-        .x(d => {
-          if (isMonthlyData) {
-            return x(monthDate(d));
-          } else {
-            // Find the original index in the full data array
-            const originalIndex = data.findIndex(item => item.year === d.year);
-            return x(originalIndex);
-          }
-        })
+        .x(xOf)
         .y(d => y(floored(d)))
         .curve(d3.curveMonotoneX);
 
@@ -198,13 +176,7 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }: {
       .enter()
       .append('circle')
       .attr('class', 'dot')
-      .attr('cx', (d, i) => {
-        if (isMonthlyData) {
-          return x(monthDate(d));
-        } else {
-          return x(i);
-        }
-      })
+      .attr('cx', xOf)
       .attr('cy', d => y(floored(d)))
       .attr('r', 6)
       .attr('fill', '#8884d8')
@@ -346,7 +318,7 @@ const MetricChart = ({ data, timeRange, selectedMetric, height = 300 }: {
     return () => {
       d3.select('body').selectAll('.tooltip').remove();
     };
-  }, [data, timeRange, selectedMetric, height]);
+  }, [data, timeRange, selectedMetric, firstYear, lastYear, height]);
 
   if (!data || data.length === 0) return <p>No data available for this metric in the selected time period.</p>
 
