@@ -1,4 +1,4 @@
-import BubbleChart, { type BubblePoint } from '../components/overview/BubbleChart.tsx'
+import BubbleChart, { type BubblePoint, type FigureGap } from '../components/overview/BubbleChart.tsx'
 import AnimationPanel from '../components/overview/AnimationPanel.tsx'
 import CheckboxSelectorPanel from '../components/overview/CheckboxSelectorPanel.tsx'
 import TogglePanel from '../components/overview/TogglePanel.tsx'
@@ -6,17 +6,29 @@ import Box from '@mui/material/Box'
 import {useEffect, useState} from 'react'
 import type { Corps } from '../components/map/CorpsDetails.tsx'
 
+interface YearPair {
+    currentYear: number | null
+    prevYear: number | null
+}
+
 interface ScoredSnapshot {
     id: string
     name: string
     year: number
     metrics: {
-        firstTimeDecisions: { currentYear: number | null }
-        kidsChurch: { currentYear: number | null }
-        youthDiscipleship: { currentYear: number | null }
+        firstTimeDecisions: YearPair
+        kidsChurch: YearPair
+        youthDiscipleship: YearPair
+        tithing: YearPair
         surplusDeficit: number | null
     }
-    scores: Omit<BubblePoint, 'id' | 'name' | 'firstTimeDecisions' | 'surplusDeficit' | 'missing'>
+    scores: Omit<BubblePoint, 'id' | 'name' | 'firstTimeDecisions' | 'surplusDeficit' | 'gaps'>
+}
+
+// Which year a measure has no figure for, this year taking precedence
+const gap = ({ currentYear, prevYear }: YearPair): FigureGap | null => {
+    if (currentYear === null) return 'thisYear'
+    return prevYear === null ? 'lastYear' : null
 }
 
 export default function OverviewPage() {
@@ -43,21 +55,26 @@ export default function OverviewPage() {
 
                 const byYear: Record<number, BubblePoint[]> = {}
                 snapshots.forEach(snapshot => {
-                    const { firstTimeDecisions, kidsChurch, youthDiscipleship, surplusDeficit } = snapshot.metrics
-                    // Measures with no figure for this year
-                    const missing = Object.entries({
-                        firstTimeDecisions: firstTimeDecisions.currentYear,
-                        kidsChurch: kidsChurch.currentYear,
-                        youthDiscipleship: youthDiscipleship.currentYear,
-                        surplusDeficit
-                    }).flatMap(([name, value]) => value === null ? [name] : [])
+                    const { firstTimeDecisions, kidsChurch, youthDiscipleship, tithing, surplusDeficit } = snapshot.metrics
+                    // First-time decisions and surplus/deficit are scored on this year alone, so only this year can be missing
+                    const candidates: [string, FigureGap | null][] = [
+                        ['firstTimeDecisions', firstTimeDecisions.currentYear === null ? 'thisYear' : null],
+                        ['kidsChurch', gap(kidsChurch)],
+                        ['youthDiscipleship', gap(youthDiscipleship)],
+                        ['tithing', gap(tithing)],
+                        ['surplusDeficit', surplusDeficit === null ? 'thisYear' : null]
+                    ]
+                    const gaps: Partial<Record<string, FigureGap>> = {}
+                    for (const [name, figureGap] of candidates) {
+                        if (figureGap) gaps[name] = figureGap
+                    }
                     byYear[snapshot.year] ??= []
                     byYear[snapshot.year].push({
                         id: snapshot.id,
                         name: snapshot.name,
                         firstTimeDecisions: firstTimeDecisions.currentYear ?? 0,
                         surplusDeficit,
-                        missing,
+                        gaps,
                         ...snapshot.scores
                     })
                 })

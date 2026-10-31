@@ -43,7 +43,7 @@ export interface SnapshotMetrics {
     firstTimeDecisions: YearPair
     kidsChurch: YearPair
     youthDiscipleship: YearPair
-    tithing: TithingPair | null
+    tithing: { currentYear: number, prevYear: number | null } | null
     surplusDeficit: number | null
     population: number | null
 }

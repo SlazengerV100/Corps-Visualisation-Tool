@@ -173,9 +173,9 @@ describe('CorpsInsights', () => {
             })
         })
 
-        test('should show tithing without a surplus/deficit figure and default the previous year to zero', () => {
+        test('should show tithing without a surplus/deficit figure or a previous year', () => {
             const snapshot = insights.snapshots({ year: 2024 }).find(s => s.id === beta.id)
-            expect(snapshot?.metrics.tithing).toEqual({ currentYear: 1000, prevYear: 0 })
+            expect(snapshot?.metrics.tithing).toEqual({ currentYear: 1000, prevYear: null })
             expect(snapshot?.metrics.surplusDeficit).toBeNull()
         })
 

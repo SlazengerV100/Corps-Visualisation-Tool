@@ -142,7 +142,7 @@ export class CorpsInsights {
 
                 const worship = pair('congregationalWorship', null)
                 const currentTithing = finance.tithing(id, year)
-                const tithing = currentTithing === null ? null : { currentYear: currentTithing, prevYear: finance.tithing(id, year - 1) ?? 0 }
+                const tithing = currentTithing === null ? null : { currentYear: currentTithing, prevYear: finance.tithing(id, year - 1) }
 
                 const snapshot: Snapshot = {
                     id,
@@ -162,7 +162,11 @@ export class CorpsInsights {
                 if (tithing && financeYears.has(year - 1) && worship.currentYear !== null && worship.prevYear !== null && worship.prevYear !== 0) {
                     const growth = calculateGrowth(snapshot.metrics)
                     if (growth !== null) {
-                        const sustainability = calculateSustainability({ tithing, surplusDeficit: snapshot.metrics.surplusDeficit }, worship.currentYear)
+                        // No tithing figure last year scores as none given
+                        const sustainability = calculateSustainability(
+                            { tithing: { ...tithing, prevYear: tithing.prevYear ?? 0 }, surplusDeficit: snapshot.metrics.surplusDeficit },
+                            worship.currentYear
+                        )
                         snapshot.scores = {
                             growth: growth.score,
                             sustainability: sustainability.score,

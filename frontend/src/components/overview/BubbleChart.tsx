@@ -13,6 +13,7 @@ import { useTheme } from '@mui/material/styles'
 import CloseIcon from '@mui/icons-material/Close'
 import * as d3 from 'd3'
 import ScoreExplanationDialog from './ScoreExplanationDialog.tsx'
+import HoverTooltip from '../common/HoverTooltip.tsx'
 import type { Corps } from '../map/CorpsDetails.tsx'
 
 interface ChangeBreakdown {
@@ -20,6 +21,8 @@ interface ChangeBreakdown {
     nominal: number
     percentage: number
 }
+
+export type FigureGap = 'thisYear' | 'lastYear'
 
 export interface BubblePoint {
     id: string
@@ -29,7 +32,7 @@ export interface BubblePoint {
     size: number
     firstTimeDecisions: number
     surplusDeficit: number | null
-    missing: string[]
+    gaps: Partial<Record<string, FigureGap>>
     breakdown: {
         growth: {
             congregationalWorship: ChangeBreakdown
@@ -67,25 +70,34 @@ const formatSurplusDeficit = (value: number | null) => {
     return `${dollars.format(Math.abs(value))} ${value < 0 ? 'deficit' : 'surplus'}`
 }
 
-// Highlights a measure with no figure this year, in the same colour as the corps panel
-const missingSx = { '& td': { color: 'warning.main' } }
+// Red for a measure with no figure this year, yellow (as in the corps panel) for one with no figure last year
+const gapColours: Record<FigureGap, string> = { thisYear: 'error.main', lastYear: 'warning.main' }
+// A coloured row explains on hover how its missing figure was scored
+const GapRow = ({ gap, why, children }: { gap?: FigureGap, why?: string, children: ReactNode }) => {
+    if (!gap) return <TableRow>{children}</TableRow>
+    return (
+        <HoverTooltip title={why}>
+            <TableRow sx={{ cursor: 'help', '& td': { color: gapColours[gap] } }}>{children}</TableRow>
+        </HoverTooltip>
+    )
+}
 
-const ChangeRow = ({ label, parts, missing = false }: { label: string, parts: ChangeBreakdown, missing?: boolean }) => (
-    <TableRow sx={missing ? missingSx : undefined}>
+const ChangeRow = ({ label, parts, gap, why }: { label: string, parts: ChangeBreakdown, gap?: FigureGap, why?: string }) => (
+    <GapRow gap={gap} why={why}>
         <TableCell>{label}</TableCell>
         <TableCell align="right">{formatPart(parts.band)}</TableCell>
         <TableCell align="right">{formatChange(parts.nominal)}</TableCell>
         <TableCell align="right">{formatChange(parts.percentage)}</TableCell>
         <TableCell align="right">{formatPart(parts.band + parts.nominal + parts.percentage)}</TableCell>
-    </TableRow>
+    </GapRow>
 )
 
-const NoteRow = ({ label, note, score, missing = false }: { label: string, note: string, score: number | null, missing?: boolean }) => (
-    <TableRow sx={missing ? missingSx : undefined}>
+const NoteRow = ({ label, note, score, gap, why }: { label: string, note: string, score: number | null, gap?: FigureGap, why?: string }) => (
+    <GapRow gap={gap} why={why}>
         <TableCell>{label}</TableCell>
         <TableCell colSpan={3} sx={{ fontStyle: 'italic' }}>{note}</TableCell>
         <TableCell align="right">{score === null ? '–' : formatPart(score)}</TableCell>
-    </TableRow>
+    </GapRow>
 )
 
 const TotalRow = ({ label, score }: { label: string, score: number }) => (
@@ -102,10 +114,15 @@ function ScoreBreakdown({ point, title, labels }: { point: BubblePoint, title: s
     const { growth, sustainability } = point.breakdown
     const programme = (name: 'kidsChurch' | 'youthDiscipleship') => {
         const parts = growth[name]
-        const missing = point.missing.includes(name)
-        return parts
-            ? <ChangeRow label={labels[name]} parts={parts} missing={missing} />
-            : <NoteRow label={labels[name]} note="Not recorded either year" score={null} missing={missing} />
+        const gap = point.gaps[name]
+        if (!parts) {
+            return <NoteRow label={labels[name]} note="Not recorded either year" score={null} gap={gap}
+                why="Not recorded in either year, so it is left out of growth rather than counted against it." />
+        }
+        const why = gap === 'thisYear'
+            ? 'Not recorded this year, so it counts as zero.'
+            : 'Not recorded last year, so the change is measured from zero and there is no percentage change.'
+        return <ChangeRow label={labels[name]} parts={parts} gap={gap} why={why} />
     }
     return (
         <>
@@ -127,21 +144,27 @@ function ScoreBreakdown({ point, title, labels }: { point: BubblePoint, title: s
                         label={labels.firstTimeDecisions}
                         note={`${point.firstTimeDecisions} decision${point.firstTimeDecisions === 1 ? '' : 's'}`}
                         score={growth.firstTimeDecisions}
-                        missing={point.missing.includes('firstTimeDecisions')}
+                        gap={point.gaps.firstTimeDecisions}
+                        why="No first-time decisions recorded this year, so it counts as none."
                     />
                     {programme('kidsChurch')}
                     {programme('youthDiscipleship')}
                     <TotalRow label="Sustainability" score={point.sustainability} />
-                    <ChangeRow label={labels.tithing} parts={sustainability.tithing} />
+                    <ChangeRow
+                        label={labels.tithing}
+                        parts={sustainability.tithing}
+                        gap={point.gaps.tithing}
+                        why="No tithing figure last year, so the change is measured from $0 and there is no percentage change."
+                    />
                     <NoteRow
                         label={labels.surplusDeficit}
                         note={formatSurplusDeficit(point.surplusDeficit)}
                         score={sustainability.surplusDeficit}
-                        missing={point.missing.includes('surplusDeficit')}
+                        gap={point.gaps.surplusDeficit}
+                        why="No surplus/deficit figure this year, so sustainability comes from tithing alone."
                     />
                 </TableBody>
             </Table>
-            <Typography variant="caption" color="text.secondary">Parts are rounded to one decimal place.</Typography>
         </>
     )
 }
