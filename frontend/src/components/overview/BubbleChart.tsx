@@ -1,7 +1,25 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import Box from '@mui/material/Box'
+import IconButton from '@mui/material/IconButton'
+import Paper from '@mui/material/Paper'
+import Popper from '@mui/material/Popper'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableHead from '@mui/material/TableHead'
+import TableRow from '@mui/material/TableRow'
+import Typography from '@mui/material/Typography'
+import { useTheme } from '@mui/material/styles'
+import CloseIcon from '@mui/icons-material/Close'
 import * as d3 from 'd3'
+import ScoreExplanationDialog from './ScoreExplanationDialog.tsx'
 import type { Corps } from '../map/CorpsDetails.tsx'
+
+interface ChangeBreakdown {
+    band: number
+    nominal: number
+    percentage: number
+}
 
 export interface BubblePoint {
     id: string
@@ -9,6 +27,21 @@ export interface BubblePoint {
     growth: number
     sustainability: number
     size: number
+    firstTimeDecisions: number
+    surplusDeficit: number | null
+    missing: string[]
+    breakdown: {
+        growth: {
+            congregationalWorship: ChangeBreakdown
+            firstTimeDecisions: number
+            kidsChurch: ChangeBreakdown | null
+            youthDiscipleship: ChangeBreakdown | null
+        }
+        sustainability: {
+            tithing: ChangeBreakdown
+            surplusDeficit: number | null
+        }
+    }
 }
 
 interface BubblePosition {
@@ -18,26 +51,123 @@ interface BubblePosition {
     data: BubblePoint
 }
 
-type Tooltip = d3.Selection<HTMLDivElement, unknown, HTMLElement, unknown>
-
 // Constant margins
-const margin = { left: 125, right: 20, top: 20, bottom: 30 }
+// The left margin is measured from the y-axis labels instead
+const margin = { right: 20, top: 20, bottom: 50 }
 
-export default function BubbleChart({ year, yearData, pointsByYear, corps, selectedCorps, hideUnselected }: {
+// Space between the y-axis and its labels
+const labelGap = 10
+
+const formatPart = (value: number) => value.toFixed(1)
+const formatChange = (value: number) => `${value < 0 ? '−' : '+'} ${Math.abs(value).toFixed(1)}`
+const dollars = new Intl.NumberFormat('en-NZ', { style: 'currency', currency: 'NZD', maximumFractionDigits: 0 })
+const formatSurplusDeficit = (value: number | null) => {
+    if (value === null) return 'No figure this year'
+    if (value === 0) return 'Broke even'
+    return `${dollars.format(Math.abs(value))} ${value < 0 ? 'deficit' : 'surplus'}`
+}
+
+// Highlights a measure with no figure this year, in the same colour as the corps panel
+const missingSx = { '& td': { color: 'warning.main' } }
+
+const ChangeRow = ({ label, parts, missing = false }: { label: string, parts: ChangeBreakdown, missing?: boolean }) => (
+    <TableRow sx={missing ? missingSx : undefined}>
+        <TableCell>{label}</TableCell>
+        <TableCell align="right">{formatPart(parts.band)}</TableCell>
+        <TableCell align="right">{formatChange(parts.nominal)}</TableCell>
+        <TableCell align="right">{formatChange(parts.percentage)}</TableCell>
+        <TableCell align="right">{formatPart(parts.band + parts.nominal + parts.percentage)}</TableCell>
+    </TableRow>
+)
+
+const NoteRow = ({ label, note, score, missing = false }: { label: string, note: string, score: number | null, missing?: boolean }) => (
+    <TableRow sx={missing ? missingSx : undefined}>
+        <TableCell>{label}</TableCell>
+        <TableCell colSpan={3} sx={{ fontStyle: 'italic' }}>{note}</TableCell>
+        <TableCell align="right">{score === null ? '–' : formatPart(score)}</TableCell>
+    </TableRow>
+)
+
+const TotalRow = ({ label, score }: { label: string, score: number }) => (
+    <TableRow sx={{ '& td': { fontWeight: 'bold', pt: 1 } }}>
+        <TableCell colSpan={4}>{label}</TableCell>
+        <TableCell align="right">{score}</TableCell>
+    </TableRow>
+)
+
+/**
+ * A bubble's growth and sustainability scores, each broken into the parts behind it
+ */
+function ScoreBreakdown({ point, title, labels }: { point: BubblePoint, title: string, labels: Record<string, string> }) {
+    const { growth, sustainability } = point.breakdown
+    const programme = (name: 'kidsChurch' | 'youthDiscipleship') => {
+        const parts = growth[name]
+        const missing = point.missing.includes(name)
+        return parts
+            ? <ChangeRow label={labels[name]} parts={parts} missing={missing} />
+            : <NoteRow label={labels[name]} note="Not recorded either year" score={null} missing={missing} />
+    }
+    return (
+        <>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{title} · {labels.congregationalWorship} of {Math.round(point.size)}</Typography>
+            <Table size="small" sx={{ '& td, & th': { border: 0, py: 0.25, px: 0.75 } }}>
+                <TableHead>
+                    <TableRow>
+                        <TableCell />
+                        <TableCell align="right">Band</TableCell>
+                        <TableCell align="right">Change</TableCell>
+                        <TableCell align="right">% change</TableCell>
+                        <TableCell align="right">Score</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    <TotalRow label="Growth" score={point.growth} />
+                    <ChangeRow label={labels.congregationalWorship} parts={growth.congregationalWorship} />
+                    <NoteRow
+                        label={labels.firstTimeDecisions}
+                        note={`${point.firstTimeDecisions} decision${point.firstTimeDecisions === 1 ? '' : 's'}`}
+                        score={growth.firstTimeDecisions}
+                        missing={point.missing.includes('firstTimeDecisions')}
+                    />
+                    {programme('kidsChurch')}
+                    {programme('youthDiscipleship')}
+                    <TotalRow label="Sustainability" score={point.sustainability} />
+                    <ChangeRow label={labels.tithing} parts={sustainability.tithing} />
+                    <NoteRow
+                        label={labels.surplusDeficit}
+                        note={formatSurplusDeficit(point.surplusDeficit)}
+                        score={sustainability.surplusDeficit}
+                        missing={point.missing.includes('surplusDeficit')}
+                    />
+                </TableBody>
+            </Table>
+            <Typography variant="caption" color="text.secondary">Parts are rounded to one decimal place.</Typography>
+        </>
+    )
+}
+
+export default function BubbleChart({ year, yearData, pointsByYear, corps, selectedCorps, hideUnselected, labels }: {
     year: number | null
     yearData: BubblePoint[] | null
     pointsByYear: Record<number, BubblePoint[]>
     corps: Corps[]
     selectedCorps: string[]
     hideUnselected: boolean
+    labels: Record<string, string>
 }) {
     const svgRef = useRef<SVGSVGElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
-    const tooltipRef = useRef<Tooltip>(null)
+    // The year and selection a tooltip was opened for; changing either redraws the bubbles it may be attached to
+    const view = `${year}|${selectedCorps.join(',')}|${hideUnselected}`
+    const [tooltip, setTooltip] = useState<{ anchor: Element, content: ReactNode, view: string, pinned: boolean } | null>(null)
+    const pinnedRef = useRef<{ anchor: Element, view: string } | null>(null) // Bubble whose tooltip stays open after a click
+    const [explaining, setExplaining] = useState(false)
+    const theme = useTheme()
     const bubbleHistoryRef = useRef<Record<string, BubblePosition[]>>({}) // Store previous positions for selected corps
     const prevYearRef = useRef(year)
     const prevSelectedCorpsRef = useRef(selectedCorps)
     const [dimensions, setDimensions] = useState({ width: 900, height: 600 })
+    const [leftMargin, setLeftMargin] = useState(0)
 
     // Calculate responsive dimensions
     useEffect(() => {
@@ -51,12 +181,42 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
             }
         }
 
-        updateDimensions()
-        window.addEventListener('resize', updateDimensions)
-        return () => window.removeEventListener('resize', updateDimensions)
+        // Observe the container rather than the window: it also shrinks when the year slider below loads
+        const observer = new ResizeObserver(updateDimensions)
+        if (containerRef.current) observer.observe(containerRef.current)
+        return () => observer.disconnect()
     }, [])
 
-    const innerWidth = dimensions.width - margin.left - margin.right
+    // Hovering shows a bubble's tooltip unless another is pinned; clicking pins it until clicked again, elsewhere, or Escape
+    const isPinned = useCallback(() => pinnedRef.current?.view === view, [view])
+    const showTooltip = useCallback((anchor: Element, content: ReactNode) => {
+        if (!isPinned()) setTooltip({ anchor, content, view, pinned: false })
+    }, [isPinned, view])
+    const hideTooltip = useCallback(() => {
+        if (!isPinned()) setTooltip(null)
+    }, [isPinned])
+    const unpinTooltip = useCallback(() => {
+        pinnedRef.current = null
+        setTooltip(null)
+    }, [])
+    const togglePinnedTooltip = useCallback((anchor: Element, content: ReactNode) => {
+        if (isPinned() && pinnedRef.current?.anchor === anchor) {
+            unpinTooltip()
+            return
+        }
+        pinnedRef.current = { anchor, view }
+        setTooltip({ anchor, content, view, pinned: true })
+    }, [isPinned, unpinTooltip, view])
+
+    useEffect(() => {
+        const unpinOnEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') unpinTooltip()
+        }
+        document.addEventListener('keydown', unpinOnEscape)
+        return () => document.removeEventListener('keydown', unpinOnEscape)
+    }, [unpinTooltip])
+
+    const innerWidth = dimensions.width - leftMargin - margin.right
     const innerHeight = dimensions.height - margin.top - margin.bottom
 
     const xScale = useMemo(() => d3.scaleLinear().domain([0, 100]).range([0, innerWidth]), [innerWidth])
@@ -74,9 +234,14 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
 
         svg.selectAll('.plot-area').remove()
 
+        // Clicking anywhere but a bubble closes a pinned tooltip
+        svg.on('click', (event: MouseEvent) => {
+            if (!(event.target instanceof Element && event.target.closest('.current-bubble, .historical-bubble'))) unpinTooltip()
+        })
+
         const plot = svg.append('g')
             .attr('class', 'plot-area')
-            .attr('transform', `translate(${margin.left}, ${margin.top})`)
+            .attr('transform', `translate(${leftMargin}, ${margin.top})`)
 
         // Add bottom X axis (line only)
         plot.append('line')
@@ -130,18 +295,85 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
 
         // Y-axis: "Sustainable" and "Unsustainable"
         plot.append('text')
-            .attr('x', -10) // Position relative to the plot area (not the scaled position)
+            .attr('class', 'y-label')
+            .attr('x', -labelGap) // Position relative to the plot area (not the scaled position)
             .attr('y', yScale(100))
             .attr('text-anchor', 'end')
             .attr('alignment-baseline', 'text-top')
             .text('Sustainable')
 
         plot.append('text')
-            .attr('x', -10) // Position relative to the plot area (not the scaled position)
+            .attr('class', 'y-label')
+            .attr('x', -labelGap) // Position relative to the plot area (not the scaled position)
             .attr('y', yScale(0))
             .attr('text-anchor', 'end')
             .attr('alignment-baseline', 'text-bottom')
             .text('Unsustainable')
+
+        // Axis titles
+        plot.append('text')
+            .attr('x', xScale(50))
+            .attr('y', yScale(0) + 42)
+            .attr('text-anchor', 'middle')
+            .attr('font-weight', 'bold')
+            .text('Growth')
+
+        plot.append('text')
+            .attr('class', 'y-label')
+            .attr('x', -labelGap)
+            .attr('y', yScale(50))
+            .attr('text-anchor', 'end')
+            .attr('alignment-baseline', 'middle')
+            .attr('font-weight', 'bold')
+            .text('Sustainability')
+
+        // Info icon in the top right corner, opening the explanation of how the scores are calculated
+        const infoIcon = plot.append('text')
+            .attr('x', xScale(100) - 10)
+            .attr('y', yScale(100))
+            .attr('text-anchor', 'end')
+            .attr('dominant-baseline', 'hanging')
+            .attr('font-size', 20)
+            .attr('fill', theme.palette.primary.main)
+            .attr('role', 'button')
+            .attr('aria-label', 'How the scores are calculated')
+            .style('cursor', 'pointer')
+            .on('click', () => setExplaining(true))
+            .text('ⓘ')
+
+        // Widen the left margin to fit the widest y-axis label, redrawing with the new margin
+        const widestLabel = d3.max(plot.selectAll<SVGTextElement, unknown>('.y-label').nodes(), node => node.getBBox().width) ?? 0
+        const neededMargin = Math.ceil(widestLabel) + 2 * labelGap
+        if (neededMargin !== leftMargin) setLeftMargin(neededMargin)
+
+        // Size legend below the info icon: nested circles at reference worship sizes below the scale's maximum
+        const legendSizes = radiusScale.ticks(5).filter(s => s > 0 && s < radiusScale.domain()[1])
+        const legendRadius = radiusScale(legendSizes[legendSizes.length - 1] ?? 0)
+        const legendTitleY = yScale(100) + (infoIcon.node()?.getBBox().height ?? 0) + 14
+        const legendX = xScale(100) - 10 - legendRadius
+        const legendBase = legendTitleY + 8 + 2 * legendRadius
+        plot.append('text')
+            .attr('x', xScale(100) - 10)
+            .attr('y', legendTitleY)
+            .attr('text-anchor', 'end')
+            .attr('font-size', 12)
+            .text('Scale: Congregational Worship')
+        for (const size of legendSizes) {
+            const radius = radiusScale(size)
+            plot.append('circle')
+                .attr('cx', legendX)
+                .attr('cy', legendBase - radius)
+                .attr('r', radius)
+                .attr('fill', 'none')
+                .attr('stroke', 'grey')
+            plot.append('text')
+                .attr('x', legendX)
+                .attr('y', legendBase - 2 * radius + 11)
+                .attr('text-anchor', 'middle')
+                .attr('font-size', 10)
+                .attr('fill', 'grey')
+                .text(size)
+        }
 
         // Add year text container
         plot.append('text')
@@ -155,21 +387,7 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
             .attr('opacity', '10%')
             .style('user-select', 'none')
 
-        // Add tooltip
-        const tooltip = d3.select("body").append("div")
-            .attr("class", "tooltip")
-            .style("opacity", 0)
-            .style("position", "absolute")
-            .style("background-color", "white")
-            .style("border", "1px solid #ccc")
-            .style("padding", "8px")
-            .style("border-radius", "4px")
-            .style("pointer-events", "none")
-
-        // Store tooltip reference
-        tooltipRef.current = tooltip
-
-    }, [dimensions.width, dimensions.height, xScale, yScale]) // Re-run when dimensions change
+    }, [dimensions.width, dimensions.height, leftMargin, xScale, yScale, radiusScale, theme, unpinTooltip]) // Re-run when dimensions change
 
     // Update year text, including after the plot is redrawn
     useEffect(() => {
@@ -330,6 +548,7 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
                         y: yScale(corpsData.sustainability),
                         data: corpsData
                     }
+                    const breakdown = <ScoreBreakdown point={position.data} title={`${position.data.name} (${position.year})`} labels={labels} />
 
                     // Draw the bubble
                     plot.append('circle')
@@ -342,31 +561,23 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
                         .attr('stroke', 'black')
                         .attr('stroke-width', 1.5)
                         .attr('opacity', 0.6)
-                        .on('mouseover', function(event: MouseEvent) {
-                            const tooltip = tooltipRef.current
-
+                        .style('cursor', 'pointer')
+                        .on('mouseover', function() {
                             d3.select(this)
                                 .attr('stroke-width', 3)
                                 .attr('opacity', 0.8)
 
-                            tooltip?.transition()
-                                .duration(200)
-                                .style("opacity", .9)
-
-                            tooltip?.html(`<strong>${position.data.name} (${position.year})</strong><br/>Size: ${position.data.size}<br/>Growth: ${position.data.growth}<br/>Sustainability: ${position.data.sustainability}`)
-                                .style("left", (event.pageX + 10) + "px")
-                                .style("top", (event.pageY - 28) + "px")
+                            showTooltip(this, breakdown)
                         })
                         .on('mouseout', function() {
-                            const tooltip = tooltipRef.current
-
                             d3.select(this)
                                 .attr('stroke-width', 1.5)
                                 .attr('opacity', 0.6)
 
-                            tooltip?.transition()
-                                .duration(500)
-                                .style("opacity", 0)
+                            hideTooltip()
+                        })
+                        .on('click', function() {
+                            togglePinnedTooltip(this, breakdown)
                         })
                 }
             }
@@ -374,7 +585,7 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
 
         drawHistoricalBubbles()
 
-    }, [year, yearData, pointsByYear, corps, selectedCorps, xScale, yScale, radiusScale])
+    }, [year, yearData, pointsByYear, corps, selectedCorps, xScale, yScale, radiusScale, labels, showTooltip, hideTooltip, togglePinnedTooltip])
 
     // Handle selectedCorps changes
     useEffect(() => {
@@ -467,7 +678,6 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
         if (!yearData || yearData.length === 0) return
 
         const plot = d3.select(svgRef.current).select<SVGGElement>('.plot-area')
-        const tooltip = tooltipRef.current
 
         const allCorpsIds = corps?.map(c => c.id) || []
         let filteredData = yearData.filter(d => allCorpsIds.includes(d.id))
@@ -491,6 +701,12 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
         const colourScale = d3.scaleOrdinal<string, string>()
             .domain(corps.map(c => c.id))
             .range(d3.schemeTableau10)
+
+        // Tooltip content, showing the year when the corps is selected (similar to historical bubbles)
+        const currentBreakdown = (d: BubblePoint) => {
+            const showYear = selectedCorps && selectedCorps.length > 0 && selectedCorps.includes(d.id)
+            return <ScoreBreakdown point={d} title={showYear ? `${d.name} (${year})` : d.name} labels={labels} />
+        }
 
         // DATA JOIN for current year bubbles
         const circles = plot.selectAll<SVGCircleElement, BubblePoint>('.current-bubble')
@@ -517,7 +733,7 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
                 }
                 return 1
             })
-            .on('mouseover', function(event: MouseEvent, d) {
+            .on('mouseover', function(_event: MouseEvent, d) {
                 // Only show hover effects on selected corps when corps are selected
                 if (selectedCorps && selectedCorps.length > 0 && !selectedCorps.includes(d.id)) {
                     return
@@ -526,16 +742,7 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
                 d3.select(this)
                     .attr('stroke-width', 3)
 
-                tooltip?.transition()
-                    .duration(200)
-                    .style("opacity", .9)
-
-                // Show year in tooltip if corps is selected (similar to historical bubbles)
-                const showYear = selectedCorps && selectedCorps.length > 0 && selectedCorps.includes(d.id)
-                const nameWithYear = showYear ? `${d.name} (${year})` : d.name
-                tooltip?.html(`<strong>${nameWithYear}</strong><br/>Size: ${d.size}<br/>Growth: ${d.growth}<br/>Sustainability: ${d.sustainability}`)
-                    .style("left", (event.pageX + 10) + "px")
-                    .style("top", (event.pageY - 28) + "px")
+                showTooltip(this, currentBreakdown(d))
             })
             .on('mouseout', function(_event: MouseEvent, d) {
                 // Only show hover effects on selected corps when corps are selected
@@ -546,10 +753,12 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
                 d3.select(this)
                     .attr('stroke-width', 1.5)
 
-                tooltip?.transition()
-                    .duration(500)
-                    .style("opacity", 0)
+                hideTooltip()
             })
+            .on('click', function(_event: MouseEvent, d) {
+                togglePinnedTooltip(this, currentBreakdown(d))
+            })
+            .style('cursor', 'pointer')
             .style('pointer-events', d => {
                 // When corps are selected, only selected corps should capture mouse events
                 if (selectedCorps && selectedCorps.length > 0) {
@@ -558,7 +767,7 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
                 return 'all'
             })
 
-    }, [year, corps, yearData, selectedCorps, hideUnselected, xScale, yScale, radiusScale])
+    }, [year, corps, yearData, selectedCorps, hideUnselected, xScale, yScale, radiusScale, labels, showTooltip, hideTooltip, togglePinnedTooltip])
 
     return (
         <Box
@@ -572,6 +781,22 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
             }}
         >
             <svg ref={svgRef}/>
+            <Popper
+                open={tooltip !== null && tooltip.view === view}
+                anchorEl={tooltip?.anchor}
+                placement="right-start"
+                sx={{ pointerEvents: tooltip?.pinned ? 'auto' : 'none', zIndex: 'tooltip' }}
+            >
+                <Paper elevation={4} sx={{ p: 1.5, m: 1, position: 'relative' }}>
+                    {tooltip?.pinned && (
+                        <IconButton aria-label="Close" size="small" onClick={unpinTooltip} sx={{ position: 'absolute', top: 2, right: 2 }}>
+                            <CloseIcon fontSize="small" />
+                        </IconButton>
+                    )}
+                    {tooltip?.content}
+                </Paper>
+            </Popper>
+            <ScoreExplanationDialog open={explaining} onClose={() => setExplaining(false)} />
         </Box>
     )
 }

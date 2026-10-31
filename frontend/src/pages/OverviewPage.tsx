@@ -10,7 +10,13 @@ interface ScoredSnapshot {
     id: string
     name: string
     year: number
-    scores: Omit<BubblePoint, 'id' | 'name'>
+    metrics: {
+        firstTimeDecisions: { currentYear: number | null }
+        kidsChurch: { currentYear: number | null }
+        youthDiscipleship: { currentYear: number | null }
+        surplusDeficit: number | null
+    }
+    scores: Omit<BubblePoint, 'id' | 'name' | 'firstTimeDecisions' | 'surplusDeficit' | 'missing'>
 }
 
 export default function OverviewPage() {
@@ -20,6 +26,7 @@ export default function OverviewPage() {
     const [selectedCorps, setSelectedCorps] = useState<string[]>([])
     const [corps, setCorps] = useState<Corps[]>([])
     const [hideUnselected, setHideUnselected] = useState(false)
+    const [labels, setLabels] = useState<Record<string, string>>({})
 
     useEffect(() => {
         const fetchBubbleData = async () => {
@@ -31,16 +38,32 @@ export default function OverviewPage() {
                 if (!catalogueResponse.ok || !snapshotsResponse.ok) {
                     return
                 }
-                const catalogue: { snapshots: { scoredYears: number[] } } = await catalogueResponse.json()
+                const catalogue: { metrics: { name: string, label: string }[], snapshots: { scoredYears: number[] } } = await catalogueResponse.json()
                 const snapshots: ScoredSnapshot[] = await snapshotsResponse.json()
 
                 const byYear: Record<number, BubblePoint[]> = {}
                 snapshots.forEach(snapshot => {
+                    const { firstTimeDecisions, kidsChurch, youthDiscipleship, surplusDeficit } = snapshot.metrics
+                    // Measures with no figure for this year
+                    const missing = Object.entries({
+                        firstTimeDecisions: firstTimeDecisions.currentYear,
+                        kidsChurch: kidsChurch.currentYear,
+                        youthDiscipleship: youthDiscipleship.currentYear,
+                        surplusDeficit
+                    }).flatMap(([name, value]) => value === null ? [name] : [])
                     byYear[snapshot.year] ??= []
-                    byYear[snapshot.year].push({ id: snapshot.id, name: snapshot.name, ...snapshot.scores })
+                    byYear[snapshot.year].push({
+                        id: snapshot.id,
+                        name: snapshot.name,
+                        firstTimeDecisions: firstTimeDecisions.currentYear ?? 0,
+                        surplusDeficit,
+                        missing,
+                        ...snapshot.scores
+                    })
                 })
 
                 const scoredYears = catalogue.snapshots.scoredYears
+                setLabels(Object.fromEntries(catalogue.metrics.map(m => [m.name, m.label])))
                 setPointsByYear(byYear)
                 setYears(scoredYears)
                 setYear(scoredYears[scoredYears.length - 1] ?? null)
@@ -84,6 +107,7 @@ export default function OverviewPage() {
                         corps={corps}
                         selectedCorps={selectedCorps}
                         hideUnselected={hideUnselected}
+                        labels={labels}
                     />
                 </Box>
                 
