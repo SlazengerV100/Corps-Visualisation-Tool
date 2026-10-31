@@ -155,10 +155,12 @@ export class CorpsInsights {
                 if (tithing && financeYears.has(year - 1) && worship.currentYear !== null && worship.prevYear !== null && worship.prevYear !== 0) {
                     const growth = calculateGrowth(snapshot.metrics)
                     if (growth !== null) {
+                        const sustainability = calculateSustainability({ tithing, surplusDeficit: snapshot.metrics.surplusDeficit }, worship.currentYear)
                         snapshot.scores = {
-                            growth,
-                            sustainability: calculateSustainability({ tithing, surplusDeficit: snapshot.metrics.surplusDeficit }, worship.currentYear),
-                            size: worship.currentYear
+                            growth: growth.score,
+                            sustainability: sustainability.score,
+                            size: worship.currentYear,
+                            breakdown: { growth: growth.breakdown, sustainability: sustainability.breakdown }
                         }
                     }
                 }

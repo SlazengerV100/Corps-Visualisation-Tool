@@ -152,6 +152,8 @@ describe('CorpsInsights', () => {
                 kidsChurch: { currentYear: null, prevYear: 10 },
                 youthDiscipleship: { currentYear: 6, prevYear: 5 }
             }
+            const growth = calculateGrowth(missionIndicators)
+            const sustainability = calculateSustainability({ tithing, surplusDeficit: 0 }, 110)
             expect(insights.snapshots({ year: 2024 }).find(s => s.id === alpha.id)).toEqual({
                 ...alpha,
                 year: 2024,
@@ -162,9 +164,10 @@ describe('CorpsInsights', () => {
                     population: 1200
                 },
                 scores: {
-                    growth: calculateGrowth(missionIndicators),
-                    sustainability: calculateSustainability({ tithing, surplusDeficit: 0 }, 110),
-                    size: 110
+                    growth: growth?.score,
+                    sustainability: sustainability.score,
+                    size: 110,
+                    breakdown: { growth: growth?.breakdown, sustainability: sustainability.breakdown }
                 }
             })
         })
