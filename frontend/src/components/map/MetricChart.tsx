@@ -1,14 +1,25 @@
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import type { ChartPoint, TimeRange } from './CorpsDetails.tsx';
+import type { ChartPoint, TimeRange, Unit } from './CorpsDetails.tsx';
+
+const count = new Intl.NumberFormat('en-NZ', { maximumFractionDigits: 1 });
+const dollars = new Intl.NumberFormat('en-NZ', { style: 'currency', currency: 'NZD', maximumFractionDigits: 0 });
+
+// The y-axis title, tick labels and tooltip figure for each unit
+const unitFormats: Record<Unit, { title: string, tick: (value: d3.NumberValue) => string, figure: (value: number) => string }> = {
+  people: { title: 'People', tick: d3.format(','), figure: value => `${count.format(value)} people` },
+  decisions: { title: 'Decisions', tick: d3.format(','), figure: value => `${count.format(value)} decisions` },
+  dollars: { title: 'Dollars', tick: d3.format('$~s'), figure: value => dollars.format(value) },
+};
 
 /**
  * Line chart of a metric across a fixed span of financial years, leaving out the years or months with no figure
  */
-const MetricChart = ({ data, timeRange, selectedMetric, firstYear, lastYear, height = 300 }: {
+const MetricChart = ({ data, timeRange, selectedMetric, unit, firstYear, lastYear, height = 300 }: {
   data: ChartPoint[]
   timeRange: TimeRange
   selectedMetric: string
+  unit: Unit
   firstYear: number
   lastYear: number
   height?: number
@@ -28,7 +39,8 @@ const MetricChart = ({ data, timeRange, selectedMetric, firstYear, lastYear, hei
         .attr('height', height);
 
     // Set margins
-    const margin = { top: 20, right: 30, bottom: 40, left: 40 };
+    const margin = { top: 20, right: 30, bottom: 40, left: 70 };
+    const format = unitFormats[unit];
     const innerWidth = svgElement.getBoundingClientRect().width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
@@ -127,8 +139,20 @@ const MetricChart = ({ data, timeRange, selectedMetric, firstYear, lastYear, hei
     // Add y-axis
     g.append('g')
       .call(d3.axisLeft(y)
-        .tickSize(0))
+        .tickSize(0)
+        .tickFormat(format.tick))
       .call(axis => axis.select('.domain').attr('stroke-opacity', 0.2));
+
+    // Name the y-axis's unit, centred alongside it
+    g.append('text')
+      .attr('transform', 'rotate(-90)')
+      .attr('x', -innerHeight / 2)
+      .attr('y', -margin.left)
+      .attr('dy', '1em')
+      .attr('text-anchor', 'middle')
+      .attr('font-size', 12)
+      .attr('font-weight', 'bold')
+      .text(format.title);
 
     // Create a custom line that changes from solid to dotted at the first projected point
     const futureStartIndex = data.findIndex(d => d.isProjected);
@@ -216,7 +240,7 @@ const MetricChart = ({ data, timeRange, selectedMetric, firstYear, lastYear, hei
         .attr('fill', '#8884d8');
     })
     .on('mouseover', (event: MouseEvent, d) => {
-      const metricTextValue = selectedMetric === 'firstTimeDecisions' ? floored(d) : floored(d).toFixed(2)
+      const metricTextValue = `${format.figure(floored(d))}${d.isProjected ? ' (projected)' : ''}`
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const tooltipTextContent = isMonthlyData
@@ -318,7 +342,7 @@ const MetricChart = ({ data, timeRange, selectedMetric, firstYear, lastYear, hei
     return () => {
       d3.select('body').selectAll('.tooltip').remove();
     };
-  }, [data, timeRange, selectedMetric, firstYear, lastYear, height]);
+  }, [data, timeRange, selectedMetric, unit, firstYear, lastYear, height]);
 
   if (!data || data.length === 0) return <p>No data available for this metric in the selected time period.</p>
 

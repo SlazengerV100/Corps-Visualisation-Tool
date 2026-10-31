@@ -27,9 +27,12 @@ export interface Corps {
   lng: number
 }
 
+export type Unit = 'people' | 'decisions' | 'dollars'
+
 interface MetricDefinition {
   name: string
   label: string
+  unit: Unit
   granularities: ('year' | 'month')[]
   years: number[]
 }
@@ -278,19 +281,25 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
       </ToggleButtonGroup>
 
       <Box sx={{ height: 300, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {isLoading || firstYear === undefined || lastYear === undefined ? (
+        {isLoading || !definition || firstYear === undefined || lastYear === undefined ? (
           <CircularProgress />
         ) : (
           <MetricChart
             data={metricData}
             timeRange={effectiveRange}
             selectedMetric={selectedMetric}
+            unit={definition.unit}
             firstYear={firstYear}
             lastYear={lastYear}
             height={300}
           />
         )}
       </Box>
+      {effectiveRange === 'future' && (
+        <Typography variant="caption" color="text.secondary">
+          The dotted line projects the next five years by continuing the average yearly change over the last five. It is a trend, not a forecast.
+        </Typography>
+      )}
     </Paper>
   );
 };
