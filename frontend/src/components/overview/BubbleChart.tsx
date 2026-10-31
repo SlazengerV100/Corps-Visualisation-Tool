@@ -14,6 +14,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import * as d3 from 'd3'
 import ScoreExplanationDialog from './ScoreExplanationDialog.tsx'
 import HoverTooltip from '../common/HoverTooltip.tsx'
+import { gapColours, type FigureGap } from '../common/figureGaps.ts'
 import type { Corps } from '../map/CorpsDetails.tsx'
 
 interface ChangeBreakdown {
@@ -21,8 +22,6 @@ interface ChangeBreakdown {
     nominal: number
     percentage: number
 }
-
-export type FigureGap = 'thisYear' | 'lastYear'
 
 export interface BubblePoint {
     id: string
@@ -70,8 +69,6 @@ const formatSurplusDeficit = (value: number | null) => {
     return `${dollars.format(Math.abs(value))} ${value < 0 ? 'deficit' : 'surplus'}`
 }
 
-// Red for a measure with no figure this year, yellow (as in the corps panel) for one with no figure last year
-const gapColours: Record<FigureGap, string> = { thisYear: 'error.main', lastYear: 'warning.main' }
 // A coloured row explains on hover how its missing figure was scored
 const GapRow = ({ gap, why, children }: { gap?: FigureGap, why?: string, children: ReactNode }) => {
     if (!gap) return <TableRow>{children}</TableRow>
