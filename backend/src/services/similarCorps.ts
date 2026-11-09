@@ -104,15 +104,15 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
         return points
     }
 
+    // Only a window followed by worship in each of as many years as it covers shows what followed for the whole projection; this also keeps a corps' own from overlapping its latest
+    const followedThrough = windows.filter(w => Array.from({ length: windowYears }, (_, i) => w.end + 1 + i).every(year => worship.get(w.id)?.has(year)))
+
     const projections = new Map<string, Projection>()
     for (const target of windows.filter(w => w.end === latestYear.get(w.id))) {
         const region = corps.get(target.id)?.region ?? null
-        const latestStart = target.end - windowYears + 1
-        // Only an earlier window with a later year, from a corps in the same region, shows what followed; the corps' own must not overlap its latest
-        const candidates = region === null ? [] : windows.filter(candidate =>
-            candidate.end < (candidate.id === target.id ? latestStart : target.end)
-            && candidate.end !== latestYear.get(candidate.id)
-            && corps.get(candidate.id)?.region === region
+        // An earlier window from a corps in the same region
+        const candidates = region === null ? [] : followedThrough.filter(candidate =>
+            candidate.end < target.end && corps.get(candidate.id)?.region === region
         )
 
         // Across all metrics, worship guarantees a full window of shared figures; on one metric alone, both windows need it in every year

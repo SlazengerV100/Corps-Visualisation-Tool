@@ -144,6 +144,15 @@ describe('projectFromSimilarCorps', () => {
         expect(projections.get('taupo')?.matches.find(m => m.id === 'taupo')?.year).toBe(2022)
     })
 
+    test('should match only windows followed by worship in as many years as they cover', () => {
+        // Whanganui's latest years but one mirror Johnsonville's, with a single year after them
+        const whanganui = { congregationalWorship: run(2022, [50, 60, 70, 140]), tithing: run(2022, [10000, 12000, 14000, 28000]) }
+        const others = new Map([...names, ['whanganui', { name: 'whanganui Corps', region: 'New Zealand' }]])
+        const matched = projectFromSimilarCorps(yearlyByMetric({ ...history, whanganui }), others, 3).get('johnsonville')
+        expect(matched?.matches.map(m => m.id)).not.toContain('whanganui')
+        expect(matched?.metrics.congregationalWorship.matches.map(m => m.id)).not.toContain('whanganui')
+    })
+
     test('should keep at most three matches', () => {
         const withAnotherMatch = { ...history, wellington: { ...history.hamilton } }
         const matches = projectFromSimilarCorps(yearlyByMetric(withAnotherMatch), names, 3).get('johnsonville')?.matches
