@@ -136,19 +136,24 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
   const [metrics, setMetrics] = useState<MetricDefinition[]>([])
   const [windowOptions, setWindowOptions] = useState<number[]>([])
   const [windowYears, setWindowYears] = useState<number | null>(null)
-  const [loadedProjection, setLoadedProjection] = useState<{ corpsId: string, window: number, projection: Projection | null } | null>(null)
-  // Undefined while this corps' projection over the chosen window loads, null when the corps can't be matched
-  const projection = loadedProjection?.corpsId === corps.id && loadedProjection.window === windowYears ? loadedProjection.projection : undefined
+  const [overallWindow, setOverallWindow] = useState<number | null>(null)
+  // Projections by corps and window, null when the corps can't be matched over that window
+  const [projections, setProjections] = useState<Record<string, Projection | null>>({})
+  const projectionKey = (window: number | null) => `${corps.id}:${window}`
+  // Undefined while loading
+  const projection = projectionKey(windowYears) in projections ? projections[projectionKey(windowYears)] : undefined
+  const overall = projectionKey(overallWindow) in projections ? projections[projectionKey(overallWindow)] : undefined
 
   useEffect(() => {
     const fetchCatalogue = async () => {
       try {
         const response = await fetch('/api/catalogue')
         if (response.ok) {
-          const catalogue: { metrics: MetricDefinition[], projection: { windows: number[], defaultWindow: number } } = await response.json()
+          const catalogue: { metrics: MetricDefinition[], projection: { windows: number[], defaultWindow: number, overallWindow: number } } = await response.json()
           setMetrics(catalogue.metrics)
           setWindowOptions(catalogue.projection.windows)
           setWindowYears(catalogue.projection.defaultWindow)
+          setOverallWindow(catalogue.projection.overallWindow)
         }
       } catch {
         console.error('Failed to fetch the metric catalogue')
@@ -246,21 +251,24 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
     void fetchMetricData(effectiveRange)
   }, [corps, effectiveRange, selectedMetric, latestYear, firstYear])
 
+  // The overall similar corps' window and the slider's, once each
   useEffect(() => {
-    if (windowYears === null) return
-    const fetchProjection = async () => {
+    const fetchProjection = async (window: number) => {
+      const key = `${corps.id}:${window}`
       try {
-        const response = await fetch(`/api/corps/${corps.id}/projection?window=${windowYears}`)
+        const response = await fetch(`/api/corps/${corps.id}/projection?window=${window}`)
         const data: Projection | null = response.ok ? await response.json() : null
-        setLoadedProjection({ corpsId: corps.id, window: windowYears, projection: data })
+        setProjections(loaded => ({ ...loaded, [key]: data }))
       } catch {
-        console.error(`Failed to fetch the projection`)
-        setLoadedProjection({ corpsId: corps.id, window: windowYears, projection: null })
+        console.error(`Failed to fetch the ${window}-year projection`)
+        setProjections(loaded => ({ ...loaded, [key]: null }))
       }
     }
 
-    void fetchProjection()
-  }, [corps, windowYears])
+    for (const window of new Set([overallWindow, windowYears])) {
+      if (window !== null) void fetchProjection(window)
+    }
+  }, [corps, overallWindow, windowYears])
 
   const projected = useMemo(
     () => effectiveRange === 'future' ? projectedPoints(projection, selectedMetric) : [],
@@ -308,35 +316,24 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
         Similar Corps
       </Typography>
 
-      {windowYears !== null && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" gutterBottom>
-            Compare the last {windowYears} years and project {windowYears} years ahead
-          </Typography>
-          <Slider
-            value={windowYears}
-            min={windowOptions[0]}
-            max={windowOptions[windowOptions.length - 1]}
-            step={null}
-            marks={windowOptions.map(value => ({ value, label: `${value}Y` }))}
-            onChange={(_, value) => { if (typeof value === 'number') setWindowYears(value) }}
-            sx={{ mx: 1, width: 'calc(100% - 16px)' }}
-          />
-        </Box>
+      {overallWindow !== null && (
+        <Typography variant="body2" color="text.secondary" gutterBottom>
+          Matched on every metric over the last {overallWindow} years
+        </Typography>
       )}
 
-      {projection === undefined ? (
+      {overall === undefined ? (
         <CircularProgress size={24} />
-      ) : !projection ? (
+      ) : !overall ? (
         <Typography variant="body2" color="text.secondary">
-          This corps is missing a worship figure in one of its last {windowYears} years, so it can't be matched.
+          This corps is missing a worship figure in one of its last {overallWindow} years, so it can't be matched.
         </Typography>
-      ) : projection.matches.length === 0 ? (
+      ) : overall.matches.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
           No corps was ever in a position close enough to this one's.
         </Typography>
       ) : (
-        <SimilarCorpsList matches={projection.matches} window={projection.window} />
+        <SimilarCorpsList matches={overall.matches} window={overall.window} />
       )}
 
       <Divider sx={{ my: 2 }} />
@@ -360,13 +357,36 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
         </Select>
       </FormControl>
 
-      {projection && (
+      {projectable && windowYears !== null && (
         <Box sx={{ mb: 2 }}>
-          {!(selectedMetric in projection.metrics) ? (
-            <Typography variant="body2" color="text.secondary">
-              {definition?.label ?? 'This metric'} helps find similar corps but isn't matched or projected on its own.
-            </Typography>
-          ) : metricMatches.length === 0 ? (
+          <Typography variant="body2" gutterBottom>
+            Match on the last {windowYears} years and project {windowYears} years ahead
+          </Typography>
+          <Slider
+            value={windowYears}
+            min={windowOptions[0]}
+            max={windowOptions[windowOptions.length - 1]}
+            step={null}
+            marks={windowOptions.map(value => ({ value, label: `${value}Y` }))}
+            onChange={(_, value) => { if (typeof value === 'number') setWindowYears(value) }}
+            sx={{ mx: 1, width: 'calc(100% - 16px)' }}
+          />
+        </Box>
+      )}
+
+      {!projectable ? (
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          {definition?.label ?? 'This metric'} helps find similar corps but isn't matched or projected on its own.
+        </Typography>
+      ) : projection === undefined ? (
+        <CircularProgress size={24} sx={{ mb: 2 }} />
+      ) : !projection ? (
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          This corps is missing a worship figure in one of its last {windowYears} years, so it can't be matched.
+        </Typography>
+      ) : (
+        <Box sx={{ mb: 2 }}>
+          {metricMatches.length === 0 ? (
             <Typography variant="body2" color="text.secondary">
               {definition?.label ?? 'This metric'} needs a figure in every recent year, for this corps and a similar one, to be matched.
             </Typography>
