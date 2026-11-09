@@ -54,6 +54,7 @@ export default function OverviewPage() {
     const [selectedCorps, setSelectedCorps] = useState<string[]>([])
     const [corps, setCorps] = useState<Corps[]>([])
     const [hideUnselected, setHideUnselected] = useState(false)
+    const [showTrails, setShowTrails] = useState(true)
     const [labels, setLabels] = useState<Record<string, string>>({})
     const [statusesByYear, setStatusesByYear] = useState<Record<number, Record<string, CorpsStatus>>>({})
 
@@ -151,6 +152,7 @@ export default function OverviewPage() {
                         corps={corps}
                         selectedCorps={selectedCorps}
                         hideUnselected={hideUnselected}
+                        showTrails={showTrails}
                         labels={labels}
                     />
                 </Box>
@@ -194,6 +196,8 @@ export default function OverviewPage() {
                     <TogglePanel 
                         hideUnselected={hideUnselected}
                         setHideUnselected={setHideUnselected}
+                        showTrails={showTrails}
+                        setShowTrails={setShowTrails}
                         selectedCorps={selectedCorps}
                     />
                 </Box>
