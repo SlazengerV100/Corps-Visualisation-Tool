@@ -83,6 +83,7 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
                     key={corps.id}
                     position={positionOf(corps)}
                     icon={iconOf(corps)}
+                    zIndexOffset={iconOf(corps) === closedIcon ? -1000 : 0}
                     eventHandlers={{
                         click: (e) => {
                             onCorpsSelect(corps)
