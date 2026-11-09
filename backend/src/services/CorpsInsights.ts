@@ -130,13 +130,13 @@ export class CorpsInsights {
             }]
         }))
 
-        const yearlyByMetric = new Map([...this.metrics.values()].map(m => [m.definition.name, m.yearlyByCorps]))
-        const names = new Map([...mission.corps(), ...finance.corps()].map(c => [c.id, c.name]))
-        this.projectionsByWindow = new Map(windowYearOptions.map(window => [window, projectFromSimilarCorps(yearlyByMetric, names, window)]))
-
         const financeYears = new Set(finance.years())
 
         const regionById = new Map(directory.all().map(c => [c.id, regionOf(c.country)]))
+
+        const yearlyByMetric = new Map([...this.metrics.values()].map(m => [m.definition.name, m.yearlyByCorps]))
+        const projectedCorps = new Map([...mission.corps(), ...finance.corps()].map(c => [c.id, { name: c.name, region: regionById.get(c.id) ?? null }]))
+        this.projectionsByWindow = new Map(windowYearOptions.map(window => [window, projectFromSimilarCorps(yearlyByMetric, projectedCorps, window)]))
 
         this.snapshotsByYear = new Map()
         for (const year of mission.years()) {

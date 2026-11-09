@@ -51,10 +51,21 @@ const history: Record<string, History> = {
     auckland: {
         congregationalWorship: run(2014, [500, 520, 540, 540, 540]),
         tithing: run(2014, [200000, 210000, 220000, 220000, 220000])
+    },
+    // Labasa's history matches Hamilton's exactly, but in the Pacific
+    labasa: {
+        congregationalWorship: run(2013, [50, 60, 70, ...repeat(140, 5)]),
+        tithing: run(2013, [10000, 12000, 14000, ...repeat(28000, 5)])
+    },
+    suva: {
+        congregationalWorship: run(2023, [50, 60, 70]),
+        tithing: run(2023, [10000, 12000, 14000])
     }
 }
 
-const names = new Map(Object.keys(history).map(id => [id, `${id} Corps`]))
+const pacific = new Set(['labasa', 'suva'])
+
+const names = new Map([...Object.keys(history), 'wellington'].map(id => [id, { name: `${id} Corps`, region: pacific.has(id) ? 'Pacific' : 'New Zealand' }]))
 
 describe('projectFromSimilarCorps', () => {
     const projection = projectFromSimilarCorps(yearlyByMetric(history), names, 3).get('johnsonville')
@@ -84,6 +95,11 @@ describe('projectFromSimilarCorps', () => {
         // Only Napier has youth figures after its window, Hamilton's are blank, and one figure gives no margin for error
         expect(projection?.metrics.youthDiscipleship).toEqual([])
         expect(projection?.metrics.firstTimeDecisions).toEqual([])
+    })
+
+    test('should match only corps in the same region', () => {
+        expect(projection?.matches.map(m => m.id)).not.toContain('labasa')
+        expect(projectFromSimilarCorps(yearlyByMetric(history), names, 3).get('suva')?.matches.map(m => m.id)).toEqual(['labasa'])
     })
 
     test('should keep at most three matches', () => {

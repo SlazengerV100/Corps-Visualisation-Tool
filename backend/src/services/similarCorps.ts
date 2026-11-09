@@ -27,11 +27,11 @@ interface WeightedMatch extends Window {
 /**
  * Match each corps' latest window of years to the closest earlier windows of other corps, and project every metric by what followed them.
  * @param yearlyByMetric - Each metric's yearly figures by centre code
- * @param names - Corps names by centre code
+ * @param corps - Each corps' name and region by centre code; a corps only matches others in its own region
  * @param windowYears - How many years a window covers, ending in the corps' latest year of worship
  * @returns A projection for each corps with worship in every year of its latest window, with no points when nothing matched closely enough
  */
-export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<string, YearlyPoint[]>>, names: Map<string, string>, windowYears: number): Map<string, Projection> {
+export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<string, YearlyPoint[]>>, corps: Map<string, { name: string, region: string | null }>, windowYears: number): Map<string, Projection> {
     const figures = new Map([...yearlyByMetric].map(([name, byCorps]) => [name, new Map([...byCorps].map(([id, points]) => [
         id,
         new Map(points.filter(p => !(samisMetrics.has(name) && p.metric === 0)).map(p => [p.year, p.metric]))
@@ -98,10 +98,11 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
 
     const projections = new Map<string, Projection>()
     for (const target of windows.filter(w => w.end === latestYear.get(w.id))) {
+        const region = corps.get(target.id)?.region ?? null
         const closest = new Map<string, WeightedMatch>()
         for (const candidate of windows) {
-            // Only another corps' earlier window with a later year shows what followed
-            if (candidate.id === target.id || candidate.end >= target.end || candidate.end === latestYear.get(candidate.id)) {
+            // Only an earlier window with a later year, from another corps in the same region, shows what followed
+            if (candidate.id === target.id || candidate.end >= target.end || candidate.end === latestYear.get(candidate.id) || region === null || corps.get(candidate.id)?.region !== region) {
                 continue
             }
             const weight = 100 / (1 + distance(target, candidate))
@@ -138,7 +139,7 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
         projections.set(target.id, {
             window: windowYears,
             year: target.end,
-            matches: matches.map((m): Match => ({ id: m.id, name: names.get(m.id) ?? m.id, year: m.end, similarity: Math.round(m.weight) })),
+            matches: matches.map((m): Match => ({ id: m.id, name: corps.get(m.id)?.name ?? m.id, year: m.end, similarity: Math.round(m.weight) })),
             metrics
         })
     }
