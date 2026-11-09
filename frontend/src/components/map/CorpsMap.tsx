@@ -7,6 +7,9 @@ import type { Corps } from './CorpsDetails.tsx'
 
 const corpsZoom = 10
 
+// Places just past the 180° meridian, such as Tonga and Samoa, sit beside Fiji rather than across the world
+const positionOf = (corps: Corps): L.LatLngTuple => [corps.lat, corps.lng < 0 ? corps.lng + 360 : corps.lng]
+
 /**
  * Map fitted to the corps given, that zooms in to the selected one when further out, and otherwise only pans to keep it in view
  */
@@ -26,7 +29,7 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
         const centre = map.getCenter()
         map.invalidateSize()
         if (selectedCorps) {
-            const position: L.LatLngTuple = [selectedCorps.lat, selectedCorps.lng]
+            const position = positionOf(selectedCorps)
             if (map.getZoom() < corpsZoom) {
                 map.setView(position, corpsZoom)
             } else {
@@ -41,7 +44,7 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
     useEffect(() => {
         const map = mapRef.current
         if (!map || !corpsData.length) return
-        map.fitBounds(L.latLngBounds(corpsData.map((c): L.LatLngTuple => [c.lat, c.lng])))
+        map.fitBounds(L.latLngBounds(corpsData.map(positionOf)))
     }, [corpsData])
 
     // Create custom icons
@@ -77,7 +80,7 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
             {corpsData.map((corps) => (
                 <Marker
                     key={corps.id}
-                    position={[corps.lat, corps.lng]}
+                    position={positionOf(corps)}
                     icon={selectedCorps && selectedCorps.id === corps.id ? selectedIcon : defaultIcon}
                     eventHandlers={{
                         click: (e) => {
