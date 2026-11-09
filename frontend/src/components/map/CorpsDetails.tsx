@@ -82,8 +82,6 @@ const confidenceColour = (similarity: number) => `hsl(${Math.min(Math.max((simil
 
 const financialYearLabel = (year: number) => `${year - 1}/${year.toString().slice(-2)}`
 
-const matchYears = (match: Match, window: number) => `${financialYearLabel(match.year - window + 1)}–${financialYearLabel(match.year)}`
-
 const projectedPoints = (projection: Projection | null | undefined, metric: string): ChartPoint[] =>
   (projection?.metrics[metric]?.points ?? []).map(point => ({ ...point, financialYear: financialYearLabel(point.year), isProjected: true }))
 
@@ -95,6 +93,36 @@ const rangeYears: Record<Exclude<TimeRange, 'allTime'>, number> = {
   pastTenYears: 10,
   future: 5,
 }
+
+/**
+ * Each similar corps with its similarity in a circle coloured from red to green, and the years it matched on
+ */
+const SimilarCorpsList = ({ matches, window }: { matches: Match[], window: number }) => (
+  <Box sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 4, rowGap: 2 }}>
+    {matches.map(match => {
+      const colour = confidenceColour(match.similarity)
+      return (
+        <Box key={match.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+            <CircularProgress variant="determinate" value={100} size={48} thickness={4} sx={{ color: colour, opacity: 0.2 }} />
+            <CircularProgress variant="determinate" value={match.similarity} size={48} thickness={4} sx={{ color: colour, position: 'absolute', left: 0 }} />
+            <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Typography variant="body2" sx={{ fontWeight: 'bold', color: colour }}>
+                {match.similarity}
+              </Typography>
+            </Box>
+          </Box>
+          <Box>
+            <Typography variant="body1">{match.name}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {financialYearLabel(match.year - window + 1)}–{financialYearLabel(match.year)}
+            </Typography>
+          </Box>
+        </Box>
+      )
+    })}
+  </Box>
+)
 
 /**
  * Details and metric history of one corps, with a button to close them
@@ -284,28 +312,7 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
           No corps was ever in a position close enough to this one's.
         </Typography>
       ) : (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 4, rowGap: 2 }}>
-          {projection.matches.map(match => {
-            const colour = confidenceColour(match.similarity)
-            return (
-              <Box key={match.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Box sx={{ position: 'relative', display: 'inline-flex' }}>
-                  <CircularProgress variant="determinate" value={100} size={48} thickness={4} sx={{ color: colour, opacity: 0.2 }} />
-                  <CircularProgress variant="determinate" value={match.similarity} size={48} thickness={4} sx={{ color: colour, position: 'absolute', left: 0 }} />
-                  <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: colour }}>
-                      {match.similarity}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Box>
-                  <Typography variant="body1">{match.name}</Typography>
-                  <Typography variant="caption" color="text.secondary">{matchYears(match, projection.window)}</Typography>
-                </Box>
-              </Box>
-            )
-          })}
-        </Box>
+        <SimilarCorpsList matches={projection.matches} window={projection.window} />
       )}
 
       <Divider sx={{ my: 2 }} />
@@ -328,6 +335,22 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
           ))}
         </Select>
       </FormControl>
+
+      {projection && (
+        <Box sx={{ mb: 2 }}>
+          {!(selectedMetric in projection.metrics) ? (
+            <Typography variant="body2" color="text.secondary">
+              {definition?.label ?? 'This metric'} helps find similar corps but isn't matched or projected on its own.
+            </Typography>
+          ) : metricMatches.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              {definition?.label ?? 'This metric'} needs a figure in every recent year, for this corps and a similar one, to be matched.
+            </Typography>
+          ) : (
+            <SimilarCorpsList matches={metricMatches} window={projection.window} />
+          )}
+        </Box>
+      )}
 
       <ToggleButtonGroup
         value={effectiveRange}
@@ -361,34 +384,20 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
           />
         )}
       </Box>
-      {effectiveRange === 'future' && projection && !isLoading && (
-        <Box sx={{ mt: 2 }}>
-          {!(selectedMetric in projection.metrics) ? (
-            <Typography variant="body2" color="text.secondary">
-              {definition?.label ?? 'This metric'} helps find similar corps but isn't projected.
-            </Typography>
-          ) : metricMatches.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
-              {definition?.label ?? 'This metric'} needs a figure in every recent year, for this corps and a similar one, to be projected.
-            </Typography>
-          ) : (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 3, rowGap: 0.5 }}>
-              {projected.length > 0 && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ width: 24, height: 10, bgcolor: `${projectionColour}33`, borderTop: `2px dashed ${projectionColour}` }} />
-                  <Typography variant="body2">Projection and spread</Typography>
-                </Box>
-              )}
-              {metricMatches.map((match, i) => (
-                <Box key={match.id} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ width: 24, borderTop: `2px solid ${matchLines[i]?.colour}` }} />
-                  <Typography variant="body2">
-                    {match.name} {matchYears(match, projection.window)}, <strong>{match.similarity}%</strong> similar
-                  </Typography>
-                </Box>
-              ))}
+      {effectiveRange === 'future' && !isLoading && metricMatches.length > 0 && (
+        <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', columnGap: 3, rowGap: 0.5 }}>
+          {projected.length > 0 && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ width: 24, height: 10, bgcolor: `${projectionColour}33`, borderTop: `2px dashed ${projectionColour}` }} />
+              <Typography variant="body2">Projection and spread</Typography>
             </Box>
           )}
+          {metricMatches.map((match, i) => (
+            <Box key={match.id} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ width: 24, borderTop: `2px solid ${matchLines[i]?.colour}` }} />
+              <Typography variant="body2">{match.name}</Typography>
+            </Box>
+          ))}
         </Box>
       )}
     </Paper>
