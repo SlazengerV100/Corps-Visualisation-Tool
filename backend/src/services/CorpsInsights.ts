@@ -1,6 +1,7 @@
 import { calculateGrowth, calculateSustainability } from '../utils/calculations.ts'
 import { InvalidQueryError } from './InvalidQueryError.ts'
 import { NotFoundError } from './NotFoundError.ts'
+import { defaultWindowYears, projectFromSimilarCorps, windowYearOptions } from './similarCorps.ts'
 import type { MissionRepository } from '../repositories/mission/MissionRepository.ts'
 import type { FinanceRepository } from '../repositories/finance/FinanceRepository.ts'
 import type { CorpsDirectoryRepository } from '../repositories/directory/CorpsDirectoryRepository.ts'
@@ -10,6 +11,7 @@ import type { FinancialYear } from '../models/FinancialYear.ts'
 import type { Granularity, MetricDefinition, MetricName, Unit } from '../models/Metric.ts'
 import type { MissionIndicator } from '../models/MissionIndicator.ts'
 import type { MonthlyPoint } from '../models/MonthlyPoint.ts'
+import type { Projection } from '../models/Projection.ts'
 import type { Snapshot, YearPair } from '../models/Snapshot.ts'
 import type { YearlyPoint } from '../models/YearlyPoint.ts'
 
@@ -37,6 +39,7 @@ export class CorpsInsights {
     private readonly snapshotsByYear: Map<FinancialYear, Snapshot[]>
     private readonly catalogueView: Catalogue
     private readonly mappableCorps: RegionalCorps[]
+    private readonly projectionsByWindow: Map<number, Map<string, Projection>>
 
     constructor(mission: MissionRepository, finance: FinanceRepository, directory: CorpsDirectoryRepository) {
         const monthlyAverage = (indicator: MissionIndicator): YearlyFigure => (centreId, year) => {
@@ -127,6 +130,10 @@ export class CorpsInsights {
             }]
         }))
 
+        const yearlyByMetric = new Map([...this.metrics.values()].map(m => [m.definition.name, m.yearlyByCorps]))
+        const names = new Map([...mission.corps(), ...finance.corps()].map(c => [c.id, c.name]))
+        this.projectionsByWindow = new Map(windowYearOptions.map(window => [window, projectFromSimilarCorps(yearlyByMetric, names, window)]))
+
         const financeYears = new Set(finance.years())
 
         const regionById = new Map(directory.all().map(c => [c.id, regionOf(c.country)]))
@@ -198,7 +205,8 @@ export class CorpsInsights {
                 years: snapshotYears,
                 scoredYears: snapshotYears.filter(y => this.snapshotsByYear.get(y)?.some(s => s.scores))
             },
-            regions: [...new Set(regionById.values())].toSorted()
+            regions: [...new Set(regionById.values())].toSorted(),
+            projection: { windows: windowYearOptions, defaultWindow: defaultWindowYears }
         }
 
         this.mappableCorps = directory.all()
@@ -247,6 +255,22 @@ export class CorpsInsights {
             throw new NotFoundError(`${metricName} is not available for corps ${centreId}`)
         }
         return points
+    }
+
+    /**
+     * One corps' metrics projected forward from the corps whose earlier years most resemble its latest window of years.
+     * @returns Throws InvalidQueryError for a window length not offered, NotFoundError when the corps lacks worship in every year of its latest window
+     */
+    projection(centreId: string, window = defaultWindowYears): Projection {
+        const projections = this.projectionsByWindow.get(window)
+        if (!projections) {
+            throw new InvalidQueryError(`No projection over a ${window}-year window`)
+        }
+        const projection = projections.get(centreId)
+        if (!projection) {
+            throw new NotFoundError(`Corps ${centreId} has no worship in every year of its latest ${window}-year window`)
+        }
+        return projection
     }
 
     /**

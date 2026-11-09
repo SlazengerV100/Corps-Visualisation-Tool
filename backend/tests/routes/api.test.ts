@@ -82,6 +82,27 @@ describe('API', () => {
         })
     })
 
+    describe('GET /api/corps/:centreId/projection', () => {
+        test('should return the projection over the chosen window', async () => {
+            const res = await request(app).get('/api/corps/100001/projection?window=1')
+            expect(res.status).toBe(200)
+            expect(res.body).toMatchObject({ window: 1, year: 2024, matches: expect.any(Array) })
+        })
+
+        test.each([
+            ['a malformed window', '/api/corps/100001/projection?window=two'],
+            ['a window length not offered', '/api/corps/100001/projection?window=9']
+        ])('should reject %s with a 400', async (_, path) => {
+            const res = await request(app).get(path)
+            expect(res.status).toBe(400)
+        })
+
+        test('should return a 404 for a corps without a window', async () => {
+            const res = await request(app).get('/api/corps/999999/projection')
+            expect(res.status).toBe(404)
+        })
+    })
+
     describe('GET /api/snapshots', () => {
         test('should return every year without filters', async () => {
             const res = await request(app).get('/api/snapshots')

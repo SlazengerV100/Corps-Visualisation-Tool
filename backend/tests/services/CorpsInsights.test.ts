@@ -89,6 +89,25 @@ describe('CorpsInsights', () => {
         test('should list each directory region once, in order, with the Pacific countries as one', () => {
             expect(insights.catalogue().regions).toEqual(['New Zealand', 'Pacific'])
         })
+
+        test('should list the projection window lengths and the default', () => {
+            expect(insights.catalogue().projection).toEqual({ windows: [1, 2, 3, 4, 5], defaultWindow: 3 })
+        })
+    })
+
+    describe('projection', () => {
+        test('should project from the corps\' latest window of the chosen length', () => {
+            expect(insights.projection(alpha.id, 2)).toMatchObject({ window: 2, year: 2024 })
+        })
+
+        test('should reject a window length not offered', () => {
+            expect(() => insights.projection(alpha.id, 9)).toThrow(InvalidQueryError)
+        })
+
+        test('should report a corps without worship in every year of its latest window as not found', () => {
+            expect(() => insights.projection(alpha.id, 3)).toThrow(NotFoundError)
+            expect(() => insights.projection('999999', 1)).toThrow(NotFoundError)
+        })
     })
 
     describe('corps', () => {
