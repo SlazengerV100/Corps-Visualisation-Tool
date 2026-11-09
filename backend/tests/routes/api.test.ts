@@ -38,7 +38,7 @@ describe('API', () => {
             expect(res.status).toBe(200)
             expect(res.body.metrics).toHaveLength(6)
             expect(res.body.snapshots).toEqual({ years: [2023, 2024], scoredYears: [2024] })
-            expect(res.body.countries).toEqual(['New Zealand'])
+            expect(res.body.regions).toEqual(['New Zealand'])
         })
     })
 

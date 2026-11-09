@@ -51,7 +51,7 @@ export interface SnapshotMetrics {
 export interface Snapshot {
     id: string
     name: string
-    country: string | null
+    region: string | null
     year: FinancialYear
     metrics: SnapshotMetrics
     scores?: Scores

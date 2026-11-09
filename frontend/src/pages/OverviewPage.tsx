@@ -15,7 +15,7 @@ interface YearPair {
 interface Snapshot {
     id: string
     name: string
-    country: string | null
+    region: string | null
     year: number
     metrics: {
         congregationalWorship: YearPair
@@ -48,11 +48,11 @@ const unscoredStatus = ({ congregationalWorship, tithing }: Snapshot['metrics'])
     return { gap: 'lastYear', why: 'No finance figures for last year, so it has no scores.' }
 }
 
-export default function OverviewPage({ country }: { country: string }) {
+export default function OverviewPage({ region }: { region: string }) {
     const [year, setYear] = useState<number | null>(null)
     const [years, setYears] = useState<number[]>([])
     const [allPointsByYear, setPointsByYear] = useState<Record<number, BubblePoint[]>>({})
-    const [countryById, setCountryById] = useState<Record<string, string | null>>({})
+    const [regionById, setRegionById] = useState<Record<string, string | null>>({})
     const [chosenCorps, setSelectedCorps] = useState<string[]>([])
     const [corps, setCorps] = useState<Corps[]>([])
     const [hideUnselected, setHideUnselected] = useState(false)
@@ -111,7 +111,7 @@ export default function OverviewPage({ country }: { country: string }) {
                 const scoredYears = catalogue.snapshots.scoredYears
                 setLabels(Object.fromEntries(catalogue.metrics.map(m => [m.name, m.label])))
                 setPointsByYear(byYear)
-                setCountryById(Object.fromEntries(snapshots.map(s => [s.id, s.country])))
+                setRegionById(Object.fromEntries(snapshots.map(s => [s.id, s.region])))
                 setStatusesByYear(statuses)
                 setYears(scoredYears)
                 setYear(scoredYears[scoredYears.length - 1] ?? null)
@@ -124,10 +124,10 @@ export default function OverviewPage({ country }: { country: string }) {
     }, [])
 
     const pointsByYear = useMemo(() => Object.fromEntries(
-        Object.entries(allPointsByYear).map(([y, points]) => [y, points.filter(p => countryById[p.id] === country)])
-    ), [allPointsByYear, countryById, country])
-    // Corps chosen in another country stay chosen for when it is picked again
-    const selectedCorps = chosenCorps.filter(id => corps.find(c => c.id === id)?.country === country)
+        Object.entries(allPointsByYear).map(([y, points]) => [y, points.filter(p => regionById[p.id] === region)])
+    ), [allPointsByYear, regionById, region])
+    // Corps chosen in another region stay chosen for when it is picked again
+    const selectedCorps = chosenCorps.filter(id => corps.find(c => c.id === id)?.region === region)
 
     const yearData = year === null ? null : pointsByYear[year] ?? null
 
@@ -198,7 +198,7 @@ export default function OverviewPage({ country }: { country: string }) {
                             selectedCorps={selectedCorps} 
                             setSelectedCorps={setSelectedCorps}
                             onCorpsDataLoaded={setCorps}
-                            country={country}
+                            region={region}
                             year={year}
                             statuses={year === null ? null : statusesByYear[year] ?? {}}
                         />

@@ -27,10 +27,10 @@ const navButtonSx = (active: boolean): SxProps<Theme> => theme => ({
     }
 })
 
-export default function ButtonAppBar({ country, countries, onCountryChange }: {
-    country: string
-    countries: string[]
-    onCountryChange: (country: string) => void
+export default function ButtonAppBar({ region, regions, onRegionChange }: {
+    region: string
+    regions: string[]
+    onRegionChange: (region: string) => void
 }) {
     const location = useLocation()
     const theme = useTheme()
@@ -75,14 +75,14 @@ export default function ButtonAppBar({ country, countries, onCountryChange }: {
                     </Box>
 
                     <Select
-                        value={country}
-                        onChange={e => onCountryChange(e.target.value)}
+                        value={region}
+                        onChange={e => onRegionChange(e.target.value)}
                         variant="standard"
                         disableUnderline
-                        inputProps={{ 'aria-label': 'Country' }}
+                        inputProps={{ 'aria-label': 'Region' }}
                         sx={{ ml: 'auto', color: 'inherit', fontFamily: 'inherit', '& .MuiSvgIcon-root': { color: 'inherit' } }}
                     >
-                        {countries.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                        {regions.map(r => <MenuItem key={r} value={r}>{r}</MenuItem>)}
                     </Select>
                 </Toolbar>
             </AppBar>

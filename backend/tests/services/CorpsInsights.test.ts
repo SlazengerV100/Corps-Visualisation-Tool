@@ -86,14 +86,14 @@ describe('CorpsInsights', () => {
             expect(insights.catalogue().snapshots).toEqual({ years: [2022, 2023, 2024], scoredYears: [2024] })
         })
 
-        test('should list each directory country once, in order', () => {
-            expect(insights.catalogue().countries).toEqual(['Fiji', 'New Zealand'])
+        test('should list each directory region once, in order, with the Pacific countries as one', () => {
+            expect(insights.catalogue().regions).toEqual(['New Zealand', 'Pacific'])
         })
     })
 
     describe('corps', () => {
         test('should list only corps with coordinates', () => {
-            expect(insights.corps()).toEqual([alphaListing])
+            expect(insights.corps()).toEqual([{ ...alphaListing, region: 'New Zealand' }])
         })
     })
 
@@ -162,7 +162,7 @@ describe('CorpsInsights', () => {
             const sustainability = calculateSustainability({ tithing, surplusDeficit: 0 }, 110)
             expect(insights.snapshots({ year: 2024 }).find(s => s.id === alpha.id)).toEqual({
                 ...alpha,
-                country: 'New Zealand',
+                region: 'New Zealand',
                 year: 2024,
                 metrics: {
                     ...missionIndicators,
@@ -177,7 +177,8 @@ describe('CorpsInsights', () => {
                     breakdown: { growth: growth?.breakdown, sustainability: sustainability.breakdown }
                 }
             })
-            expect(insights.snapshots({ year: 2024 }).find(s => s.id === delta.id)?.country).toBeNull()
+            expect(insights.snapshots({ year: 2024 }).find(s => s.id === beta.id)?.region).toBe('Pacific')
+            expect(insights.snapshots({ year: 2024 }).find(s => s.id === delta.id)?.region).toBeNull()
         })
 
         test('should show tithing without a surplus/deficit figure or a previous year', () => {

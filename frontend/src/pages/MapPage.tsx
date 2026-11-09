@@ -7,13 +7,13 @@ import CorpsMap from "../components/map/CorpsMap.tsx";
 import CorpsDetails, { type Corps } from "../components/map/CorpsDetails.tsx";
 
 /**
- * Map of the country's corps, beside the details of the selected one when there is one
+ * Map of the region's corps, beside the details of the selected one when there is one
  */
-export default function MapPage({ country }: { country: string }) {
+export default function MapPage({ region }: { region: string }) {
     const [chosenCorps, setSelectedCorps] = useState<Corps | null>(null);
     const [allCorps, setAllCorps] = useState<Corps[]>([])
-    const corpsData = useMemo(() => allCorps.filter(c => c.country === country), [allCorps, country])
-    const selectedCorps = chosenCorps?.country === country ? chosenCorps : null
+    const corpsData = useMemo(() => allCorps.filter(c => c.region === region), [allCorps, region])
+    const selectedCorps = chosenCorps?.region === region ? chosenCorps : null
 
     useEffect(() => {
         const fetchCorpsData = async () => {

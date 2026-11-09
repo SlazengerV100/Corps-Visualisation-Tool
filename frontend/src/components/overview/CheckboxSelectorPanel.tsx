@@ -25,11 +25,11 @@ export interface CorpsStatus {
 
 const noFigures: CorpsStatus = { gap: 'thisYear', why: 'No figures recorded this year, so it has no scores.' }
 
-export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps, onCorpsDataLoaded, country, year, statuses }: {
+export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps, onCorpsDataLoaded, region, year, statuses }: {
     selectedCorps: string[]
     setSelectedCorps: React.Dispatch<React.SetStateAction<string[]>>
     onCorpsDataLoaded: (corps: Corps[]) => void
-    country: string
+    region: string
     year: number | null
     statuses: Record<string, CorpsStatus> | null
 }) {
@@ -65,15 +65,15 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
         void fetchCorpsData()
     }, [onCorpsDataLoaded])
 
-    // Group the country's corps by area
+    // Group the region's corps by area
     const areas = useMemo(() => {
         const groupedByArea: Record<string, Corps[]> = {}
-        corpsData.filter(corps => corps.country === country).forEach(corps => {
+        corpsData.filter(corps => corps.region === region).forEach(corps => {
             groupedByArea[corps.area] ??= []
             groupedByArea[corps.area].push(corps)
         })
         return groupedByArea
-    }, [corpsData, country])
+    }, [corpsData, region])
 
     const handleToggle = (id: string) => {
         setSelectedCorps(prevSelected => {

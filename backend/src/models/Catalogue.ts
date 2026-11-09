@@ -4,5 +4,5 @@ import type { MetricDefinition } from './Metric.ts'
 export interface Catalogue {
     metrics: MetricDefinition[]
     snapshots: { years: FinancialYear[], scoredYears: FinancialYear[] }
-    countries: string[]
+    regions: string[]
 }

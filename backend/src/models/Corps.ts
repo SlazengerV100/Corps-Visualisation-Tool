@@ -12,3 +12,7 @@ export interface Corps {
     lng: number | null
     population: Population[]
 }
+
+export interface RegionalCorps extends Corps {
+    region: string
+}

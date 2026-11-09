@@ -17,26 +17,26 @@ const theme = createTheme({
     }
 })
 
-const openingCountry = 'New Zealand'
+const openingRegion = 'New Zealand'
 
 function App() {
-    const [country, setCountry] = useState(openingCountry)
-    const [countries, setCountries] = useState<string[]>([openingCountry])
+    const [region, setRegion] = useState(openingRegion)
+    const [regions, setRegions] = useState<string[]>([openingRegion])
 
     useEffect(() => {
-        const fetchCountries = async () => {
+        const fetchRegions = async () => {
             try {
                 const response = await fetch('/api/catalogue')
                 if (!response.ok) {
                     return
                 }
-                const catalogue: { countries: string[] } = await response.json()
-                setCountries(catalogue.countries)
+                const catalogue: { regions: string[] } = await response.json()
+                setRegions(catalogue.regions)
             } catch {
-                console.error('Failed to fetch countries')
+                console.error('Failed to fetch regions')
             }
         }
-        void fetchCountries()
+        void fetchRegions()
     }, [])
 
     return (
@@ -63,12 +63,12 @@ function App() {
                 overflow: 'hidden' // Prevent any scrollbars on the main container
             }}>
                 <Router>
-                    <AppBar country={country} countries={countries} onCountryChange={setCountry} />
+                    <AppBar region={region} regions={regions} onRegionChange={setRegion} />
                     <Toolbar />
                     <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
                         <Routes>
-                            <Route path="/" element={<OverviewPage country={country} />} />
-                            <Route path="/map" element={<MapPage country={country} />} />
+                            <Route path="/" element={<OverviewPage region={region} />} />
+                            <Route path="/map" element={<MapPage region={region} />} />
                         </Routes>
                     </Box>
                 </Router>
