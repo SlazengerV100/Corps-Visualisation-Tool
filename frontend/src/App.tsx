@@ -6,6 +6,7 @@ import CssBaseline from '@mui/material/CssBaseline'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Toolbar from '@mui/material/Toolbar'
+import { useEffect, useState } from 'react'
 import AppBar from './components/common/AppBar.tsx'
 import OverviewPage from './pages/OverviewPage.tsx'
 import MapPage from './pages/MapPage.tsx'
@@ -16,7 +17,28 @@ const theme = createTheme({
     }
 })
 
+const openingCountry = 'New Zealand'
+
 function App() {
+    const [country, setCountry] = useState(openingCountry)
+    const [countries, setCountries] = useState<string[]>([openingCountry])
+
+    useEffect(() => {
+        const fetchCountries = async () => {
+            try {
+                const response = await fetch('/api/catalogue')
+                if (!response.ok) {
+                    return
+                }
+                const catalogue: { countries: string[] } = await response.json()
+                setCountries(catalogue.countries)
+            } catch {
+                console.error('Failed to fetch countries')
+            }
+        }
+        void fetchCountries()
+    }, [])
+
     return (
         <ThemeProvider theme={theme}>
             <CssBaseline />
@@ -41,12 +63,12 @@ function App() {
                 overflow: 'hidden' // Prevent any scrollbars on the main container
             }}>
                 <Router>
-                    <AppBar />
+                    <AppBar country={country} countries={countries} onCountryChange={setCountry} />
                     <Toolbar />
                     <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
                         <Routes>
-                            <Route path="/" element={<OverviewPage />} />
-                            <Route path="/map" element={<MapPage />} />
+                            <Route path="/" element={<OverviewPage country={country} />} />
+                            <Route path="/map" element={<MapPage country={country} />} />
                         </Routes>
                     </Box>
                 </Router>

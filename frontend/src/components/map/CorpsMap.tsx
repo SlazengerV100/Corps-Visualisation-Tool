@@ -8,7 +8,7 @@ import type { Corps } from './CorpsDetails.tsx'
 const corpsZoom = 10
 
 /**
- * Map of every corps that zooms in to the selected one when further out, and otherwise only pans to keep it in view
+ * Map fitted to the corps given, that zooms in to the selected one when further out, and otherwise only pans to keep it in view
  */
 const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
     corpsData: Corps[]
@@ -37,6 +37,12 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
             map.setView(centre, map.getZoom())
         }
     }, [selectedCorps])
+
+    useEffect(() => {
+        const map = mapRef.current
+        if (!map || !corpsData.length) return
+        map.fitBounds(L.latLngBounds(corpsData.map((c): L.LatLngTuple => [c.lat, c.lng])))
+    }, [corpsData])
 
     // Create custom icons
     const defaultIcon = new L.Icon({

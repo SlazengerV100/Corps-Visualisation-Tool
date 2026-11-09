@@ -22,6 +22,7 @@ export interface Corps {
   area: string
   address: string
   city: string
+  country: string
   closingDate: string | null
   lat: number
   lng: number

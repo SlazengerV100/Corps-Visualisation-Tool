@@ -4,7 +4,7 @@ import CheckboxSelectorPanel, { type CorpsStatus } from '../components/overview/
 import type { FigureGap } from '../components/common/figureGaps.ts'
 import TogglePanel from '../components/overview/TogglePanel.tsx'
 import Box from '@mui/material/Box'
-import {useEffect, useState} from 'react'
+import {useEffect, useMemo, useState} from 'react'
 import type { Corps } from '../components/map/CorpsDetails.tsx'
 
 interface YearPair {
@@ -15,6 +15,7 @@ interface YearPair {
 interface Snapshot {
     id: string
     name: string
+    country: string | null
     year: number
     metrics: {
         congregationalWorship: YearPair
@@ -47,11 +48,12 @@ const unscoredStatus = ({ congregationalWorship, tithing }: Snapshot['metrics'])
     return { gap: 'lastYear', why: 'No finance figures for last year, so it has no scores.' }
 }
 
-export default function OverviewPage() {
+export default function OverviewPage({ country }: { country: string }) {
     const [year, setYear] = useState<number | null>(null)
     const [years, setYears] = useState<number[]>([])
-    const [pointsByYear, setPointsByYear] = useState<Record<number, BubblePoint[]>>({})
-    const [selectedCorps, setSelectedCorps] = useState<string[]>([])
+    const [allPointsByYear, setPointsByYear] = useState<Record<number, BubblePoint[]>>({})
+    const [countryById, setCountryById] = useState<Record<string, string | null>>({})
+    const [chosenCorps, setSelectedCorps] = useState<string[]>([])
     const [corps, setCorps] = useState<Corps[]>([])
     const [hideUnselected, setHideUnselected] = useState(false)
     const [showTrails, setShowTrails] = useState(true)
@@ -109,6 +111,7 @@ export default function OverviewPage() {
                 const scoredYears = catalogue.snapshots.scoredYears
                 setLabels(Object.fromEntries(catalogue.metrics.map(m => [m.name, m.label])))
                 setPointsByYear(byYear)
+                setCountryById(Object.fromEntries(snapshots.map(s => [s.id, s.country])))
                 setStatusesByYear(statuses)
                 setYears(scoredYears)
                 setYear(scoredYears[scoredYears.length - 1] ?? null)
@@ -119,6 +122,12 @@ export default function OverviewPage() {
 
         void fetchBubbleData()
     }, [])
+
+    const pointsByYear = useMemo(() => Object.fromEntries(
+        Object.entries(allPointsByYear).map(([y, points]) => [y, points.filter(p => countryById[p.id] === country)])
+    ), [allPointsByYear, countryById, country])
+    // Corps chosen in another country stay chosen for when it is picked again
+    const selectedCorps = chosenCorps.filter(id => corps.find(c => c.id === id)?.country === country)
 
     const yearData = year === null ? null : pointsByYear[year] ?? null
 
@@ -189,6 +198,7 @@ export default function OverviewPage() {
                             selectedCorps={selectedCorps} 
                             setSelectedCorps={setSelectedCorps}
                             onCorpsDataLoaded={setCorps}
+                            country={country}
                             year={year}
                             statuses={year === null ? null : statusesByYear[year] ?? {}}
                         />

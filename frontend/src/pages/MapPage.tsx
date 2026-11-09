@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Box from '@mui/material/Box'
 import Autocomplete from '@mui/material/Autocomplete'
 import Paper from '@mui/material/Paper'
@@ -7,25 +7,27 @@ import CorpsMap from "../components/map/CorpsMap.tsx";
 import CorpsDetails, { type Corps } from "../components/map/CorpsDetails.tsx";
 
 /**
- * Map of every corps, beside the details of the selected one when there is one
+ * Map of the country's corps, beside the details of the selected one when there is one
  */
-export default function MapPage() {
-    const [selectedCorps, setSelectedCorps] = useState<Corps | null>(null);
-    const [corpsData, setCorpsData] = useState<Corps[]>([])
+export default function MapPage({ country }: { country: string }) {
+    const [chosenCorps, setSelectedCorps] = useState<Corps | null>(null);
+    const [allCorps, setAllCorps] = useState<Corps[]>([])
+    const corpsData = useMemo(() => allCorps.filter(c => c.country === country), [allCorps, country])
+    const selectedCorps = chosenCorps?.country === country ? chosenCorps : null
 
     useEffect(() => {
         const fetchCorpsData = async () => {
             try {
                 const response = await fetch('/api/corps')
                 if (!response.ok) {
-                    setCorpsData([])
+                    setAllCorps([])
                     return
                 }
                 const data = await response.json()
-                setCorpsData(data)
+                setAllCorps(data)
             } catch {
                 console.error(`Failed to fetch corps data`)
-                setCorpsData([])
+                setAllCorps([])
             }
         }
         void fetchCorpsData()
