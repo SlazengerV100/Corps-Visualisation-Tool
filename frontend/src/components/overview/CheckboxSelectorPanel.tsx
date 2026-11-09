@@ -213,7 +213,7 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
     return (
         <Box>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                Select Corps
+                Filter by Corps
             </Typography>
             <TextField
                 type="search"
