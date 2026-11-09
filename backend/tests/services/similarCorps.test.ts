@@ -26,7 +26,7 @@ const steady = (metric: number) => [2026, 2027, 2028, 2029, 2030].map(year => ({
 // Johnsonville's latest three years mirror Hamilton's and Napier's earlier ones, after which both doubled
 const history: Record<string, History> = {
     johnsonville: {
-        congregationalWorship: { ...run(2017, [50, 60, 70]), ...run(2023, [50, 60, 70]) },
+        congregationalWorship: run(2023, [50, 60, 70]),
         tithing: run(2023, [10000, 12000, 14000]),
         kidsChurch: run(2023, [0, 0, 0]),
         youthDiscipleship: run(2023, [10, 10, 10])
@@ -70,7 +70,7 @@ const names = new Map([...Object.keys(history), 'wellington'].map(id => [id, { n
 describe('projectFromSimilarCorps', () => {
     const projection = projectFromSimilarCorps(yearlyByMetric(history), names, 3).get('johnsonville')
 
-    test('should match the closest earlier windows of other corps, closest first, leaving out distant corps and the corps itself', () => {
+    test('should match the closest earlier windows, closest first, leaving out distant corps', () => {
         expect(projection?.year).toBe(2025)
         expect(projection?.matches.slice(0, 2)).toEqual(expect.arrayContaining([
             { id: 'hamilton', name: 'hamilton Corps', year: 2015, similarity: 100 },
@@ -100,6 +100,21 @@ describe('projectFromSimilarCorps', () => {
     test('should match only corps in the same region', () => {
         expect(projection?.matches.map(m => m.id)).not.toContain('labasa')
         expect(projectFromSimilarCorps(yearlyByMetric(history), names, 3).get('suva')?.matches.map(m => m.id)).toEqual(['labasa'])
+    })
+
+    test('should match a corps\' own earlier years, but not those overlapping its latest window', () => {
+        // Rotorua's latest three years repeat its first three; Taupō grows steadily, so its closest own window would overlap its latest
+        const own = {
+            rotorua: {
+                congregationalWorship: { ...run(2010, [50, 60, 70, ...repeat(140, 5)]), ...run(2023, [50, 60, 70]) },
+                tithing: { ...run(2010, [10000, 12000, 14000, ...repeat(28000, 5)]), ...run(2023, [10000, 12000, 14000]) }
+            },
+            taupo: { congregationalWorship: run(2015, Array.from({ length: 11 }, (_, i) => 100 + 10 * i)) }
+        }
+        const ownNames = new Map(Object.keys(own).map(id => [id, { name: `${id} Corps`, region: 'New Zealand' }]))
+        const projections = projectFromSimilarCorps(yearlyByMetric(own), ownNames, 3)
+        expect(projections.get('rotorua')?.matches[0]).toEqual({ id: 'rotorua', name: 'rotorua Corps', year: 2012, similarity: 100 })
+        expect(projections.get('taupo')?.matches.find(m => m.id === 'taupo')?.year).toBe(2022)
     })
 
     test('should keep at most three matches', () => {

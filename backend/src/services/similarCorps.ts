@@ -25,9 +25,9 @@ interface WeightedMatch extends Window {
 }
 
 /**
- * Match each corps' latest window of years to the closest earlier windows of other corps, and project every metric by what followed them.
+ * Match each corps' latest window of years to the closest earlier windows, its own included, and project every metric by what followed them.
  * @param yearlyByMetric - Each metric's yearly figures by centre code
- * @param corps - Each corps' name and region by centre code; a corps only matches others in its own region
+ * @param corps - Each corps' name and region by centre code; a corps only matches corps in its own region
  * @param windowYears - How many years a window covers, ending in the corps' latest year of worship
  * @returns A projection for each corps with worship in every year of its latest window, with no points when nothing matched closely enough
  */
@@ -101,8 +101,9 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
         const region = corps.get(target.id)?.region ?? null
         const closest = new Map<string, WeightedMatch>()
         for (const candidate of windows) {
-            // Only an earlier window with a later year, from another corps in the same region, shows what followed
-            if (candidate.id === target.id || candidate.end >= target.end || candidate.end === latestYear.get(candidate.id) || region === null || corps.get(candidate.id)?.region !== region) {
+            // Only an earlier window with a later year, from a corps in the same region, shows what followed; the corps' own must not overlap its latest
+            const latestStart = target.end - windowYears + 1
+            if (candidate.end >= (candidate.id === target.id ? latestStart : target.end) || candidate.end === latestYear.get(candidate.id) || region === null || corps.get(candidate.id)?.region !== region) {
                 continue
             }
             const weight = 100 / (1 + distance(target, candidate))
