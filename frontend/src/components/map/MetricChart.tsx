@@ -108,15 +108,15 @@ const MetricChart = ({ data, timeRange, selectedMetric, unit, firstYear, lastYea
           .domain([firstYear, lastYear])
           .range([0, innerWidth]);
 
-        // Label every year that fits
+        // Label every year that fits; a tick marks 1 January, half a year before the June ending the financial year
         const maxTicks = Math.floor(innerWidth / 80); // 80px per label
-        const tickStep = Math.max(1, Math.ceil((lastYear - firstYear + 1) / maxTicks));
+        const tickStep = Math.max(1, Math.ceil((lastYear - firstYear) / maxTicks));
 
         return {
           x,
           axis: d3.axisBottom<Date | d3.NumberValue>(x)
-            .tickValues(d3.range(firstYear, lastYear + 1, tickStep))
-            .tickFormat(d => String(d.valueOf()))
+            .tickValues(d3.range(firstYear + 0.5, lastYear, tickStep))
+            .tickFormat(d => String(d.valueOf() + 0.5))
         };
       }
     };
