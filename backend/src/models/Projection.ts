@@ -1,5 +1,6 @@
 import type { FinancialYear } from './FinancialYear.ts'
 import type { MetricName } from './Metric.ts'
+import type { YearlyPoint } from './YearlyPoint.ts'
 
 export type ProjectedMetricName = Exclude<MetricName, 'firstTimeDecisions'>
 
@@ -8,6 +9,7 @@ export interface Match {
     name: string
     year: FinancialYear
     similarity: number
+    metrics: Record<ProjectedMetricName, YearlyPoint[]>
 }
 
 export interface ProjectedPoint {

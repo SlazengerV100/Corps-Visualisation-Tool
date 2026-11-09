@@ -73,8 +73,8 @@ describe('projectFromSimilarCorps', () => {
     test('should match the closest earlier windows, closest first, leaving out distant corps', () => {
         expect(projection?.year).toBe(2025)
         expect(projection?.matches.slice(0, 2)).toEqual(expect.arrayContaining([
-            { id: 'hamilton', name: 'hamilton Corps', year: 2015, similarity: 100 },
-            { id: 'napier', name: 'napier Corps', year: 2012, similarity: 100 }
+            expect.objectContaining({ id: 'hamilton', name: 'hamilton Corps', year: 2015, similarity: 100 }),
+            expect.objectContaining({ id: 'napier', name: 'napier Corps', year: 2012, similarity: 100 })
         ]))
         expect(projection?.matches[2]).toMatchObject({ id: 'nelson', year: 2016 })
         expect(projection?.matches[2].similarity).toBeLessThan(100)
@@ -85,6 +85,14 @@ describe('projectFromSimilarCorps', () => {
         expect(rounded(projection?.metrics.congregationalWorship ?? [])).toEqual(steady(140))
         expect(rounded(projection?.metrics.tithing ?? [])).toEqual(steady(28000))
         expect(projection?.metrics).not.toHaveProperty('firstTimeDecisions')
+    })
+
+    test('should give each match its window and what followed, on the corps\' years and scaled to its level', () => {
+        const nelson = projection?.matches.find(m => m.id === 'nelson')
+        expect(nelson?.metrics.congregationalWorship.map(p => p.year)).toEqual([2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030])
+        expect(nelson?.metrics.congregationalWorship.map(p => Math.round(p.metric))).toEqual([50, 60, 70, 140, 140, 140, 140, 140])
+        expect(nelson?.metrics.surplusDeficit.map(p => Math.round(p.metric))).toEqual(repeat(-1400, 5))
+        expect(nelson?.metrics.kidsChurch).toEqual([])
     })
 
     test('should project surplus/deficit per worshipper of the projected worship', () => {
@@ -113,7 +121,7 @@ describe('projectFromSimilarCorps', () => {
         }
         const ownNames = new Map(Object.keys(own).map(id => [id, { name: `${id} Corps`, region: 'New Zealand' }]))
         const projections = projectFromSimilarCorps(yearlyByMetric(own), ownNames, 3)
-        expect(projections.get('rotorua')?.matches[0]).toEqual({ id: 'rotorua', name: 'rotorua Corps', year: 2012, similarity: 100 })
+        expect(projections.get('rotorua')?.matches[0]).toMatchObject({ id: 'rotorua', name: 'rotorua Corps', year: 2012, similarity: 100 })
         expect(projections.get('taupo')?.matches.find(m => m.id === 'taupo')?.year).toBe(2022)
     })
 

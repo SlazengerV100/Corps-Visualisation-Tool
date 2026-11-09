@@ -136,10 +136,40 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
             }, true)
         }
 
+        // A match's window and what followed, moved onto the target's years and scaled to its level; surplus/deficit scales by worship
+        const followed = (match: WeightedMatch, name: ProjectedMetricName): YearlyPoint[] => {
+            const scaleBy = name === 'surplusDeficit' ? 'congregationalWorship' : name
+            const base = figure(scaleBy, target.id, target.end)
+            const from = figure(scaleBy, match.id, match.end)
+            if (base === null || from === null || from <= 0) {
+                return []
+            }
+            const points: YearlyPoint[] = []
+            for (let ahead = 1 - windowYears; ahead <= horizonYears; ahead++) {
+                const value = figure(name, match.id, match.end + ahead)
+                if (value !== null) {
+                    points.push({ year: target.end + ahead, metric: value * base / from })
+                }
+            }
+            return points
+        }
+
         projections.set(target.id, {
             window: windowYears,
             year: target.end,
-            matches: matches.map((m): Match => ({ id: m.id, name: corps.get(m.id)?.name ?? m.id, year: m.end, similarity: Math.round(m.weight) })),
+            matches: matches.map((m): Match => ({
+                id: m.id,
+                name: corps.get(m.id)?.name ?? m.id,
+                year: m.end,
+                similarity: Math.round(m.weight),
+                metrics: {
+                    congregationalWorship: followed(m, 'congregationalWorship'),
+                    kidsChurch: followed(m, 'kidsChurch'),
+                    youthDiscipleship: followed(m, 'youthDiscipleship'),
+                    tithing: followed(m, 'tithing'),
+                    surplusDeficit: followed(m, 'surplusDeficit')
+                }
+            })),
             metrics
         })
     }
