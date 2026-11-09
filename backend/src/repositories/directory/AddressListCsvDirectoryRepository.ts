@@ -44,6 +44,7 @@ export class AddressListCsvDirectoryRepository implements CorpsDirectoryReposito
             address: row.address1,
             closingDate: toClosingDate(row.centre_close_date),
             city: row.city,
+            country: row.country,
             lat: toCoordinate(row.latitude),
             lng: toCoordinate(row.longitude),
             population: [...POPULATION_COLUMNS]

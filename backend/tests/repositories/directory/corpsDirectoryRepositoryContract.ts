@@ -23,6 +23,7 @@ export function describeCorpsDirectoryRepositoryContract(loadRepository: () => P
                     area: 'Area Officer - North',
                     address: '1 Main Street',
                     city: 'Kaitaia',
+                    country: 'New Zealand',
                     closingDate: null,
                     lat: -35.1,
                     lng: 173.2,

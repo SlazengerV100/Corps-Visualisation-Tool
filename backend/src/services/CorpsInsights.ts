@@ -147,6 +147,7 @@ export class CorpsInsights {
                 const snapshot: Snapshot = {
                     id,
                     name,
+                    country: directory.get(id)?.country ?? null,
                     year,
                     metrics: {
                         congregationalWorship: worship,
@@ -190,14 +191,15 @@ export class CorpsInsights {
             snapshots: {
                 years: snapshotYears,
                 scoredYears: snapshotYears.filter(y => this.snapshotsByYear.get(y)?.some(s => s.scores))
-            }
+            },
+            countries: [...new Set(directory.all().map(c => c.country))].toSorted()
         }
 
         this.mappableCorps = directory.all().filter(c => c.lat !== null && c.lng !== null)
     }
 
     /**
-     * Every registered metric with its granularities and years, plus the years with snapshots and with scores.
+     * Every registered metric with its granularities and years, the years with snapshots and with scores, and the directory's countries.
      */
     catalogue(): Catalogue {
         return this.catalogueView
