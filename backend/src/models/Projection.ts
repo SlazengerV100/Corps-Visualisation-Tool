@@ -9,7 +9,10 @@ export interface Match {
     name: string
     year: FinancialYear
     similarity: number
-    metrics: Record<ProjectedMetricName, YearlyPoint[]>
+}
+
+export interface MetricMatch extends Match {
+    points: YearlyPoint[]
 }
 
 export interface ProjectedPoint {
@@ -19,9 +22,14 @@ export interface ProjectedPoint {
     high: number
 }
 
+export interface MetricProjection {
+    matches: MetricMatch[]
+    points: ProjectedPoint[]
+}
+
 export interface Projection {
     window: number
     year: FinancialYear
     matches: Match[]
-    metrics: Record<ProjectedMetricName, ProjectedPoint[]>
+    metrics: Record<ProjectedMetricName, MetricProjection>
 }

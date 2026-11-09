@@ -1,6 +1,6 @@
 import type { FinancialYear } from '../models/FinancialYear.ts'
 import type { MetricName } from '../models/Metric.ts'
-import type { Match, ProjectedMetricName, ProjectedPoint, Projection } from '../models/Projection.ts'
+import type { Match, MetricProjection, ProjectedMetricName, ProjectedPoint, Projection } from '../models/Projection.ts'
 import type { YearlyPoint } from '../models/YearlyPoint.ts'
 
 export const windowYearOptions = [1, 2, 3, 4, 5]
@@ -17,7 +17,7 @@ const samisMetrics = new Set<MetricName>(['congregationalWorship', 'firstTimeDec
 interface Window {
     id: string
     end: FinancialYear
-    features: (number | null)[]
+    features: Map<MetricName, (number | null)[]>
 }
 
 interface WeightedMatch extends Window {
@@ -25,11 +25,11 @@ interface WeightedMatch extends Window {
 }
 
 /**
- * Match each corps' latest window of years to the closest earlier windows, its own included, and project every metric by what followed them.
+ * Match each corps' latest window of years to the closest earlier windows, its own included, across all metrics and on each metric alone, and project each metric by what followed its own matches.
  * @param yearlyByMetric - Each metric's yearly figures by centre code
  * @param corps - Each corps' name and region by centre code; a corps only matches corps in its own region
  * @param windowYears - How many years a window covers, ending in the corps' latest year of worship
- * @returns A projection for each corps with worship in every year of its latest window, with no points when nothing matched closely enough
+ * @returns A projection for each corps with worship in every year of its latest window, with no points for a metric nothing matched closely enough on
  */
 export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<string, YearlyPoint[]>>, corps: Map<string, { name: string, region: string | null }>, windowYears: number): Map<string, Projection> {
     const figures = new Map([...yearlyByMetric].map(([name, byCorps]) => [name, new Map([...byCorps].map(([id, points]) => [
@@ -59,23 +59,26 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
         for (const end of byYear.keys()) {
             const years = Array.from({ length: windowYears }, (_, i) => end - windowYears + 1 + i)
             if (years.every(year => byYear.has(year))) {
-                windows.push({ id, end, features: metricNames.flatMap(name => years.map(year => standardised(name, id, year))) })
+                windows.push({ id, end, features: new Map(metricNames.map(name => [name, years.map(year => standardised(name, id, year))])) })
             }
         }
     }
 
-    // Root mean square over the figures both windows have; worship is always among them
-    const distance = (a: Window, b: Window) => {
+    // Root mean square over the given metrics' figures both windows have, or no distance when they share fewer than asked
+    const distance = (a: Window, b: Window, names: MetricName[], minShared: number) => {
         let sum = 0
         let count = 0
-        a.features.forEach((value, i) => {
-            const other = b.features[i]
-            if (value !== null && other !== null) {
-                sum += (value - other) ** 2
-                count++
-            }
-        })
-        return Math.sqrt(sum / count)
+        for (const name of names) {
+            const others = b.features.get(name) ?? []
+            a.features.get(name)?.forEach((value, i) => {
+                const other = others[i]
+                if (value !== null && other !== null) {
+                    sum += (value - other) ** 2
+                    count++
+                }
+            })
+        }
+        return count >= Math.max(minShared, 1) ? Math.sqrt(sum / count) : null
     }
 
     const project = (matches: WeightedMatch[], target: Window, sample: (match: WeightedMatch, year: FinancialYear) => number | null, canBeNegative: boolean): ProjectedPoint[] => {
@@ -99,42 +102,29 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
     const projections = new Map<string, Projection>()
     for (const target of windows.filter(w => w.end === latestYear.get(w.id))) {
         const region = corps.get(target.id)?.region ?? null
-        const closest = new Map<string, WeightedMatch>()
-        for (const candidate of windows) {
-            // Only an earlier window with a later year, from a corps in the same region, shows what followed; the corps' own must not overlap its latest
-            const latestStart = target.end - windowYears + 1
-            if (candidate.end >= (candidate.id === target.id ? latestStart : target.end) || candidate.end === latestYear.get(candidate.id) || region === null || corps.get(candidate.id)?.region !== region) {
-                continue
-            }
-            const weight = 100 / (1 + distance(target, candidate))
-            if (weight >= minSimilarity && weight > (closest.get(candidate.id)?.weight ?? 0)) {
-                closest.set(candidate.id, { ...candidate, weight })
-            }
-        }
-        const matches = [...closest.values()].toSorted((a, b) => b.weight - a.weight).slice(0, maxMatches)
+        const latestStart = target.end - windowYears + 1
+        // Only an earlier window with a later year, from a corps in the same region, shows what followed; the corps' own must not overlap its latest
+        const candidates = region === null ? [] : windows.filter(candidate =>
+            candidate.end < (candidate.id === target.id ? latestStart : target.end)
+            && candidate.end !== latestYear.get(candidate.id)
+            && corps.get(candidate.id)?.region === region
+        )
 
-        // Each metric moves by the ratio its match moved by, except surplus/deficit, which follows the match's figure per worshipper; first-time decisions only inform the matching
-        const byRatio = (name: MetricName) => {
-            const base = figure(name, target.id, target.end)
-            return base === null ? [] : project(matches, target, (match, year) => {
-                const from = figure(name, match.id, match.end)
-                const to = figure(name, match.id, year)
-                return from === null || from <= 0 || to === null ? null : base * to / from
-            }, false)
+        // Across all metrics, worship guarantees a full window of shared figures; on one metric alone, both windows need it in every year
+        const closestOn = (names: MetricName[]) => {
+            const minShared = names.length === 1 ? windowYears : 1
+            const closest = new Map<string, WeightedMatch>()
+            for (const candidate of candidates) {
+                const apart = distance(target, candidate, names, minShared)
+                const weight = apart === null ? 0 : 100 / (1 + apart)
+                if (weight >= minSimilarity && weight > (closest.get(candidate.id)?.weight ?? 0)) {
+                    closest.set(candidate.id, { ...candidate, weight })
+                }
+            }
+            return [...closest.values()].toSorted((a, b) => b.weight - a.weight).slice(0, maxMatches)
         }
-        const projectedWorship = byRatio('congregationalWorship')
-        const metrics: Record<ProjectedMetricName, ProjectedPoint[]> = {
-            congregationalWorship: projectedWorship,
-            kidsChurch: byRatio('kidsChurch'),
-            youthDiscipleship: byRatio('youthDiscipleship'),
-            tithing: byRatio('tithing'),
-            surplusDeficit: project(matches, target, (match, year) => {
-                const surplusDeficit = figure('surplusDeficit', match.id, year)
-                const matchWorship = figure('congregationalWorship', match.id, year)
-                const targetWorship = projectedWorship.find(p => p.year === year - match.end + target.end)
-                return surplusDeficit === null || matchWorship === null || !targetWorship ? null : surplusDeficit / matchWorship * targetWorship.metric
-            }, true)
-        }
+
+        const describe = (match: WeightedMatch): Match => ({ id: match.id, name: corps.get(match.id)?.name ?? match.id, year: match.end, similarity: Math.round(match.weight) })
 
         // A match's window and what followed, moved onto the target's years and scaled to its level; surplus/deficit scales by worship
         const followed = (match: WeightedMatch, name: ProjectedMetricName): YearlyPoint[] => {
@@ -154,23 +144,44 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
             return points
         }
 
+        // Each metric is matched on its own history and moves by the ratio its matches moved by; first-time decisions only inform the overall matches
+        const byRatio = (name: ProjectedMetricName): MetricProjection => {
+            const matches = closestOn([name])
+            const base = figure(name, target.id, target.end)
+            return {
+                matches: matches.map(m => ({ ...describe(m), points: followed(m, name) })),
+                points: base === null ? [] : project(matches, target, (match, year) => {
+                    const from = figure(name, match.id, match.end)
+                    const to = figure(name, match.id, year)
+                    return from === null || from <= 0 || to === null ? null : base * to / from
+                }, false)
+            }
+        }
+
+        // Surplus/deficit follows its matches' figure per worshipper, applied to the projected worship
+        const projectedWorship = byRatio('congregationalWorship')
+        const surplusDeficitMatches = closestOn(['surplusDeficit'])
+        const surplusDeficit: MetricProjection = {
+            matches: surplusDeficitMatches.map(m => ({ ...describe(m), points: followed(m, 'surplusDeficit') })),
+            points: project(surplusDeficitMatches, target, (match, year) => {
+                const figureThen = figure('surplusDeficit', match.id, year)
+                const matchWorship = figure('congregationalWorship', match.id, year)
+                const targetWorship = projectedWorship.points.find(p => p.year === year - match.end + target.end)
+                return figureThen === null || matchWorship === null || !targetWorship ? null : figureThen / matchWorship * targetWorship.metric
+            }, true)
+        }
+
         projections.set(target.id, {
             window: windowYears,
             year: target.end,
-            matches: matches.map((m): Match => ({
-                id: m.id,
-                name: corps.get(m.id)?.name ?? m.id,
-                year: m.end,
-                similarity: Math.round(m.weight),
-                metrics: {
-                    congregationalWorship: followed(m, 'congregationalWorship'),
-                    kidsChurch: followed(m, 'kidsChurch'),
-                    youthDiscipleship: followed(m, 'youthDiscipleship'),
-                    tithing: followed(m, 'tithing'),
-                    surplusDeficit: followed(m, 'surplusDeficit')
-                }
-            })),
-            metrics
+            matches: closestOn(metricNames).map(describe),
+            metrics: {
+                congregationalWorship: projectedWorship,
+                kidsChurch: byRatio('kidsChurch'),
+                youthDiscipleship: byRatio('youthDiscipleship'),
+                tithing: byRatio('tithing'),
+                surplusDeficit
+            }
         })
     }
     return projections
