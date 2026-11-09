@@ -12,6 +12,7 @@ import {
   Select,
   MenuItem,
   IconButton,
+  Slider,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import MetricChart from './MetricChart.tsx';
@@ -86,13 +87,12 @@ const financialYearLabel = (year: number) => `${year - 1}/${year.toString().slic
 const projectedPoints = (projection: Projection | null | undefined, metric: string): ChartPoint[] =>
   (projection?.metrics[metric]?.points ?? []).map(point => ({ ...point, financialYear: financialYearLabel(point.year), isProjected: true }))
 
-// How many financial years each range covers, counting back from the latest; FUTURE projects as many again
-const rangeYears: Record<Exclude<TimeRange, 'allTime'>, number> = {
+// How many financial years each range covers, counting back from the latest; FUTURE covers the chosen window back and as many years ahead
+const rangeYears: Record<Exclude<TimeRange, 'allTime' | 'future'>, number> = {
   pastYear: 1,
   pastTwoYears: 2,
   pastFiveYears: 5,
   pastTenYears: 10,
-  future: 5,
 }
 
 /**
@@ -134,17 +134,21 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
   const [metricData, setMetricData] = useState<ChartPoint[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [metrics, setMetrics] = useState<MetricDefinition[]>([])
-  const [loadedProjection, setLoadedProjection] = useState<{ corpsId: string, projection: Projection | null } | null>(null)
-  // Undefined while this corps' projection loads, null when the corps can't be matched
-  const projection = loadedProjection?.corpsId === corps.id ? loadedProjection.projection : undefined
+  const [windowOptions, setWindowOptions] = useState<number[]>([])
+  const [windowYears, setWindowYears] = useState<number | null>(null)
+  const [loadedProjection, setLoadedProjection] = useState<{ corpsId: string, window: number, projection: Projection | null } | null>(null)
+  // Undefined while this corps' projection over the chosen window loads, null when the corps can't be matched
+  const projection = loadedProjection?.corpsId === corps.id && loadedProjection.window === windowYears ? loadedProjection.projection : undefined
 
   useEffect(() => {
     const fetchCatalogue = async () => {
       try {
         const response = await fetch('/api/catalogue')
         if (response.ok) {
-          const catalogue: { metrics: MetricDefinition[] } = await response.json()
+          const catalogue: { metrics: MetricDefinition[], projection: { windows: number[], defaultWindow: number } } = await response.json()
           setMetrics(catalogue.metrics)
+          setWindowOptions(catalogue.projection.windows)
+          setWindowYears(catalogue.projection.defaultWindow)
         }
       } catch {
         console.error('Failed to fetch the metric catalogue')
@@ -161,8 +165,9 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
   const projectable = definition?.projected ?? false
   const effectiveRange = !supportsMonthly && monthlyRanges.includes(timeRange) ? 'allTime' : !projectable && timeRange === 'future' ? 'pastFiveYears' : timeRange
   // The chart spans these financial years whether or not the corps has a figure for each
-  const firstYear = latestYear === undefined || effectiveRange === 'allTime' ? definition?.years[0] : latestYear - rangeYears[effectiveRange] + 1
-  const lastYear = latestYear !== undefined && effectiveRange === 'future' ? latestYear + rangeYears.future : latestYear
+  const rangeLength = effectiveRange === 'future' ? windowYears : effectiveRange === 'allTime' ? null : rangeYears[effectiveRange]
+  const firstYear = latestYear === undefined || effectiveRange === 'allTime' ? definition?.years[0] : rangeLength === null ? undefined : latestYear - rangeLength + 1
+  const lastYear = latestYear !== undefined && effectiveRange === 'future' ? (windowYears === null ? undefined : latestYear + windowYears) : latestYear
 
   useEffect(() => {
     const fetchMonthlyData = async (year: number): Promise<ChartPoint[]> => {
@@ -241,21 +246,21 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
     void fetchMetricData(effectiveRange)
   }, [corps, effectiveRange, selectedMetric, latestYear, firstYear])
 
-  // Without a window parameter, so the API's default length applies
   useEffect(() => {
+    if (windowYears === null) return
     const fetchProjection = async () => {
       try {
-        const response = await fetch(`/api/corps/${corps.id}/projection`)
+        const response = await fetch(`/api/corps/${corps.id}/projection?window=${windowYears}`)
         const data: Projection | null = response.ok ? await response.json() : null
-        setLoadedProjection({ corpsId: corps.id, projection: data })
+        setLoadedProjection({ corpsId: corps.id, window: windowYears, projection: data })
       } catch {
         console.error(`Failed to fetch the projection`)
-        setLoadedProjection({ corpsId: corps.id, projection: null })
+        setLoadedProjection({ corpsId: corps.id, window: windowYears, projection: null })
       }
     }
 
     void fetchProjection()
-  }, [corps])
+  }, [corps, windowYears])
 
   const projected = useMemo(
     () => effectiveRange === 'future' ? projectedPoints(projection, selectedMetric) : [],
@@ -303,11 +308,28 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
         Similar Corps
       </Typography>
 
+      {windowYears !== null && (
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="body2" gutterBottom>
+            Compare the last {windowYears} years and project {windowYears} years ahead
+          </Typography>
+          <Slider
+            value={windowYears}
+            min={windowOptions[0]}
+            max={windowOptions[windowOptions.length - 1]}
+            step={null}
+            marks={windowOptions.map(value => ({ value, label: `${value}Y` }))}
+            onChange={(_, value) => { if (typeof value === 'number') setWindowYears(value) }}
+            sx={{ mx: 1, width: 'calc(100% - 16px)' }}
+          />
+        </Box>
+      )}
+
       {projection === undefined ? (
         <CircularProgress size={24} />
       ) : !projection ? (
         <Typography variant="body2" color="text.secondary">
-          This corps is missing a worship figure in one of its recent years, so it can't be matched.
+          This corps is missing a worship figure in one of its last {windowYears} years, so it can't be matched.
         </Typography>
       ) : projection.matches.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
