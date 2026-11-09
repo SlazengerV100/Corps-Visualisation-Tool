@@ -53,6 +53,7 @@ export function describeCorpsDirectoryRepositoryContract(loadRepository: () => P
 
             test('should return null for a year or corps without a figure', () => {
                 expect(repository.population(alpha.id, 2030)).toBeNull()
+                expect(repository.population(beta.id, 2024)).toBeNull()
                 expect(repository.population(unknownId, 2024)).toBeNull()
             })
         })

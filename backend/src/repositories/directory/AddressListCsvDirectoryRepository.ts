@@ -46,7 +46,9 @@ export class AddressListCsvDirectoryRepository implements CorpsDirectoryReposito
             city: row.city,
             lat: toCoordinate(row.latitude),
             lng: toCoordinate(row.longitude),
-            population: [...POPULATION_COLUMNS].map(([year, column]) => ({ year, value: parseInt(row[column], 10) || 0 }))
+            population: [...POPULATION_COLUMNS]
+                .map(([year, column]) => ({ year, value: parseInt(row[column], 10) }))
+                .filter(p => !Number.isNaN(p.value))
         }]))
     }
 
