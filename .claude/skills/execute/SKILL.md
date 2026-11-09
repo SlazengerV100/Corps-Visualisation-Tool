@@ -28,7 +28,7 @@ Get familiar with the code the issue touches. Skip this when the context already
 
 ## 4. Execute
 
-- Create a worktree with EnterWorktree, named `<type>/<short-name>` (for example `fix/metric-chart-axis`). This checkout isn't in `~/Repos`, so don't add a repo prefix: the WorktreeCreate hook would take it as part of the branch name.
+- Create a worktree for a `<type>/<short-name>` branch, such as `fix/metric-chart-axis`.
 - Follow the `code-commenting` skill for every comment and the `commit-messages` skill for every commit.
 
 ## 5. Unit tests
