@@ -91,8 +91,8 @@ describe('CorpsInsights', () => {
             expect(insights.catalogue().regions).toEqual(['New Zealand', 'Pacific'])
         })
 
-        test('should list the projection window lengths and the default', () => {
-            expect(insights.catalogue().projection).toEqual({ windows: [2, 4, 6, 8, 10], defaultWindow: 4 })
+        test('should list the projection window lengths, the default and the overall window', () => {
+            expect(insights.catalogue().projection).toEqual({ windows: [2, 4, 6, 8, 10], defaultWindow: 4, overallWindow: 5 })
         })
     })
 
@@ -107,6 +107,7 @@ describe('CorpsInsights', () => {
 
         test('should report a corps without worship in every year of its latest window as not found', () => {
             expect(() => insights.projection(alpha.id, 4)).toThrow(NotFoundError)
+            expect(() => insights.projection(alpha.id, 5)).toThrow(NotFoundError)
             expect(() => insights.projection('999999', 2)).toThrow(NotFoundError)
         })
     })

@@ -1,7 +1,7 @@
 import { calculateGrowth, calculateSustainability } from '../utils/calculations.ts'
 import { InvalidQueryError } from './InvalidQueryError.ts'
 import { NotFoundError } from './NotFoundError.ts'
-import { defaultWindowYears, isProjected, projectFromSimilarCorps, windowYearOptions } from './similarCorps.ts'
+import { defaultWindowYears, isProjected, overallWindowYears, projectFromSimilarCorps, windowYearOptions } from './similarCorps.ts'
 import type { MissionRepository } from '../repositories/mission/MissionRepository.ts'
 import type { FinanceRepository } from '../repositories/finance/FinanceRepository.ts'
 import type { CorpsDirectoryRepository } from '../repositories/directory/CorpsDirectoryRepository.ts'
@@ -137,7 +137,7 @@ export class CorpsInsights {
 
         const yearlyByMetric = new Map([...this.metrics.values()].map(m => [m.definition.name, m.yearlyByCorps]))
         const projectedCorps = new Map([...mission.corps(), ...finance.corps()].map(c => [c.id, { name: c.name, region: regionById.get(c.id) ?? null }]))
-        this.projectionsByWindow = new Map(windowYearOptions.map(window => [window, projectFromSimilarCorps(yearlyByMetric, projectedCorps, window)]))
+        this.projectionsByWindow = new Map([...new Set([...windowYearOptions, overallWindowYears])].map(window => [window, projectFromSimilarCorps(yearlyByMetric, projectedCorps, window)]))
 
         this.snapshotsByYear = new Map()
         for (const year of mission.years()) {
@@ -207,7 +207,7 @@ export class CorpsInsights {
                 scoredYears: snapshotYears.filter(y => this.snapshotsByYear.get(y)?.some(s => s.scores))
             },
             regions: [...new Set(regionById.values())].toSorted(),
-            projection: { windows: windowYearOptions, defaultWindow: defaultWindowYears }
+            projection: { windows: windowYearOptions, defaultWindow: defaultWindowYears, overallWindow: overallWindowYears }
         }
 
         this.mappableCorps = directory.all()

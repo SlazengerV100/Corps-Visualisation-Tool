@@ -6,6 +6,8 @@ import type { YearlyPoint } from '../models/YearlyPoint.ts'
 // A window of years is matched on, and projected as many years ahead
 export const windowYearOptions = [2, 4, 6, 8, 10]
 export const defaultWindowYears = 4
+// The overall similar corps are always matched on this window
+export const overallWindowYears = 5
 const maxMatches = 3
 // A placeholder until the threshold is tuned against real matches
 const minSimilarity = 50
