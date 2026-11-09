@@ -91,7 +91,7 @@ describe('CorpsInsights', () => {
         })
 
         test('should list the projection window lengths and the default', () => {
-            expect(insights.catalogue().projection).toEqual({ windows: [1, 2, 3, 4, 5], defaultWindow: 3 })
+            expect(insights.catalogue().projection).toEqual({ windows: [1, 2, 3, 4, 5], defaultWindow: 5 })
         })
     })
 

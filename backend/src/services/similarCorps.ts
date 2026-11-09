@@ -4,7 +4,7 @@ import type { Match, ProjectedPoint, Projection } from '../models/Projection.ts'
 import type { YearlyPoint } from '../models/YearlyPoint.ts'
 
 export const windowYearOptions = [1, 2, 3, 4, 5]
-export const defaultWindowYears = 3
+export const defaultWindowYears = 5
 const maxMatches = 3
 // A placeholder until the threshold is tuned against real matches
 const minSimilarity = 50

@@ -21,12 +21,11 @@ interface DrawnChart {
 }
 
 /**
- * Line chart of a metric across a fixed span of financial years, leaving out the years or months with no figure, with an optional dotted projection redrawn on its own
+ * Line chart of a metric across a fixed span of financial years, leaving out the years or months with no figure, followed by any dotted projection
  */
-const MetricChart = ({ data, projected, scalePoints, timeRange, selectedMetric, unit, firstYear, lastYear, height = 300 }: {
+const MetricChart = ({ data, projected, timeRange, selectedMetric, unit, firstYear, lastYear, height = 300 }: {
   data: ChartPoint[]
   projected: ChartPoint[]
-  scalePoints: ChartPoint[]
   timeRange: TimeRange
   selectedMetric: string
   unit: Unit
@@ -64,8 +63,7 @@ const MetricChart = ({ data, projected, scalePoints, timeRange, selectedMetric, 
     const canBeNegative = selectedMetric === 'surplusDeficit'
     const floored = (d: ChartPoint) => canBeNegative ? d.metric : Math.max(d.metric, 0)
 
-    // The scale covers every projection the chart may show, so swapping one leaves the history where it is
-    const scaled = [...data, ...scalePoints]
+    const scaled = [...data, ...projected]
     const minMetric = d3.min(scaled, d => Math.min(d.metric, d.low ?? d.metric)) ?? 0
     const maxMetric = d3.max(scaled, d => Math.max(d.metric, d.high ?? d.metric)) ?? 0
     const y = d3.scaleLinear()
@@ -310,9 +308,9 @@ const MetricChart = ({ data, projected, scalePoints, timeRange, selectedMetric, 
     return () => {
       d3.select('body').selectAll('.tooltip').remove();
     };
-  }, [data, scalePoints, timeRange, selectedMetric, unit, firstYear, lastYear, height]);
+  }, [data, projected, timeRange, selectedMetric, unit, firstYear, lastYear, height]);
 
-  // Redraw only the projection, after the chart above whenever that redraws
+  // Draw the projection into its layer once the chart above has drawn
   useEffect(() => {
     const chart = chartRef.current
     if (!chart) return
@@ -353,7 +351,7 @@ const MetricChart = ({ data, projected, scalePoints, timeRange, selectedMetric, 
       .transition()
       .duration(500)
       .attr('opacity', 1);
-  }, [projected, data, scalePoints, timeRange, selectedMetric, unit, firstYear, lastYear, height]);
+  }, [projected, data, timeRange, selectedMetric, unit, firstYear, lastYear, height]);
 
   if (!data || data.length === 0) return <p>No data available for this metric in the selected time period.</p>
 
