@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import type { ChartPoint, TimeRange, Unit } from './CorpsDetails.tsx';
+import type { ChartPoint, MatchLine, TimeRange, Unit } from './CorpsDetails.tsx';
 
 const count = new Intl.NumberFormat('en-NZ', { maximumFractionDigits: 1 });
 const dollars = new Intl.NumberFormat('en-NZ', { style: 'currency', currency: 'NZD', maximumFractionDigits: 0 });
@@ -21,11 +21,12 @@ interface DrawnChart {
 }
 
 /**
- * Line chart of a metric across a fixed span of financial years, leaving out the years or months with no figure, followed by any dotted projection
+ * Line chart of a metric across a fixed span of financial years, leaving out the years or months with no figure, followed by any dotted projection and the similar corps it came from
  */
-const MetricChart = ({ data, projected, timeRange, selectedMetric, unit, firstYear, lastYear, height = 300 }: {
+const MetricChart = ({ data, projected, matches, timeRange, selectedMetric, unit, firstYear, lastYear, height = 300 }: {
   data: ChartPoint[]
   projected: ChartPoint[]
+  matches: MatchLine[]
   timeRange: TimeRange
   selectedMetric: string
   unit: Unit
@@ -63,7 +64,7 @@ const MetricChart = ({ data, projected, timeRange, selectedMetric, unit, firstYe
     const canBeNegative = selectedMetric === 'surplusDeficit'
     const floored = (d: ChartPoint) => canBeNegative ? d.metric : Math.max(d.metric, 0)
 
-    const scaled = [...data, ...projected]
+    const scaled = [...data, ...projected, ...matches.flatMap(m => m.points)]
     const minMetric = d3.min(scaled, d => Math.min(d.metric, d.low ?? d.metric)) ?? 0
     const maxMetric = d3.max(scaled, d => Math.max(d.metric, d.high ?? d.metric)) ?? 0
     const y = d3.scaleLinear()
@@ -308,14 +309,33 @@ const MetricChart = ({ data, projected, timeRange, selectedMetric, unit, firstYe
     return () => {
       d3.select('body').selectAll('.tooltip').remove();
     };
-  }, [data, projected, timeRange, selectedMetric, unit, firstYear, lastYear, height]);
+  }, [data, projected, matches, timeRange, selectedMetric, unit, firstYear, lastYear, height]);
 
-  // Draw the projection into its layer once the chart above has drawn
+  // Draw the similar corps and the projection into their layer once the chart above has drawn
   useEffect(() => {
     const chart = chartRef.current
     if (!chart) return
     const { projectionLayer, xOf, y, floored, addDots } = chart
     projectionLayer.selectAll('*').remove()
+    projectionLayer
+      .attr('opacity', 0)
+      .transition()
+      .duration(500)
+      .attr('opacity', 1);
+
+    // Each similar corps' path, beneath the projection drawn from them
+    for (const match of matches) {
+      projectionLayer.append('path')
+        .datum(match.points)
+        .attr('fill', 'none')
+        .attr('stroke', match.colour)
+        .attr('stroke-width', 1.5)
+        .attr('opacity', 0.8)
+        .attr('d', d3.line<ChartPoint>()
+          .x(xOf)
+          .y(d => y(floored(d)))
+          .curve(d3.curveMonotoneX));
+    }
     if (projected.length === 0) return
 
     // Start from the last recorded point so the projection joins the history
@@ -345,13 +365,7 @@ const MetricChart = ({ data, projected, timeRange, selectedMetric, unit, firstYe
         .curve(d3.curveMonotoneX));
 
     addDots(projectionLayer, projected)
-
-    projectionLayer
-      .attr('opacity', 0)
-      .transition()
-      .duration(500)
-      .attr('opacity', 1);
-  }, [projected, data, timeRange, selectedMetric, unit, firstYear, lastYear, height]);
+  }, [projected, matches, data, timeRange, selectedMetric, unit, firstYear, lastYear, height]);
 
   if (!data || data.length === 0) return <p>No data available for this metric in the selected time period.</p>
 

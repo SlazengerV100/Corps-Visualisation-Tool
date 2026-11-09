@@ -50,12 +50,22 @@ export interface ChartPoint {
   high?: number
 }
 
+export interface MatchLine {
+  colour: string
+  points: ChartPoint[]
+}
+
 interface Match {
   id: string
   name: string
   year: number
   similarity: number
+  metrics: Record<string, { year: number, metric: number }[]>
 }
+
+// The projection keeps the chart's purple; each match gets its own colour
+const projectionColour = '#8884d8'
+const matchColours = ['#f28e2b', '#59a14f', '#e15759']
 
 interface Projection {
   window: number
@@ -215,6 +225,13 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
     [effectiveRange, projection, selectedMetric]
   )
 
+  const matchLines = useMemo((): MatchLine[] => effectiveRange !== 'future' || !projection || firstYear === undefined ? [] : projection.matches.map((match, i) => ({
+    colour: matchColours[i % matchColours.length],
+    points: (match.metrics[selectedMetric] ?? [])
+      .filter(point => point.year >= firstYear)
+      .map(point => ({ ...point, financialYear: financialYearLabel(point.year) }))
+  })), [effectiveRange, projection, selectedMetric, firstYear])
+
   const handleTimeRangeChange = (event: React.MouseEvent<HTMLElement>, newTimeRange: TimeRange | null) => {
     if (newTimeRange !== null) {
       setTimeRange(newTimeRange);
@@ -284,6 +301,7 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
           <MetricChart
             data={metricData}
             projected={projected}
+            matches={matchLines}
             timeRange={effectiveRange}
             selectedMetric={selectedMetric}
             unit={definition.unit}
@@ -303,35 +321,27 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
             <Typography variant="body2" color="text.secondary">
               No other corps was ever in a position close enough to this one's to project from.
             </Typography>
+          ) : !(selectedMetric in projection.metrics) ? (
+            <Typography variant="body2" color="text.secondary">
+              {definition?.label ?? 'This metric'} helps find similar corps but isn't projected.
+            </Typography>
           ) : (
-            <>
-              <Typography variant="body2" sx={{ mt: 1 }}>
-                Projected from what followed for the corps closest to {projection.year - projection.window + 1 === projection.year
-                  ? financialYearLabel(projection.year)
-                  : `${financialYearLabel(projection.year - projection.window + 1)} to ${financialYearLabel(projection.year)}`}:
-              </Typography>
-              <Box component="ul" sx={{ mt: 0.5, mb: 1, pl: 3 }}>
-                {projection.matches.map(match => (
-                  <li key={match.id}>
-                    <Typography variant="body2">
-                      {match.name} up to {financialYearLabel(match.year)}, {match.similarity}% similar
-                    </Typography>
-                  </li>
-                ))}
-              </Box>
-              {!(selectedMetric in projection.metrics) ? (
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {definition?.label ?? 'This metric'} helps find the matches but isn't projected.
-                </Typography>
-              ) : !projection.metrics[selectedMetric].length && (
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Too few of them have {definition?.label ?? 'this metric'} figures after that to project it.
-                </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 3, rowGap: 0.5 }}>
+              {projected.length > 0 && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ width: 24, height: 10, bgcolor: `${projectionColour}33`, borderTop: `2px dashed ${projectionColour}` }} />
+                  <Typography variant="body2">Projection and spread</Typography>
+                </Box>
               )}
-              <Typography variant="caption" color="text.secondary">
-                The dotted line follows the matched corps, weighted by similarity, and the shaded band is the spread between them. It is a guide, not a forecast.
-              </Typography>
-            </>
+              {projection.matches.map((match, i) => (
+                <Box key={match.id} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ width: 24, borderTop: `2px solid ${matchLines[i]?.colour}` }} />
+                  <Typography variant="body2">
+                    {match.name} {financialYearLabel(match.year - projection.window + 1)}–{financialYearLabel(match.year)}, <strong>{match.similarity}%</strong> similar
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
           )}
         </Box>
       )}
