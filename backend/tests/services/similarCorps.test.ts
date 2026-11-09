@@ -21,7 +21,8 @@ const yearlyByMetric = (corps: Record<string, History>) => new Map(metricNames.m
 
 const rounded = (points: ProjectedPoint[]) => points.map(p => ({ year: p.year, metric: Math.round(p.metric), low: Math.round(p.low), high: Math.round(p.high) }))
 
-const steady = (metric: number) => [2026, 2027, 2028, 2029, 2030].map(year => ({ year, metric, low: metric, high: metric }))
+// A three-year window projects three years ahead
+const steady = (metric: number) => [2026, 2027, 2028].map(year => ({ year, metric, low: metric, high: metric }))
 
 // Johnsonville's latest three years mirror Hamilton's and Napier's earlier ones, after which both doubled
 const history: Record<string, History> = {
@@ -105,12 +106,12 @@ describe('projectFromSimilarCorps', () => {
         expect(metrics?.tithing.matches.map(m => m.id)).not.toContain('gisborne')
     })
 
-    test('should give each metric\'s matches their window and what followed, on the corps\' years and scaled to its level', () => {
+    test('should give each metric\'s matches their window and as many years after, on the corps\' years and scaled to its level', () => {
         const worship = projection?.metrics.congregationalWorship.matches.find(m => m.id === 'nelson')
         const surplusDeficit = projection?.metrics.surplusDeficit.matches.find(m => m.id === 'nelson')
-        expect(worship?.points.map(p => p.year)).toEqual([2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030])
-        expect(worship?.points.map(p => Math.round(p.metric))).toEqual([50, 60, 70, 140, 140, 140, 140, 140])
-        expect(surplusDeficit?.points.map(p => Math.round(p.metric))).toEqual([-503, -601, -700, ...repeat(-1400, 5)])
+        expect(worship?.points.map(p => p.year)).toEqual([2023, 2024, 2025, 2026, 2027, 2028])
+        expect(worship?.points.map(p => Math.round(p.metric))).toEqual([50, 60, 70, 140, 140, 140])
+        expect(surplusDeficit?.points.map(p => Math.round(p.metric))).toEqual([-503, -601, -700, ...repeat(-1400, 3)])
     })
 
     test('should project surplus/deficit per worshipper of the projected worship', () => {

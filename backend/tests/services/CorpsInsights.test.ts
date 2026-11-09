@@ -92,7 +92,7 @@ describe('CorpsInsights', () => {
         })
 
         test('should list the projection window lengths and the default', () => {
-            expect(insights.catalogue().projection).toEqual({ windows: [1, 2, 3, 4, 5], defaultWindow: 5 })
+            expect(insights.catalogue().projection).toEqual({ windows: [2, 4, 6, 8, 10], defaultWindow: 4 })
         })
     })
 
@@ -106,8 +106,8 @@ describe('CorpsInsights', () => {
         })
 
         test('should report a corps without worship in every year of its latest window as not found', () => {
-            expect(() => insights.projection(alpha.id, 3)).toThrow(NotFoundError)
-            expect(() => insights.projection('999999', 1)).toThrow(NotFoundError)
+            expect(() => insights.projection(alpha.id, 4)).toThrow(NotFoundError)
+            expect(() => insights.projection('999999', 2)).toThrow(NotFoundError)
         })
     })
 

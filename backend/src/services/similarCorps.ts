@@ -3,12 +3,12 @@ import type { MetricName } from '../models/Metric.ts'
 import type { Match, MetricProjection, ProjectedMetricName, ProjectedPoint, Projection } from '../models/Projection.ts'
 import type { YearlyPoint } from '../models/YearlyPoint.ts'
 
-export const windowYearOptions = [1, 2, 3, 4, 5]
-export const defaultWindowYears = 5
+// A window of years is matched on, and projected as many years ahead
+export const windowYearOptions = [2, 4, 6, 8, 10]
+export const defaultWindowYears = 4
 const maxMatches = 3
 // A placeholder until the threshold is tuned against real matches
 const minSimilarity = 50
-const horizonYears = 5
 // A margin for error needs at least two figures to spread across
 const minFigures = 2
 // SAMIS cannot tell a figure left blank from a real zero, so its zeros count as missing
@@ -33,7 +33,7 @@ interface WeightedMatch extends Window {
  * Match each corps' latest window of years to the closest earlier windows, its own included, across all metrics and on each metric alone, and project each metric by what followed its own matches.
  * @param yearlyByMetric - Each metric's yearly figures by centre code
  * @param corps - Each corps' name and region by centre code; a corps only matches corps in its own region
- * @param windowYears - How many years a window covers, ending in the corps' latest year of worship
+ * @param windowYears - How many years a window covers, ending in the corps' latest year of worship, and how many years ahead to project
  * @returns A projection for each corps with worship in every year of its latest window, with no points for a metric nothing matched closely enough on
  */
 export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<string, YearlyPoint[]>>, corps: Map<string, { name: string, region: string | null }>, windowYears: number): Map<string, Projection> {
@@ -88,7 +88,7 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
 
     const project = (matches: WeightedMatch[], target: Window, sample: (match: WeightedMatch, year: FinancialYear) => number | null, canBeNegative: boolean): ProjectedPoint[] => {
         const points: ProjectedPoint[] = []
-        for (let ahead = 1; ahead <= horizonYears; ahead++) {
+        for (let ahead = 1; ahead <= windowYears; ahead++) {
             const samples = matches.flatMap(match => {
                 const value = sample(match, match.end + ahead)
                 return value === null ? [] : [{ weight: match.weight, value }]
@@ -140,7 +140,7 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
                 return []
             }
             const points: YearlyPoint[] = []
-            for (let ahead = 1 - windowYears; ahead <= horizonYears; ahead++) {
+            for (let ahead = 1 - windowYears; ahead <= windowYears; ahead++) {
                 const value = figure(name, match.id, match.end + ahead)
                 if (value !== null) {
                     points.push({ year: target.end + ahead, metric: value * base / from })
