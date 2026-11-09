@@ -1,5 +1,5 @@
 import path from 'path'
-import { getOrCreate, readCsv } from '../csv.ts'
+import { getOrCreate, readCsvs } from '../csv.ts'
 import type { FinanceRepository } from './FinanceRepository.ts'
 import type { FinancialYear } from '../../models/FinancialYear.ts'
 import type { MonthlyPoint } from '../../models/MonthlyPoint.ts'
@@ -41,9 +41,9 @@ export class TechOneCsvFinanceRepository implements FinanceRepository {
      * @returns Rejects naming the export that cannot be read
      */
     static async load(dataFolder: string): Promise<TechOneCsvFinanceRepository> {
-        const [tithingRows, surplusDeficitRows] = await Promise.all([
-            readCsv(path.join(dataFolder, TITHING_FILE)),
-            readCsv(path.join(dataFolder, SURPLUS_DEFICIT_FILE))
+        const [tithingRows, surplusDeficitRows] = await readCsvs([
+            path.join(dataFolder, TITHING_FILE),
+            path.join(dataFolder, SURPLUS_DEFICIT_FILE)
         ])
         return new TechOneCsvFinanceRepository(tithingRows, surplusDeficitRows)
     }

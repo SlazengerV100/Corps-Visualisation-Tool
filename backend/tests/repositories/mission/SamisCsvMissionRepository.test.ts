@@ -7,8 +7,10 @@ describe('SamisCsvMissionRepository', () => {
     describeMissionRepositoryContract(() => SamisCsvMissionRepository.load(dataFolder))
 
     describe('load', () => {
-        test('should reject naming the export that cannot be read', async () => {
-            await expect(SamisCsvMissionRepository.load('./missing-data')).rejects.toThrow('Territory_Indicators_Yr2000_2025.csv')
+        test('should reject naming every export that cannot be read', async () => {
+            const loading = SamisCsvMissionRepository.load('./missing-data')
+            await expect(loading).rejects.toThrow('Territory_Indicators_Yr2000_2025.csv')
+            await expect(loading).rejects.toThrow('Territory_Indicators_Mth2000_2025.csv')
         })
     })
 })
