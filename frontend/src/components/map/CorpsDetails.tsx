@@ -36,6 +36,7 @@ interface MetricDefinition {
   unit: Unit
   granularities: ('year' | 'month')[]
   years: number[]
+  projected: boolean
 }
 
 export type TimeRange = 'pastYear' | 'pastTwoYears' | 'pastFiveYears' | 'pastTenYears' | 'allTime' | 'future'
@@ -157,7 +158,8 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
   const supportsMonthly = definition?.granularities.includes('month') ?? false
   const latestYear = definition?.years[definition.years.length - 1]
   const monthlyRanges: TimeRange[] = ['pastYear', 'pastTwoYears']
-  const effectiveRange = supportsMonthly || !monthlyRanges.includes(timeRange) ? timeRange : 'allTime'
+  const projectable = definition?.projected ?? false
+  const effectiveRange = !supportsMonthly && monthlyRanges.includes(timeRange) ? 'allTime' : !projectable && timeRange === 'future' ? 'pastFiveYears' : timeRange
   // The chart spans these financial years whether or not the corps has a figure for each
   const firstYear = latestYear === undefined || effectiveRange === 'allTime' ? definition?.years[0] : latestYear - rangeYears[effectiveRange] + 1
   const lastYear = latestYear !== undefined && effectiveRange === 'future' ? latestYear + rangeYears.future : latestYear
@@ -364,7 +366,7 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
         <ToggleButton value="pastFiveYears">5Y</ToggleButton>
         <ToggleButton value="pastTenYears">10Y</ToggleButton>
         <ToggleButton value="allTime">ALL TIME</ToggleButton>
-        <ToggleButton value="future">FUTURE</ToggleButton>
+        {projectable && <ToggleButton value="future">FUTURE</ToggleButton>}
       </ToggleButtonGroup>
 
       <Box sx={{ height: 300, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

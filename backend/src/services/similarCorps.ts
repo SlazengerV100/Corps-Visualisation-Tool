@@ -14,6 +14,11 @@ const minFigures = 2
 // SAMIS cannot tell a figure left blank from a real zero, so its zeros count as missing
 const samisMetrics = new Set<MetricName>(['congregationalWorship', 'firstTimeDecisions', 'kidsChurch', 'youthDiscipleship'])
 
+/**
+ * Whether a metric is projected; first-time decisions only inform the overall matches.
+ */
+export const isProjected = (name: MetricName): name is ProjectedMetricName => name !== 'firstTimeDecisions'
+
 interface Window {
     id: string
     end: FinancialYear

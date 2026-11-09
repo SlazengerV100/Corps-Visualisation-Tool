@@ -1,7 +1,7 @@
 import { calculateGrowth, calculateSustainability } from '../utils/calculations.ts'
 import { InvalidQueryError } from './InvalidQueryError.ts'
 import { NotFoundError } from './NotFoundError.ts'
-import { defaultWindowYears, projectFromSimilarCorps, windowYearOptions } from './similarCorps.ts'
+import { defaultWindowYears, isProjected, projectFromSimilarCorps, windowYearOptions } from './similarCorps.ts'
 import type { MissionRepository } from '../repositories/mission/MissionRepository.ts'
 import type { FinanceRepository } from '../repositories/finance/FinanceRepository.ts'
 import type { CorpsDirectoryRepository } from '../repositories/directory/CorpsDirectoryRepository.ts'
@@ -123,7 +123,8 @@ export class CorpsInsights {
                     label: source.label,
                     unit: source.unit,
                     granularities,
-                    years: [...metricYears].toSorted((a, b) => a - b)
+                    years: [...metricYears].toSorted((a, b) => a - b),
+                    projected: isProjected(source.name)
                 },
                 yearlyByCorps,
                 monthly: source.monthly
