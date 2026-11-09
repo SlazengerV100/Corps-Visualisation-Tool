@@ -1,6 +1,8 @@
 import type { FinancialYear } from './FinancialYear.ts'
 import type { MetricName } from './Metric.ts'
 
+export type ProjectedMetricName = Exclude<MetricName, 'firstTimeDecisions'>
+
 export interface Match {
     id: string
     name: string
@@ -19,5 +21,5 @@ export interface Projection {
     window: number
     year: FinancialYear
     matches: Match[]
-    metrics: Record<MetricName, ProjectedPoint[]>
+    metrics: Record<ProjectedMetricName, ProjectedPoint[]>
 }

@@ -319,7 +319,11 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
                   </li>
                 ))}
               </Box>
-              {!projection.metrics[selectedMetric]?.length && (
+              {!(selectedMetric in projection.metrics) ? (
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  {definition?.label ?? 'This metric'} helps find the matches but isn't projected.
+                </Typography>
+              ) : !projection.metrics[selectedMetric].length && (
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   Too few of them have {definition?.label ?? 'this metric'} figures after that to project it.
                 </Typography>

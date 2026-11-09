@@ -81,9 +81,10 @@ describe('projectFromSimilarCorps', () => {
         expect(projection?.matches).toHaveLength(3)
     })
 
-    test('should project each metric by the ratio its matches moved by', () => {
+    test('should project each metric but first-time decisions by the ratio its matches moved by', () => {
         expect(rounded(projection?.metrics.congregationalWorship ?? [])).toEqual(steady(140))
         expect(rounded(projection?.metrics.tithing ?? [])).toEqual(steady(28000))
+        expect(projection?.metrics).not.toHaveProperty('firstTimeDecisions')
     })
 
     test('should project surplus/deficit per worshipper of the projected worship', () => {
@@ -94,7 +95,6 @@ describe('projectFromSimilarCorps', () => {
         expect(projection?.metrics.kidsChurch).toEqual([])
         // Only Napier has youth figures after its window, Hamilton's are blank, and one figure gives no margin for error
         expect(projection?.metrics.youthDiscipleship).toEqual([])
-        expect(projection?.metrics.firstTimeDecisions).toEqual([])
     })
 
     test('should match only corps in the same region', () => {

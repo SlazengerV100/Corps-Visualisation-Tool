@@ -1,6 +1,6 @@
 import type { FinancialYear } from '../models/FinancialYear.ts'
 import type { MetricName } from '../models/Metric.ts'
-import type { Match, ProjectedPoint, Projection } from '../models/Projection.ts'
+import type { Match, ProjectedMetricName, ProjectedPoint, Projection } from '../models/Projection.ts'
 import type { YearlyPoint } from '../models/YearlyPoint.ts'
 
 export const windowYearOptions = [1, 2, 3, 4, 5]
@@ -113,7 +113,7 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
         }
         const matches = [...closest.values()].toSorted((a, b) => b.weight - a.weight).slice(0, maxMatches)
 
-        // Each metric moves by the ratio its match moved by, except surplus/deficit, which follows the match's figure per worshipper
+        // Each metric moves by the ratio its match moved by, except surplus/deficit, which follows the match's figure per worshipper; first-time decisions only inform the matching
         const byRatio = (name: MetricName) => {
             const base = figure(name, target.id, target.end)
             return base === null ? [] : project(matches, target, (match, year) => {
@@ -123,9 +123,8 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
             }, false)
         }
         const projectedWorship = byRatio('congregationalWorship')
-        const metrics: Record<MetricName, ProjectedPoint[]> = {
+        const metrics: Record<ProjectedMetricName, ProjectedPoint[]> = {
             congregationalWorship: projectedWorship,
-            firstTimeDecisions: byRatio('firstTimeDecisions'),
             kidsChurch: byRatio('kidsChurch'),
             youthDiscipleship: byRatio('youthDiscipleship'),
             tithing: byRatio('tithing'),
