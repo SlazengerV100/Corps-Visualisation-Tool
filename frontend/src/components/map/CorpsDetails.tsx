@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Typography,
@@ -67,6 +67,9 @@ interface Projection {
 
 const financialYearLabel = (year: number) => `${year - 1}/${year.toString().slice(-2)}`
 
+const projectedPoints = (projection: Projection | null, metric: string): ChartPoint[] =>
+  (projection?.metrics[metric] ?? []).map(point => ({ ...point, financialYear: financialYearLabel(point.year), isProjected: true }))
+
 // How many financial years each range covers, counting back from the latest; FUTURE projects as many again
 const rangeYears: Record<Exclude<TimeRange, 'allTime'>, number> = {
   pastYear: 1,
@@ -87,7 +90,7 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
   const [metrics, setMetrics] = useState<MetricDefinition[]>([])
   const [windowOptions, setWindowOptions] = useState<number[]>([])
   const [windowYears, setWindowYears] = useState<number | null>(null)
-  const [projection, setProjection] = useState<Projection | null>(null)
+  const [projections, setProjections] = useState<Record<number, Projection | null>>({})
 
   useEffect(() => {
     const fetchCatalogue = async () => {
@@ -149,19 +152,22 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
       }
     }
 
-    const fetchProjection = async (): Promise<Projection | null> => {
-      if (windowYears === null) return null
-      try {
-        const response = await fetch(`/api/corps/${corps.id}/projection?window=${windowYears}`)
-        if (!response.ok) {
-          return null
+    // Every window length up front, so moving the slider swaps the projection without refetching or rescaling the chart
+    const fetchProjections = async (): Promise<Record<number, Projection | null>> => {
+      const fetched = await Promise.all(windowOptions.map(async (window): Promise<[number, Projection | null]> => {
+        try {
+          const response = await fetch(`/api/corps/${corps.id}/projection?window=${window}`)
+          if (!response.ok) {
+            return [window, null]
+          }
+          const data: Projection = await response.json()
+          return [window, data]
+        } catch {
+          console.error(`Failed to fetch the ${window}-year projection`)
+          return [window, null]
         }
-        const data: Projection = await response.json()
-        return data
-      } catch {
-        console.error(`Failed to fetch the projection`)
-        return null
-      }
+      }))
+      return Object.fromEntries(fetched)
     }
 
     const fetchMetricData = async (range: TimeRange) => {
@@ -176,14 +182,9 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
         if (range === 'pastFiveYears' || range === 'pastTenYears' || range === 'allTime') {
           data = (await fetchYearlyData()).filter(item => item.year >= firstYear)
         } else if (range === 'future') {
-          const [history, projected] = await Promise.all([fetchYearlyData(), fetchProjection()])
-          setProjection(projected)
-          const futurePoints: ChartPoint[] = (projected?.metrics[selectedMetric] ?? []).map(point => ({
-            ...point,
-            financialYear: financialYearLabel(point.year),
-            isProjected: true
-          }))
-          data = [...history.filter(item => item.year >= firstYear && item.year <= (projected?.year ?? currentYear)), ...futurePoints]
+          const [history, fetched] = await Promise.all([fetchYearlyData(), fetchProjections()])
+          setProjections(fetched)
+          data = history.filter(item => item.year >= firstYear)
         } else if (range === 'pastYear' || range === 'pastTwoYears') {
           const fetchPromises: Promise<ChartPoint[]>[] = []
 
@@ -215,7 +216,17 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
     }
 
     void fetchMetricData(effectiveRange)
-  }, [corps, effectiveRange, selectedMetric, latestYear, firstYear, windowYears])
+  }, [corps, effectiveRange, selectedMetric, latestYear, firstYear, windowOptions])
+
+  const projection = effectiveRange === 'future' && windowYears !== null ? projections[windowYears] ?? null : null
+
+  const projected = useMemo(() => projectedPoints(projection, selectedMetric), [projection, selectedMetric])
+
+  // Every window's projection sets the chart's scale, so the history stays put as the slider moves
+  const scalePoints = useMemo(
+    () => effectiveRange === 'future' ? Object.values(projections).flatMap(p => projectedPoints(p, selectedMetric)) : [],
+    [effectiveRange, projections, selectedMetric]
+  )
 
   const handleTimeRangeChange = (event: React.MouseEvent<HTMLElement>, newTimeRange: TimeRange | null) => {
     if (newTimeRange !== null) {
@@ -285,6 +296,8 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
         ) : (
           <MetricChart
             data={metricData}
+            projected={projected}
+            scalePoints={scalePoints}
             timeRange={effectiveRange}
             selectedMetric={selectedMetric}
             unit={definition.unit}
