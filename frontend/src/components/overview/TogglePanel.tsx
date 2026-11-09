@@ -1,13 +1,16 @@
 import React from 'react'
 import Box from '@mui/material/Box'
 import FormControlLabel from '@mui/material/FormControlLabel'
+import FormGroup from '@mui/material/FormGroup'
 import Switch from '@mui/material/Switch'
 import Typography from '@mui/material/Typography'
 import { useEffect } from 'react'
 
-export default function TogglePanel({ hideUnselected, setHideUnselected, selectedCorps }: {
+export default function TogglePanel({ hideUnselected, setHideUnselected, showTrails, setShowTrails, selectedCorps }: {
     hideUnselected: boolean
     setHideUnselected: (hideUnselected: boolean) => void
+    showTrails: boolean
+    setShowTrails: (showTrails: boolean) => void
     selectedCorps: string[]
 }) {
     const handleToggleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -26,27 +29,43 @@ export default function TogglePanel({ hideUnselected, setHideUnselected, selecte
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
                 Display Options
             </Typography>
-            <FormControlLabel
-                control={
-                    <Switch
-                        checked={hideUnselected}
-                        onChange={handleToggleChange}
-                        disabled={isDisabled}
-                        color="primary"
-                    />
-                }
-                label={
-                    <Typography 
-                        variant="body2" 
-                        sx={{ 
-                            color: isDisabled ? 'text.disabled' : 'text.primary',
-                            fontWeight: 'medium'
-                        }}
-                    >
-                        Hide unselected corps
-                    </Typography>
-                }
-            />
+            <FormGroup>
+                <FormControlLabel
+                    control={
+                        <Switch
+                            checked={hideUnselected}
+                            onChange={handleToggleChange}
+                            disabled={isDisabled}
+                            color="primary"
+                        />
+                    }
+                    label={
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                color: isDisabled ? 'text.disabled' : 'text.primary',
+                                fontWeight: 'medium'
+                            }}
+                        >
+                            Hide unselected corps
+                        </Typography>
+                    }
+                />
+                <FormControlLabel
+                    control={
+                        <Switch
+                            checked={showTrails}
+                            onChange={event => setShowTrails(event.target.checked)}
+                            color="primary"
+                        />
+                    }
+                    label={
+                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                            Show trails
+                        </Typography>
+                    }
+                />
+            </FormGroup>
         </Box>
     )
 }

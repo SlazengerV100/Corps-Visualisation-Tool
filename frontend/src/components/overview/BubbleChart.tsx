@@ -48,19 +48,20 @@ const margin = { right: 20, top: 20, bottom: 50 }
 // Space between the y-axis and its labels
 const labelGap = 10
 
-export default function BubbleChart({ year, yearData, pointsByYear, corps, selectedCorps, hideUnselected, labels }: {
+export default function BubbleChart({ year, yearData, pointsByYear, corps, selectedCorps, hideUnselected, showTrails, labels }: {
     year: number | null
     yearData: BubblePoint[] | null
     pointsByYear: Record<number, BubblePoint[]>
     corps: Corps[]
     selectedCorps: string[]
     hideUnselected: boolean
+    showTrails: boolean
     labels: Record<string, string>
 }) {
     const svgRef = useRef<SVGSVGElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
-    // The year and selection a tooltip was opened for; changing either redraws the bubbles it may be attached to
-    const view = `${year}|${selectedCorps.join(',')}|${hideUnselected}`
+    // The year, selection and display options a tooltip was opened for; changing any redraws the bubbles it may be attached to
+    const view = `${year}|${selectedCorps.join(',')}|${hideUnselected}|${showTrails}`
     const [tooltip, setTooltip] = useState<{ anchor: Element, content: ReactNode, view: string, pinned: boolean } | null>(null)
     const pinnedRef = useRef<{ anchor: Element, view: string } | null>(null) // Bubble whose tooltip stays open after a click
     const [explaining, setExplaining] = useState(false)
@@ -420,7 +421,7 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
             }
         }
 
-        drawConnectingLines()
+        if (showTrails) drawConnectingLines()
 
         // Draw historical bubbles for selected corps using actual data
         const drawHistoricalBubbles = () => {
@@ -485,9 +486,9 @@ export default function BubbleChart({ year, yearData, pointsByYear, corps, selec
             }
         }
 
-        drawHistoricalBubbles()
+        if (showTrails) drawHistoricalBubbles()
 
-    }, [year, yearData, pointsByYear, corps, selectedCorps, xScale, yScale, radiusScale, labels, showTooltip, hideTooltip, togglePinnedTooltip])
+    }, [year, yearData, pointsByYear, corps, selectedCorps, showTrails, xScale, yScale, radiusScale, labels, showTooltip, hideTooltip, togglePinnedTooltip])
 
     // Handle selectedCorps changes
     useEffect(() => {
