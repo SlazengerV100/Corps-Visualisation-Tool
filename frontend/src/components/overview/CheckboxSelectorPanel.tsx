@@ -181,7 +181,7 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
         return (
             <>
                 <strong>{corps.name}</strong>
-                <br />{corps.address}, {corps.city}
+                <br />{[corps.address, corps.city].filter(Boolean).join(', ')}
                 {summary && <><br />{summary}</>}
             </>
         )

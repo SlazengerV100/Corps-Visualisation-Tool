@@ -99,7 +99,7 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
                         <div style={{ fontFamily: theme.typography.fontFamily }}>
                             <h3>{corps.name}</h3>
                             <h4>{corps.area}</h4>
-                            <p>{corps.address}, {corps.city}</p>
+                            <p>{[corps.address, corps.city].filter(Boolean).join(', ')}</p>
                         </div>
                     </Popup>
                 </Marker>

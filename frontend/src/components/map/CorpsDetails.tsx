@@ -242,7 +242,7 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
         {corps.area}
       </Typography>
       <Typography variant="body1" sx={{ mb: 2 }}>
-        {corps.address}, {corps.city}
+        {[corps.address, corps.city].filter(Boolean).join(', ')}
       </Typography>
 
       <Divider sx={{ my: 2 }} />
