@@ -7,8 +7,10 @@ describe('TechOneCsvFinanceRepository', () => {
     describeFinanceRepositoryContract(() => TechOneCsvFinanceRepository.load(dataFolder))
 
     describe('load', () => {
-        test('should reject naming the export that cannot be read', async () => {
-            await expect(TechOneCsvFinanceRepository.load('./missing-data')).rejects.toThrow('Territorial_Tithing_2000_2025.csv')
+        test('should reject naming every export that cannot be read', async () => {
+            const loading = TechOneCsvFinanceRepository.load('./missing-data')
+            await expect(loading).rejects.toThrow('Territorial_Tithing_2000_2025.csv')
+            await expect(loading).rejects.toThrow('Surplus-Deficit Summary.csv')
         })
     })
 

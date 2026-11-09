@@ -1,5 +1,5 @@
 import path from 'path'
-import { getOrCreate, readCsv } from '../csv.ts'
+import { getOrCreate, readCsvs } from '../csv.ts'
 import type { MissionRepository } from './MissionRepository.ts'
 import type { FinancialYear } from '../../models/FinancialYear.ts'
 import type { MissionIndicator, MissionIndicators } from '../../models/MissionIndicator.ts'
@@ -40,9 +40,9 @@ export class SamisCsvMissionRepository implements MissionRepository {
      * @returns Rejects naming the export that cannot be read
      */
     static async load(dataFolder: string): Promise<SamisCsvMissionRepository> {
-        const [yearlyRows, monthlyRows] = await Promise.all([
-            readCsv(path.join(dataFolder, YEARLY_FILE)),
-            readCsv(path.join(dataFolder, MONTHLY_FILE))
+        const [yearlyRows, monthlyRows] = await readCsvs([
+            path.join(dataFolder, YEARLY_FILE),
+            path.join(dataFolder, MONTHLY_FILE)
         ])
         return new SamisCsvMissionRepository(yearlyRows, monthlyRows)
     }
