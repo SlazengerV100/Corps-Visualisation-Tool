@@ -12,6 +12,7 @@ import {
   Select,
   MenuItem,
   IconButton,
+  Slider,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import MetricChart from './MetricChart.tsx';
@@ -46,7 +47,25 @@ export interface ChartPoint {
   metric: number
   financialYear?: string
   isProjected?: boolean
+  low?: number
+  high?: number
 }
+
+interface Match {
+  id: string
+  name: string
+  year: number
+  similarity: number
+}
+
+interface Projection {
+  window: number
+  year: number
+  matches: Match[]
+  metrics: Record<string, { year: number, metric: number, low: number, high: number }[]>
+}
+
+const financialYearLabel = (year: number) => `${year - 1}/${year.toString().slice(-2)}`
 
 // How many financial years each range covers, counting back from the latest; FUTURE projects as many again
 const rangeYears: Record<Exclude<TimeRange, 'allTime'>, number> = {
@@ -66,14 +85,19 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
   const [metricData, setMetricData] = useState<ChartPoint[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [metrics, setMetrics] = useState<MetricDefinition[]>([])
+  const [windowOptions, setWindowOptions] = useState<number[]>([])
+  const [windowYears, setWindowYears] = useState<number | null>(null)
+  const [projection, setProjection] = useState<Projection | null>(null)
 
   useEffect(() => {
     const fetchCatalogue = async () => {
       try {
         const response = await fetch('/api/catalogue')
         if (response.ok) {
-          const catalogue: { metrics: MetricDefinition[] } = await response.json()
+          const catalogue: { metrics: MetricDefinition[], projection: { windows: number[], defaultWindow: number } } = await response.json()
           setMetrics(catalogue.metrics)
+          setWindowOptions(catalogue.projection.windows)
+          setWindowYears(catalogue.projection.defaultWindow)
         }
       } catch {
         console.error('Failed to fetch the metric catalogue')
@@ -116,12 +140,27 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
         const data: ChartPoint[] = await response.json()
         return data.map(item => ({
           ...item,
-          financialYear: `${item.year - 1}/${item.year.toString().slice(-2)}`,
+          financialYear: financialYearLabel(item.year),
           year: item.year
         }))
       } catch {
         console.error(`Failed to fetch yearly metric data`)
         return []
+      }
+    }
+
+    const fetchProjection = async (): Promise<Projection | null> => {
+      if (windowYears === null) return null
+      try {
+        const response = await fetch(`/api/corps/${corps.id}/projection?window=${windowYears}`)
+        if (!response.ok) {
+          return null
+        }
+        const data: Projection = await response.json()
+        return data
+      } catch {
+        console.error(`Failed to fetch the projection`)
+        return null
       }
     }
 
@@ -137,55 +176,14 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
         if (range === 'pastFiveYears' || range === 'pastTenYears' || range === 'allTime') {
           data = (await fetchYearlyData()).filter(item => item.year >= firstYear)
         } else if (range === 'future') {
-          // Get the last 5 years of data for trend analysis
-          const lastFiveYears = (await fetchYearlyData()).filter(item => item.year >= firstYear)
-
-          // Check if there's a data point for the current year
-          if (!lastFiveYears.some(item => item.year === currentYear)) {
-            // No current year data available, return empty array
-            data = []
-          } else {
-            if (lastFiveYears.length >= 2) {
-            // Calculate linear changes between consecutive years
-            const linearChanges: number[] = []
-            for (let i = 1; i < lastFiveYears.length; i++) {
-              const prevValue = lastFiveYears[i - 1].metric
-              const currentValue = lastFiveYears[i].metric
-
-              const linearChange = currentValue - prevValue
-              linearChanges.push(linearChange)
-            }
-
-            // Calculate average linear change
-            const avgLinearChange = linearChanges.length > 0
-              ? linearChanges.reduce((sum, change) => sum + change, 0) / linearChanges.length
-              : 0
-
-            // Get the latest value from the last 5 years
-            const latestValue = lastFiveYears[lastFiveYears.length - 1].metric
-
-            // Project 5 future data points using linear growth
-            const futureData: ChartPoint[] = []
-            for (let i = 1; i <= rangeYears.future; i++) {
-              const futureYear = currentYear + i
-              const projectedValue = latestValue + (avgLinearChange * i)
-
-              futureData.push({
-                year: futureYear,
-                metric: Math.round(projectedValue * 100) / 100, // Round to 2 decimal places
-                financialYear: `${futureYear - 1}/${futureYear.toString().slice(-2)}`,
-                isProjected: true
-              })
-            }
-
-            // Combine historical data with projected future data
-            data = [...lastFiveYears, ...futureData]
-            } else {
-              // If not enough historical data, just return the available data
-              data = lastFiveYears
-            }
-          }
-
+          const [history, projected] = await Promise.all([fetchYearlyData(), fetchProjection()])
+          setProjection(projected)
+          const futurePoints: ChartPoint[] = (projected?.metrics[selectedMetric] ?? []).map(point => ({
+            ...point,
+            financialYear: financialYearLabel(point.year),
+            isProjected: true
+          }))
+          data = [...history.filter(item => item.year >= firstYear && item.year <= (projected?.year ?? currentYear)), ...futurePoints]
         } else if (range === 'pastYear' || range === 'pastTwoYears') {
           const fetchPromises: Promise<ChartPoint[]>[] = []
 
@@ -217,7 +215,7 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
     }
 
     void fetchMetricData(effectiveRange)
-  }, [corps, effectiveRange, selectedMetric, latestYear, firstYear])
+  }, [corps, effectiveRange, selectedMetric, latestYear, firstYear, windowYears])
 
   const handleTimeRangeChange = (event: React.MouseEvent<HTMLElement>, newTimeRange: TimeRange | null) => {
     if (newTimeRange !== null) {
@@ -296,10 +294,55 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
           />
         )}
       </Box>
-      {effectiveRange === 'future' && (
-        <Typography variant="caption" color="text.secondary">
-          The dotted line projects the next five years by continuing the average yearly change over the last five. It is a trend, not a forecast.
-        </Typography>
+      {effectiveRange === 'future' && windowYears !== null && (
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="body2" gutterBottom>
+            Match on the last {windowYears} {windowYears === 1 ? 'year' : 'years'}
+          </Typography>
+          <Slider
+            value={windowYears}
+            min={windowOptions[0]}
+            max={windowOptions[windowOptions.length - 1]}
+            step={1}
+            marks={windowOptions.map(value => ({ value, label: `${value}Y` }))}
+            onChange={(_, value) => { if (typeof value === 'number') setWindowYears(value) }}
+            sx={{ mx: 1, width: 'calc(100% - 16px)' }}
+          />
+          {isLoading ? null : !projection ? (
+            <Typography variant="body2" color="text.secondary">
+              This corps has no worship figure in every one of its last {windowYears} years, so it can't be matched.
+            </Typography>
+          ) : projection.matches.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              No other corps was ever in a position close enough to this one's to project from.
+            </Typography>
+          ) : (
+            <>
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                Projected from what followed for the corps closest to {projection.year - projection.window + 1 === projection.year
+                  ? financialYearLabel(projection.year)
+                  : `${financialYearLabel(projection.year - projection.window + 1)} to ${financialYearLabel(projection.year)}`}:
+              </Typography>
+              <Box component="ul" sx={{ mt: 0.5, mb: 1, pl: 3 }}>
+                {projection.matches.map(match => (
+                  <li key={match.id}>
+                    <Typography variant="body2">
+                      {match.name} up to {financialYearLabel(match.year)}, {match.similarity}% similar
+                    </Typography>
+                  </li>
+                ))}
+              </Box>
+              {!projection.metrics[selectedMetric]?.length && (
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Too few of them have {definition?.label ?? 'this metric'} figures after that to project it.
+                </Typography>
+              )}
+              <Typography variant="caption" color="text.secondary">
+                The dotted line follows the matched corps, weighted by similarity, and the shaded band is the spread between them. It is a guide, not a forecast.
+              </Typography>
+            </>
+          )}
+        </Box>
       )}
     </Paper>
   );

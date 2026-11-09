@@ -52,8 +52,8 @@ const MetricChart = ({ data, timeRange, selectedMetric, unit, firstYear, lastYea
     const canBeNegative = selectedMetric === 'surplusDeficit'
     const floored = (d: ChartPoint) => canBeNegative ? d.metric : Math.max(d.metric, 0)
 
-    const minMetric = d3.min(data, d => d.metric) ?? 0
-    const maxMetric = d3.max(data, d => d.metric) ?? 0
+    const minMetric = d3.min(data, d => Math.min(d.metric, d.low ?? d.metric)) ?? 0
+    const maxMetric = d3.max(data, d => Math.max(d.metric, d.high ?? d.metric)) ?? 0
     const y = d3.scaleLinear()
       .domain(canBeNegative ? [minMetric, maxMetric] : [0, maxMetric])
       .nice()
@@ -240,7 +240,8 @@ const MetricChart = ({ data, timeRange, selectedMetric, unit, firstYear, lastYea
         .attr('fill', '#8884d8');
     })
     .on('mouseover', (event: MouseEvent, d) => {
-      const metricTextValue = `${format.figure(floored(d))}${d.isProjected ? ' (projected)' : ''}`
+      const range = d.low !== undefined && d.high !== undefined ? `, ${format.figure(d.low)} to ${format.figure(d.high)}` : ''
+      const metricTextValue = `${format.figure(floored(d))}${d.isProjected ? ` (projected${range})` : ''}`
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const tooltipTextContent = isMonthlyData
@@ -331,6 +332,24 @@ const MetricChart = ({ data, timeRange, selectedMetric, unit, firstYear, lastYea
           .attr('stroke-dashoffset', 0);
       }
     });
+
+    // Shade the projection's margin for error beneath the lines, widening from the last recorded point
+    if (futureStartIndex > 0) {
+      const band = d3.area<ChartPoint>()
+        .x(xOf)
+        .y0(d => y(d.low ?? d.metric))
+        .y1(d => y(d.high ?? d.metric))
+        .curve(d3.curveMonotoneX);
+      g.insert('path', ':first-child')
+        .datum(data.slice(futureStartIndex - 1))
+        .attr('fill', '#8884d8')
+        .attr('d', band)
+        .attr('opacity', 0)
+        .transition()
+        .duration(1000)
+        .delay(500)
+        .attr('opacity', 0.2);
+    }
 
     dots
       .attr('opacity', 0)
