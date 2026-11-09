@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -9,6 +9,18 @@ const corpsZoom = 10
 
 // Places just past the 180° meridian, such as Tonga and Samoa, sit beside Fiji rather than across the world
 const positionOf = (corps: Corps): L.LatLngTuple => [corps.lat, corps.lng < 0 ? corps.lng + 360 : corps.lng]
+
+const pinIcon = (colour: string) => new L.Icon({
+    iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${colour}.png`,
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+})
+const defaultIcon = pinIcon('blue')
+const selectedIcon = pinIcon('red')
+const closedIcon = pinIcon('grey')
 
 /**
  * Map fitted to the corps given, that zooms in to the selected one when further out, and otherwise only pans to keep it in view
@@ -21,6 +33,7 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
     const nzCenter: L.LatLngTuple = [-41.2865, 174.7762] // Wellington coordinates as center
     const theme = useTheme()
     const mapRef = useRef<L.Map | null>(null)
+    const [today] = useState(() => new Date())
 
     useEffect(() => {
         const map = mapRef.current
@@ -47,24 +60,12 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
         map.fitBounds(L.latLngBounds(corpsData.map(positionOf)))
     }, [corpsData])
 
-    // Create custom icons
-    const defaultIcon = new L.Icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-    })
+    const isClosed = (corps: Corps) => corps.closingDate !== null && new Date(corps.closingDate) <= today
 
-    const selectedIcon = new L.Icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-    })
+    const iconOf = (corps: Corps) => {
+        if (selectedCorps?.id === corps.id) return selectedIcon
+        return isClosed(corps) ? closedIcon : defaultIcon
+    }
 
     return (
         <MapContainer
@@ -81,7 +82,8 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
                 <Marker
                     key={corps.id}
                     position={positionOf(corps)}
-                    icon={selectedCorps && selectedCorps.id === corps.id ? selectedIcon : defaultIcon}
+                    icon={iconOf(corps)}
+                    zIndexOffset={iconOf(corps) === closedIcon ? -1000 : 0}
                     eventHandlers={{
                         click: (e) => {
                             onCorpsSelect(corps)
@@ -100,6 +102,9 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
                             <h3>{corps.name}</h3>
                             <h4>{corps.area}</h4>
                             <p>{[corps.address, corps.city].filter(Boolean).join(', ')}</p>
+                            {isClosed(corps) && corps.closingDate && (
+                                <p>Closed on {new Date(corps.closingDate).toLocaleDateString('en-NZ')}.</p>
+                            )}
                         </div>
                     </Popup>
                 </Marker>
