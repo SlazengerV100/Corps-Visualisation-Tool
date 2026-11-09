@@ -60,24 +60,32 @@ interface Match {
   name: string
   year: number
   similarity: number
-  metrics: Record<string, { year: number, metric: number }[]>
+}
+
+interface MetricMatch extends Match {
+  points: { year: number, metric: number }[]
+}
+
+interface Projection {
+  window: number
+  year: number
+  matches: Match[]
+  metrics: Record<string, { matches: MetricMatch[], points: { year: number, metric: number, low: number, high: number }[] }>
 }
 
 // The projection keeps the chart's purple; each match gets its own colour
 const projectionColour = '#8884d8'
 const matchColours = ['#f28e2b', '#59a14f', '#e15759']
 
-interface Projection {
-  window: number
-  year: number
-  matches: Match[]
-  metrics: Record<string, { year: number, metric: number, low: number, high: number }[]>
-}
+// Low confidence below 65, medium below 80, high from 80
+const confidenceColour = (similarity: number) => similarity < 65 ? 'error' : similarity < 80 ? 'warning' : 'success'
 
 const financialYearLabel = (year: number) => `${year - 1}/${year.toString().slice(-2)}`
 
-const projectedPoints = (projection: Projection | null, metric: string): ChartPoint[] =>
-  (projection?.metrics[metric] ?? []).map(point => ({ ...point, financialYear: financialYearLabel(point.year), isProjected: true }))
+const matchYears = (match: Match, window: number) => `${financialYearLabel(match.year - window + 1)}–${financialYearLabel(match.year)}`
+
+const projectedPoints = (projection: Projection | null | undefined, metric: string): ChartPoint[] =>
+  (projection?.metrics[metric]?.points ?? []).map(point => ({ ...point, financialYear: financialYearLabel(point.year), isProjected: true }))
 
 // How many financial years each range covers, counting back from the latest; FUTURE projects as many again
 const rangeYears: Record<Exclude<TimeRange, 'allTime'>, number> = {
@@ -97,7 +105,9 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
   const [metricData, setMetricData] = useState<ChartPoint[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [metrics, setMetrics] = useState<MetricDefinition[]>([])
-  const [projection, setProjection] = useState<Projection | null>(null)
+  const [loadedProjection, setLoadedProjection] = useState<{ corpsId: string, projection: Projection | null } | null>(null)
+  // Undefined while this corps' projection loads, null when the corps can't be matched
+  const projection = loadedProjection?.corpsId === corps.id ? loadedProjection.projection : undefined
 
   useEffect(() => {
     const fetchCatalogue = async () => {
@@ -157,21 +167,6 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
       }
     }
 
-    // The API's default window length
-    const fetchProjection = async (): Promise<Projection | null> => {
-      try {
-        const response = await fetch(`/api/corps/${corps.id}/projection`)
-        if (!response.ok) {
-          return null
-        }
-        const data: Projection = await response.json()
-        return data
-      } catch {
-        console.error(`Failed to fetch the projection`)
-        return null
-      }
-    }
-
     const fetchMetricData = async (range: TimeRange) => {
       if (latestYear === undefined || firstYear === undefined) return
 
@@ -180,13 +175,9 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
         let data: ChartPoint[] = []
         const currentYear = latestYear
 
-        // Use yearly data for 5Y, 10Y, and ALL TIME selections
-        if (range === 'pastFiveYears' || range === 'pastTenYears' || range === 'allTime') {
+        // Use yearly data for 5Y, 10Y, ALL TIME and FUTURE selections
+        if (range === 'pastFiveYears' || range === 'pastTenYears' || range === 'allTime' || range === 'future') {
           data = (await fetchYearlyData()).filter(item => item.year >= firstYear)
-        } else if (range === 'future') {
-          const [history, fetched] = await Promise.all([fetchYearlyData(), fetchProjection()])
-          setProjection(fetched)
-          data = history.filter(item => item.year >= firstYear)
         } else if (range === 'pastYear' || range === 'pastTwoYears') {
           const fetchPromises: Promise<ChartPoint[]>[] = []
 
@@ -220,17 +211,35 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
     void fetchMetricData(effectiveRange)
   }, [corps, effectiveRange, selectedMetric, latestYear, firstYear])
 
+  // Without a window parameter, so the API's default length applies
+  useEffect(() => {
+    const fetchProjection = async () => {
+      try {
+        const response = await fetch(`/api/corps/${corps.id}/projection`)
+        const data: Projection | null = response.ok ? await response.json() : null
+        setLoadedProjection({ corpsId: corps.id, projection: data })
+      } catch {
+        console.error(`Failed to fetch the projection`)
+        setLoadedProjection({ corpsId: corps.id, projection: null })
+      }
+    }
+
+    void fetchProjection()
+  }, [corps])
+
   const projected = useMemo(
     () => effectiveRange === 'future' ? projectedPoints(projection, selectedMetric) : [],
     [effectiveRange, projection, selectedMetric]
   )
 
-  const matchLines = useMemo((): MatchLine[] => effectiveRange !== 'future' || !projection || firstYear === undefined ? [] : projection.matches.map((match, i) => ({
+  const metricMatches = useMemo(() => projection?.metrics[selectedMetric]?.matches ?? [], [projection, selectedMetric])
+
+  const matchLines = useMemo((): MatchLine[] => effectiveRange !== 'future' || firstYear === undefined ? [] : metricMatches.map((match, i) => ({
     colour: matchColours[i % matchColours.length],
-    points: (match.metrics[selectedMetric] ?? [])
+    points: match.points
       .filter(point => point.year >= firstYear)
       .map(point => ({ ...point, financialYear: financialYearLabel(point.year) }))
-  })), [effectiveRange, projection, selectedMetric, firstYear])
+  })), [effectiveRange, metricMatches, firstYear])
 
   const handleTimeRangeChange = (event: React.MouseEvent<HTMLElement>, newTimeRange: TimeRange | null) => {
     if (newTimeRange !== null) {
@@ -257,6 +266,47 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
       <Typography variant="body1" sx={{ mb: 2 }}>
         {[corps.address, corps.city].filter(Boolean).join(', ')}
       </Typography>
+
+      <Divider sx={{ my: 2 }} />
+
+      <Typography variant="h6" gutterBottom>
+        Similar Corps
+      </Typography>
+
+      {projection === undefined ? (
+        <CircularProgress size={24} />
+      ) : !projection ? (
+        <Typography variant="body2" color="text.secondary">
+          This corps is missing a worship figure in one of its recent years, so it can't be matched.
+        </Typography>
+      ) : projection.matches.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">
+          No corps was ever in a position close enough to this one's.
+        </Typography>
+      ) : (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 4, rowGap: 2 }}>
+          {projection.matches.map(match => {
+            const colour = confidenceColour(match.similarity)
+            return (
+              <Box key={match.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                  <CircularProgress variant="determinate" value={100} color={colour} size={48} thickness={4} sx={{ opacity: 0.2 }} />
+                  <CircularProgress variant="determinate" value={match.similarity} color={colour} size={48} thickness={4} sx={{ position: 'absolute', left: 0 }} />
+                  <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: `${colour}.main` }}>
+                      {match.similarity}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box>
+                  <Typography variant="body1">{match.name}</Typography>
+                  <Typography variant="caption" color="text.secondary">{matchYears(match, projection.window)}</Typography>
+                </Box>
+              </Box>
+            )
+          })}
+        </Box>
+      )}
 
       <Divider sx={{ my: 2 }} />
 
@@ -311,19 +361,15 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
           />
         )}
       </Box>
-      {effectiveRange === 'future' && (
+      {effectiveRange === 'future' && projection && !isLoading && (
         <Box sx={{ mt: 2 }}>
-          {isLoading ? null : !projection ? (
-            <Typography variant="body2" color="text.secondary">
-              This corps is missing a worship figure in one of its recent years, so it can't be matched.
-            </Typography>
-          ) : projection.matches.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
-              No other corps was ever in a position close enough to this one's to project from.
-            </Typography>
-          ) : !(selectedMetric in projection.metrics) ? (
+          {!(selectedMetric in projection.metrics) ? (
             <Typography variant="body2" color="text.secondary">
               {definition?.label ?? 'This metric'} helps find similar corps but isn't projected.
+            </Typography>
+          ) : metricMatches.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              {definition?.label ?? 'This metric'} needs a figure in every recent year, for this corps and a similar one, to be projected.
             </Typography>
           ) : (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 3, rowGap: 0.5 }}>
@@ -333,11 +379,11 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
                   <Typography variant="body2">Projection and spread</Typography>
                 </Box>
               )}
-              {projection.matches.map((match, i) => (
+              {metricMatches.map((match, i) => (
                 <Box key={match.id} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Box sx={{ width: 24, borderTop: `2px solid ${matchLines[i]?.colour}` }} />
                   <Typography variant="body2">
-                    {match.name} {financialYearLabel(match.year - projection.window + 1)}–{financialYearLabel(match.year)}, <strong>{match.similarity}%</strong> similar
+                    {match.name} {matchYears(match, projection.window)}, <strong>{match.similarity}%</strong> similar
                   </Typography>
                 </Box>
               ))}
