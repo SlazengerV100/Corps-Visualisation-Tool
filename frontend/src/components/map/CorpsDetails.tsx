@@ -77,8 +77,8 @@ interface Projection {
 const projectionColour = '#8884d8'
 const matchColours = ['#f28e2b', '#59a14f', '#e15759']
 
-// Low confidence below 65, medium below 80, high from 80
-const confidenceColour = (similarity: number) => similarity < 65 ? 'error' : similarity < 80 ? 'warning' : 'success'
+// Red at the lowest similarity a match can have, 50, through to green at 100, dark enough to read as text
+const confidenceColour = (similarity: number) => `hsl(${Math.min(Math.max((similarity - 50) / 50, 0), 1) * 120}, 75%, 40%)`
 
 const financialYearLabel = (year: number) => `${year - 1}/${year.toString().slice(-2)}`
 
@@ -290,10 +290,10 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
             return (
               <Box key={match.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Box sx={{ position: 'relative', display: 'inline-flex' }}>
-                  <CircularProgress variant="determinate" value={100} color={colour} size={48} thickness={4} sx={{ opacity: 0.2 }} />
-                  <CircularProgress variant="determinate" value={match.similarity} color={colour} size={48} thickness={4} sx={{ position: 'absolute', left: 0 }} />
+                  <CircularProgress variant="determinate" value={100} size={48} thickness={4} sx={{ color: colour, opacity: 0.2 }} />
+                  <CircularProgress variant="determinate" value={match.similarity} size={48} thickness={4} sx={{ color: colour, position: 'absolute', left: 0 }} />
                   <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: `${colour}.main` }}>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: colour }}>
                       {match.similarity}
                     </Typography>
                   </Box>
