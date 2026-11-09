@@ -7,8 +7,11 @@ import type { Corps } from './CorpsDetails.tsx'
 
 const corpsZoom = 10
 
+// Places just past the 180° meridian, such as Tonga and Samoa, sit beside Fiji rather than across the world
+const positionOf = (corps: Corps): L.LatLngTuple => [corps.lat, corps.lng < 0 ? corps.lng + 360 : corps.lng]
+
 /**
- * Map of every corps that zooms in to the selected one when further out, and otherwise only pans to keep it in view
+ * Map fitted to the corps given, that zooms in to the selected one when further out, and otherwise only pans to keep it in view
  */
 const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
     corpsData: Corps[]
@@ -26,7 +29,7 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
         const centre = map.getCenter()
         map.invalidateSize()
         if (selectedCorps) {
-            const position: L.LatLngTuple = [selectedCorps.lat, selectedCorps.lng]
+            const position = positionOf(selectedCorps)
             if (map.getZoom() < corpsZoom) {
                 map.setView(position, corpsZoom)
             } else {
@@ -37,6 +40,12 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
             map.setView(centre, map.getZoom())
         }
     }, [selectedCorps])
+
+    useEffect(() => {
+        const map = mapRef.current
+        if (!map || !corpsData.length) return
+        map.fitBounds(L.latLngBounds(corpsData.map(positionOf)))
+    }, [corpsData])
 
     // Create custom icons
     const defaultIcon = new L.Icon({
@@ -71,7 +80,7 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
             {corpsData.map((corps) => (
                 <Marker
                     key={corps.id}
-                    position={[corps.lat, corps.lng]}
+                    position={positionOf(corps)}
                     icon={selectedCorps && selectedCorps.id === corps.id ? selectedIcon : defaultIcon}
                     eventHandlers={{
                         click: (e) => {
@@ -90,7 +99,7 @@ const CorpsMap = ({ corpsData, selectedCorps, onCorpsSelect }: {
                         <div style={{ fontFamily: theme.typography.fontFamily }}>
                             <h3>{corps.name}</h3>
                             <h4>{corps.area}</h4>
-                            <p>{corps.address}, {corps.city}</p>
+                            <p>{[corps.address, corps.city].filter(Boolean).join(', ')}</p>
                         </div>
                     </Popup>
                 </Marker>

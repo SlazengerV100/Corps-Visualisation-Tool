@@ -3,6 +3,8 @@ import Box from '@mui/material/Box'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
+import MenuItem from '@mui/material/MenuItem'
+import Select from '@mui/material/Select'
 import { Link, useLocation } from 'react-router-dom'
 import { useTheme, type SxProps, type Theme } from '@mui/material/styles'
 
@@ -25,7 +27,11 @@ const navButtonSx = (active: boolean): SxProps<Theme> => theme => ({
     }
 })
 
-export default function ButtonAppBar() {
+export default function ButtonAppBar({ region, regions, onRegionChange }: {
+    region: string
+    regions: string[]
+    onRegionChange: (region: string) => void
+}) {
     const location = useLocation()
     const theme = useTheme()
     const isActive = (path: string) => location.pathname === path
@@ -67,6 +73,17 @@ export default function ButtonAppBar() {
                             Map
                         </Button>
                     </Box>
+
+                    <Select
+                        value={region}
+                        onChange={e => onRegionChange(e.target.value)}
+                        variant="standard"
+                        disableUnderline
+                        inputProps={{ 'aria-label': 'Region' }}
+                        sx={{ ml: 'auto', color: 'inherit', fontFamily: 'inherit', '& .MuiSvgIcon-root': { color: 'inherit' } }}
+                    >
+                        {regions.map(r => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+                    </Select>
                 </Toolbar>
             </AppBar>
         </Box>

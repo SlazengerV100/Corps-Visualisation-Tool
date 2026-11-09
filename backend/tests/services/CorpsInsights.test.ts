@@ -23,6 +23,7 @@ const alphaListing = {
     address: '1 Main Street',
     closingDate: null,
     city: 'Kaitaia',
+    country: 'New Zealand',
     lat: -35.1,
     lng: 173.2,
     population: [{ year: 2024, value: 1200 }]
@@ -59,7 +60,7 @@ const insights = new CorpsInsights(
         surplusDeficit: { [alpha.id]: { 2024: 0 } }
     }),
     new FakeCorpsDirectoryRepository({
-        corps: [alphaListing, { ...alphaListing, ...beta, lat: null, lng: null, population: [] }]
+        corps: [alphaListing, { ...alphaListing, ...beta, country: 'Fiji', lat: null, lng: null, population: [] }]
     })
 )
 
@@ -84,11 +85,15 @@ describe('CorpsInsights', () => {
         test('should list the years with snapshots and the years with scores', () => {
             expect(insights.catalogue().snapshots).toEqual({ years: [2022, 2023, 2024], scoredYears: [2024] })
         })
+
+        test('should list each directory region once, in order, with the Pacific countries as one', () => {
+            expect(insights.catalogue().regions).toEqual(['New Zealand', 'Pacific'])
+        })
     })
 
     describe('corps', () => {
         test('should list only corps with coordinates', () => {
-            expect(insights.corps()).toEqual([alphaListing])
+            expect(insights.corps()).toEqual([{ ...alphaListing, region: 'New Zealand' }])
         })
     })
 
@@ -157,6 +162,7 @@ describe('CorpsInsights', () => {
             const sustainability = calculateSustainability({ tithing, surplusDeficit: 0 }, 110)
             expect(insights.snapshots({ year: 2024 }).find(s => s.id === alpha.id)).toEqual({
                 ...alpha,
+                region: 'New Zealand',
                 year: 2024,
                 metrics: {
                     ...missionIndicators,
@@ -171,6 +177,8 @@ describe('CorpsInsights', () => {
                     breakdown: { growth: growth?.breakdown, sustainability: sustainability.breakdown }
                 }
             })
+            expect(insights.snapshots({ year: 2024 }).find(s => s.id === beta.id)?.region).toBe('Pacific')
+            expect(insights.snapshots({ year: 2024 }).find(s => s.id === delta.id)?.region).toBeNull()
         })
 
         test('should show tithing without a surplus/deficit figure or a previous year', () => {

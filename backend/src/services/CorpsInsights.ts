@@ -5,7 +5,7 @@ import type { MissionRepository } from '../repositories/mission/MissionRepositor
 import type { FinanceRepository } from '../repositories/finance/FinanceRepository.ts'
 import type { CorpsDirectoryRepository } from '../repositories/directory/CorpsDirectoryRepository.ts'
 import type { Catalogue } from '../models/Catalogue.ts'
-import type { Corps } from '../models/Corps.ts'
+import type { RegionalCorps } from '../models/Corps.ts'
 import type { FinancialYear } from '../models/FinancialYear.ts'
 import type { Granularity, MetricDefinition, MetricName, Unit } from '../models/Metric.ts'
 import type { MissionIndicator } from '../models/MissionIndicator.ts'
@@ -25,6 +25,10 @@ interface Metric {
 
 const outOfRange = (years: FinancialYear[], year: FinancialYear | undefined) => year !== undefined && (years.length === 0 || year < years[0] || year > years[years.length - 1])
 
+const PACIFIC_COUNTRIES = new Set(['Fiji', 'Samoa', 'Tonga'])
+
+const regionOf = (country: string) => PACIFIC_COUNTRIES.has(country) ? 'Pacific' : country
+
 /**
  * Combines the mission, finance and directory repositories into the views the API serves, computed once at construction.
  */
@@ -32,7 +36,7 @@ export class CorpsInsights {
     private readonly metrics: Map<string, Metric>
     private readonly snapshotsByYear: Map<FinancialYear, Snapshot[]>
     private readonly catalogueView: Catalogue
-    private readonly mappableCorps: Corps[]
+    private readonly mappableCorps: RegionalCorps[]
 
     constructor(mission: MissionRepository, finance: FinanceRepository, directory: CorpsDirectoryRepository) {
         const monthlyAverage = (indicator: MissionIndicator): YearlyFigure => (centreId, year) => {
@@ -125,6 +129,8 @@ export class CorpsInsights {
 
         const financeYears = new Set(finance.years())
 
+        const regionById = new Map(directory.all().map(c => [c.id, regionOf(c.country)]))
+
         this.snapshotsByYear = new Map()
         for (const year of mission.years()) {
             const snapshots: Snapshot[] = []
@@ -147,6 +153,7 @@ export class CorpsInsights {
                 const snapshot: Snapshot = {
                     id,
                     name,
+                    region: regionById.get(id) ?? null,
                     year,
                     metrics: {
                         congregationalWorship: worship,
@@ -190,23 +197,26 @@ export class CorpsInsights {
             snapshots: {
                 years: snapshotYears,
                 scoredYears: snapshotYears.filter(y => this.snapshotsByYear.get(y)?.some(s => s.scores))
-            }
+            },
+            regions: [...new Set(regionById.values())].toSorted()
         }
 
-        this.mappableCorps = directory.all().filter(c => c.lat !== null && c.lng !== null)
+        this.mappableCorps = directory.all()
+            .filter(c => c.lat !== null && c.lng !== null)
+            .map(c => ({ ...c, region: regionOf(c.country) }))
     }
 
     /**
-     * Every registered metric with its granularities and years, plus the years with snapshots and with scores.
+     * Every registered metric with its granularities and years, the years with snapshots and with scores, and the directory's regions.
      */
     catalogue(): Catalogue {
         return this.catalogueView
     }
 
     /**
-     * Corps from the directory that have coordinates.
+     * Corps from the directory that have coordinates, with the region their country falls in.
      */
-    corps(): Corps[] {
+    corps(): RegionalCorps[] {
         return this.mappableCorps
     }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import Box from '@mui/material/Box'
 import FormGroup from '@mui/material/FormGroup'
 import FormControlLabel from '@mui/material/FormControlLabel'
@@ -25,15 +25,15 @@ export interface CorpsStatus {
 
 const noFigures: CorpsStatus = { gap: 'thisYear', why: 'No figures recorded this year, so it has no scores.' }
 
-export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps, onCorpsDataLoaded, year, statuses }: {
+export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps, onCorpsDataLoaded, region, year, statuses }: {
     selectedCorps: string[]
     setSelectedCorps: React.Dispatch<React.SetStateAction<string[]>>
     onCorpsDataLoaded: (corps: Corps[]) => void
+    region: string
     year: number | null
     statuses: Record<string, CorpsStatus> | null
 }) {
     const [corpsData, setCorpsData] = useState<Corps[]>([])
-    const [areas, setAreas] = useState<Record<string, Corps[]>>({})
     const [expandedAreas, setExpandedAreas] = useState<Record<string, boolean>>({})
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
@@ -49,24 +49,7 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
                 }
                 const data: Corps[] = await response.json()
                 setCorpsData(data)
-                
-                // Group corps by area
-                const groupedByArea: Record<string, Corps[]> = {}
-                data.forEach(corps => {
-                    if (!groupedByArea[corps.area]) {
-                        groupedByArea[corps.area] = []
-                    }
-                    groupedByArea[corps.area].push(corps)
-                })
-                setAreas(groupedByArea)
-                
-                // Initialize all areas as collapsed
-                const initialExpanded: Record<string, boolean> = {}
-                Object.keys(groupedByArea).forEach(area => {
-                    initialExpanded[area] = false
-                })
-                setExpandedAreas(initialExpanded)
-                
+
                 // Notify parent component of loaded corps data
                 if (onCorpsDataLoaded) {
                     onCorpsDataLoaded(data)
@@ -81,6 +64,16 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
 
         void fetchCorpsData()
     }, [onCorpsDataLoaded])
+
+    // Group the region's corps by area
+    const areas = useMemo(() => {
+        const groupedByArea: Record<string, Corps[]> = {}
+        corpsData.filter(corps => corps.region === region).forEach(corps => {
+            groupedByArea[corps.area] ??= []
+            groupedByArea[corps.area].push(corps)
+        })
+        return groupedByArea
+    }, [corpsData, region])
 
     const handleToggle = (id: string) => {
         setSelectedCorps(prevSelected => {
@@ -188,7 +181,7 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
         return (
             <>
                 <strong>{corps.name}</strong>
-                <br />{corps.address}, {corps.city}
+                <br />{[corps.address, corps.city].filter(Boolean).join(', ')}
                 {summary && <><br />{summary}</>}
             </>
         )
@@ -240,7 +233,7 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
             )}
             <FormGroup>
                 {shownAreas.map(({ areaName, areaCorps }) => {
-                    const isExpanded = query !== '' || expandedAreas[areaName]
+                    const isExpanded = query !== '' || (expandedAreas[areaName] ?? false)
                     const isFullySelected = isAreaFullySelected(areaName)
                     const isPartiallySelected = isAreaPartiallySelected(areaName)
                     

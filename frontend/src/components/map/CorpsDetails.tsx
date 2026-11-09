@@ -22,6 +22,7 @@ export interface Corps {
   area: string
   address: string
   city: string
+  region: string
   closingDate: string | null
   lat: number
   lng: number
@@ -241,7 +242,7 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
         {corps.area}
       </Typography>
       <Typography variant="body1" sx={{ mb: 2 }}>
-        {corps.address}, {corps.city}
+        {[corps.address, corps.city].filter(Boolean).join(', ')}
       </Typography>
 
       <Divider sx={{ my: 2 }} />
