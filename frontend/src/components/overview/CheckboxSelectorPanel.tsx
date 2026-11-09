@@ -10,6 +10,9 @@ import ListItemButton from '@mui/material/ListItemButton'
 import ListItemText from '@mui/material/ListItemText'
 import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
+import SearchIcon from '@mui/icons-material/Search'
+import InputAdornment from '@mui/material/InputAdornment'
+import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import type { Corps } from '../map/CorpsDetails.tsx'
 import HoverTooltip from '../common/HoverTooltip.tsx'
@@ -33,6 +36,8 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
     const [areas, setAreas] = useState<Record<string, Corps[]>>({})
     const [expandedAreas, setExpandedAreas] = useState<Record<string, boolean>>({})
     const [loading, setLoading] = useState(true)
+    const [search, setSearch] = useState('')
+    const query = search.trim().toLowerCase()
 
     useEffect(() => {
         const fetchCorpsData = async () => {
@@ -197,15 +202,45 @@ export default function CheckboxSelectorPanel({ selectedCorps, setSelectedCorps,
         )
     }
 
+    // While searching, only the areas with a matching corps show, opened to list those corps
+    const shownAreas = Object.keys(areas).toSorted()
+        .map(areaName => ({
+            areaName,
+            areaCorps: areas[areaName].filter(corps => corps.name.toLowerCase().includes(query)),
+        }))
+        .filter(({ areaCorps }) => areaCorps.length > 0)
+
     return (
         <Box>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                Select Corps
+                Filter by Corps
             </Typography>
+            <TextField
+                type="search"
+                size="small"
+                fullWidth
+                placeholder="Search corps"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                sx={{ mb: 1 }}
+                slotProps={{
+                    input: {
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <SearchIcon fontSize="small" />
+                            </InputAdornment>
+                        ),
+                    },
+                }}
+            />
+            {shownAreas.length === 0 && (
+                <Typography color="text.secondary" sx={{ p: 1 }}>
+                    No corps match “{search.trim()}”.
+                </Typography>
+            )}
             <FormGroup>
-                {Object.keys(areas).toSorted().map(areaName => {
-                    const areaCorps = areas[areaName]
-                    const isExpanded = expandedAreas[areaName]
+                {shownAreas.map(({ areaName, areaCorps }) => {
+                    const isExpanded = query !== '' || expandedAreas[areaName]
                     const isFullySelected = isAreaFullySelected(areaName)
                     const isPartiallySelected = isAreaPartiallySelected(areaName)
                     
