@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import MetricChart from './MetricChart.tsx';
+import SimilarCorpsExplanationDialog from './SimilarCorpsExplanationDialog.tsx';
 
 export interface Corps {
   id: string
@@ -98,6 +99,20 @@ const rangeYears: Record<Exclude<TimeRange, 'allTime' | 'future'>, number> = {
 /**
  * Each similar corps with its similarity in a circle coloured from red to green, and the years it matched on
  */
+/**
+ * Section heading with an info button that opens its explanation
+ */
+const ExplainedHeading = ({ variant, title, onExplain }: { variant: 'h6' | 'subtitle1', title: string, onExplain: () => void }) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+    <Typography variant={variant} sx={{ fontWeight: variant === 'subtitle1' ? 'bold' : undefined }}>
+      {title}
+    </Typography>
+    <IconButton size="small" color="primary" aria-label="How similar corps are found" onClick={onExplain}>
+      ⓘ
+    </IconButton>
+  </Box>
+)
+
 const SimilarCorpsList = ({ matches, window }: { matches: Match[], window: number }) => (
   <Box sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 4, rowGap: 2 }}>
     {matches.map(match => {
@@ -134,6 +149,7 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
   const [metricData, setMetricData] = useState<ChartPoint[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [metrics, setMetrics] = useState<MetricDefinition[]>([])
+  const [explaining, setExplaining] = useState<'overall' | 'metric' | null>(null)
   const [windowOptions, setWindowOptions] = useState<number[]>([])
   const [windowYears, setWindowYears] = useState<number | null>(null)
   const [overallWindow, setOverallWindow] = useState<number | null>(null)
@@ -312,9 +328,7 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
 
       <Divider sx={{ my: 2 }} />
 
-      <Typography variant="h6" gutterBottom>
-        Similar Corps
-      </Typography>
+      <ExplainedHeading variant="h6" title="Similar Corps" onExplain={() => setExplaining('overall')} />
 
       {overallWindow !== null && (
         <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -356,6 +370,8 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
           ))}
         </Select>
       </FormControl>
+
+      <ExplainedHeading variant="subtitle1" title="Similar Corps" onExplain={() => setExplaining('metric')} />
 
       {projectable && windowYears !== null && (
         <Box sx={{ mb: 2 }}>
@@ -444,6 +460,7 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
           ))}
         </Box>
       )}
+      <SimilarCorpsExplanationDialog open={explaining !== null} onClose={() => setExplaining(null)} perMetric={explaining === 'metric'} />
     </Paper>
   );
 };
