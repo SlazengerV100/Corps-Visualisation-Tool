@@ -12,7 +12,6 @@ import {
   Select,
   MenuItem,
   IconButton,
-  Slider,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import MetricChart from './MetricChart.tsx';
@@ -85,7 +84,7 @@ const confidenceColour = (similarity: number) => `hsl(${Math.min(Math.max((simil
 
 const financialYearLabel = (year: number) => `${year - 1}/${year.toString().slice(-2)}`
 
-// Outside FUTURE the chart gets these same empty arrays whatever the slider loads, so moving it doesn't redraw the chart
+// Outside FUTURE the chart gets these same empty arrays whatever projection loads, so loading one doesn't redraw the chart
 const noProjection: ChartPoint[] = []
 const noMatchLines: MatchLine[] = []
 
@@ -154,26 +153,20 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
   const [isLoading, setIsLoading] = useState(false)
   const [metrics, setMetrics] = useState<MetricDefinition[]>([])
   const [explaining, setExplaining] = useState<'overall' | 'metric' | null>(null)
-  const [windowOptions, setWindowOptions] = useState<number[]>([])
+  // How many years similar corps are matched on and projected ahead
   const [windowYears, setWindowYears] = useState<number | null>(null)
-  const [overallWindow, setOverallWindow] = useState<number | null>(null)
-  // Projections by corps and window, null when the corps can't be matched over that window
-  const [projections, setProjections] = useState<Record<string, Projection | null>>({})
-  const projectionKey = (window: number | null) => `${corps.id}:${window}`
-  // Undefined while loading
-  const projection = projectionKey(windowYears) in projections ? projections[projectionKey(windowYears)] : undefined
-  const overall = projectionKey(overallWindow) in projections ? projections[projectionKey(overallWindow)] : undefined
+  const [loadedProjection, setLoadedProjection] = useState<{ corpsId: string, projection: Projection | null } | null>(null)
+  // Undefined while this corps' projection loads, null when the corps can't be matched
+  const projection = loadedProjection?.corpsId === corps.id ? loadedProjection.projection : undefined
 
   useEffect(() => {
     const fetchCatalogue = async () => {
       try {
         const response = await fetch('/api/catalogue')
         if (response.ok) {
-          const catalogue: { metrics: MetricDefinition[], projection: { windows: number[], defaultWindow: number, overallWindow: number } } = await response.json()
+          const catalogue: { metrics: MetricDefinition[], projection: { defaultWindow: number } } = await response.json()
           setMetrics(catalogue.metrics)
-          setWindowOptions(catalogue.projection.windows)
           setWindowYears(catalogue.projection.defaultWindow)
-          setOverallWindow(catalogue.projection.overallWindow)
         }
       } catch {
         console.error('Failed to fetch the metric catalogue')
@@ -271,24 +264,21 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
     void fetchMetricData(effectiveRange)
   }, [corps, effectiveRange, selectedMetric, latestYear, firstYear])
 
-  // The overall similar corps' window and the slider's, once each
+  // Without a window parameter, so the API's default length applies
   useEffect(() => {
-    const fetchProjection = async (window: number) => {
-      const key = `${corps.id}:${window}`
+    const fetchProjection = async () => {
       try {
-        const response = await fetch(`/api/corps/${corps.id}/projection?window=${window}`)
+        const response = await fetch(`/api/corps/${corps.id}/projection`)
         const data: Projection | null = response.ok ? await response.json() : null
-        setProjections(loaded => ({ ...loaded, [key]: data }))
+        setLoadedProjection({ corpsId: corps.id, projection: data })
       } catch {
-        console.error(`Failed to fetch the ${window}-year projection`)
-        setProjections(loaded => ({ ...loaded, [key]: null }))
+        console.error(`Failed to fetch the projection`)
+        setLoadedProjection({ corpsId: corps.id, projection: null })
       }
     }
 
-    for (const window of new Set([overallWindow, windowYears])) {
-      if (window !== null) void fetchProjection(window)
-    }
-  }, [corps, overallWindow, windowYears])
+    void fetchProjection()
+  }, [corps])
 
   const projected = useMemo(
     () => effectiveRange === 'future' ? projectedPoints(projection, selectedMetric) : noProjection,
@@ -334,18 +324,18 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
 
       <ExplainedHeading variant="h6" title="Similar Corps" onExplain={() => setExplaining('overall')} />
 
-      {overall === undefined ? (
+      {projection === undefined ? (
         <CircularProgress size={24} />
-      ) : !overall ? (
+      ) : !projection ? (
         <Typography variant="body2" color="text.secondary">
-          This corps is missing a worship figure in one of its last {overallWindow} years, so it can't be matched.
+          This corps is missing a worship figure in one of its last {windowYears} years, so it can't be matched.
         </Typography>
-      ) : overall.matches.length === 0 ? (
+      ) : projection.matches.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
           No corps was ever in a position close enough to this one's.
         </Typography>
       ) : (
-        <SimilarCorpsList matches={overall.matches} window={overall.window} />
+        <SimilarCorpsList matches={projection.matches} window={projection.window} />
       )}
 
       <Divider sx={{ my: 2 }} />
@@ -370,21 +360,6 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
       </FormControl>
 
       <ExplainedHeading variant="subtitle1" title="Similar Corps" onExplain={() => setExplaining('metric')} />
-
-      {projectable && windowYears !== null && (
-        <Box sx={{ mb: 2 }}>
-          <Slider
-            aria-label="Years to match on and project ahead"
-            value={windowYears}
-            min={windowOptions[0]}
-            max={windowOptions[windowOptions.length - 1]}
-            step={null}
-            marks={windowOptions.map(value => ({ value, label: `${value}Y` }))}
-            onChange={(_, value) => { if (typeof value === 'number') setWindowYears(value) }}
-            sx={{ mx: 1, width: 'calc(100% - 16px)' }}
-          />
-        </Box>
-      )}
 
       {!projectable ? (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -460,7 +435,7 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
         open={explaining !== null}
         onClose={() => setExplaining(null)}
         perMetric={explaining === 'metric'}
-        years={explaining === 'metric' ? windowYears : overallWindow}
+        years={windowYears}
       />
     </Paper>
   );

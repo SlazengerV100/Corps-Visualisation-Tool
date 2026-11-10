@@ -48,23 +48,22 @@ const perMetricExplanation = (years: number) => (
     <>
         <Typography variant="subtitle1" component="h3">On the selected metric</Typography>
         <Typography sx={{ mb: 2 }}>
-            These corps are compared on the selected metric alone, over the last {years} years as chosen on the slider, so they can
+            These corps are compared on the selected metric alone, over the last {years} years, so they can
             differ from the similar corps across every metric. Both corps need a figure for the metric in every one of those years.
             First-time decisions only count towards the similar corps across every metric.
         </Typography>
         <Typography variant="subtitle1" component="h3">The projection</Typography>
         <Typography sx={{ mb: 2 }}>
-            FUTURE projects as many years ahead as the slider compares, {years} for now. Each similar corps went up or down by some proportion in
+            FUTURE projects {years} years ahead. Each similar corps went up or down by some proportion in
             the years after the run it matched, and the dotted line applies those changes to this corps' latest figure, giving
             closer corps more say. The shaded band shows how much the similar corps disagree, and each one's own path is drawn
             alongside. Surplus/deficit follows the similar corps' surplus or deficit per worshipper, applied to the projected
             worship. A year is only projected when at least two similar corps have a figure for it.
         </Typography>
-        <Typography variant="subtitle1" component="h3">Longer comparisons and COVID</Typography>
+        <Typography variant="subtitle1" component="h3">COVID</Typography>
         <Typography>
-            COVID cut attendance across the territory, most of all in 2021/22. Comparing two years keeps it out of this corps'
-            own years, though a similar corps' years can still fall in it. Longer comparisons include it in this corps' own years
-            too.
+            COVID cut attendance across the territory, most of all in 2021/22, so it falls in this corps' recent years and can
+            fall in a similar corps' years or what followed them.
         </Typography>
     </>
 )
