@@ -26,6 +26,13 @@ const shared = (
             from 150 to 300, and every metric counts equally. A corps' figures are only compared with years that had worship,
             and a match also needs worship in as many years after its run as the run covers, so it shows what happened next.
         </Typography>
+        <Typography variant="subtitle1" component="h3">The national trend</Typography>
+        <Typography sx={{ mb: 2 }}>
+            Every figure but surplus/deficit is measured against its region's trend that year: the change in the total across
+            the corps that reported in both that year and the one before, so openings and closures don't move it. A corps from
+            2005 and one from 2025 are then compared by how they stood against everyone else at the time, and tithing loses
+            the effect of inflation.
+        </Typography>
         <Typography variant="subtitle1" component="h3">Missing figures</Typography>
         <Typography>
             SAMIS can't tell a zero from a figure left blank, so a zero for worship, first-time decisions, kids church or youth
@@ -54,11 +61,17 @@ const perMetricExplanation = (years: number) => (
         </Typography>
         <Typography variant="subtitle1" component="h3">The projection</Typography>
         <Typography sx={{ mb: 2 }}>
-            FUTURE projects {years} years ahead. Each similar corps went up or down by some proportion in
-            the years after the run it matched, and the dotted line applies those changes to this corps' latest figure, giving
-            closer corps more say. The shaded band shows how much the similar corps disagree, and each one's own path is drawn
-            alongside. Surplus/deficit follows the similar corps' surplus or deficit per worshipper, applied to the projected
-            worship. A year is only projected when at least two similar corps have a figure for it.
+            FUTURE projects {years} years ahead. Each similar corps went up or down against the national trend in the years
+            after the run it matched, and the dotted line applies those changes to this corps' latest figure, giving closer
+            corps more say, with the national trend held where it is now. Each similar corps' own path is drawn alongside.
+            Surplus/deficit follows the similar corps' surplus or deficit per worshipper, applied to the projected worship. A
+            year is only projected when at least two similar corps have a figure for it.
+        </Typography>
+        <Typography variant="subtitle1" component="h3">The shaded band</Typography>
+        <Typography sx={{ mb: 2 }}>
+            The same projection was run for every corps as at each past year, and compared with what then happened. The band
+            holds the middle 80% of those outcomes for each year ahead, so it widens the further ahead it goes. It leans
+            downward because past projections ran high: corps more often ended up smaller than projected.
         </Typography>
         <Typography variant="subtitle1" component="h3">COVID</Typography>
         <Typography>
