@@ -25,5 +25,14 @@ export function createCorpsRoutes(insights: CorpsInsights): express.Router {
         res.json(insights.series(req.params.centreId, req.params.metric, { granularity, year: parseYear(req.query.year) }))
     })
 
+    // Get a corps' metrics projected from similar corps, matched over a window of years
+    router.get('/:centreId/projection', (req, res) => {
+        const { window } = req.query
+        if (window !== undefined && (typeof window !== 'string' || !/^\d+$/.test(window))) {
+            throw new InvalidQueryError(`Invalid window ${JSON.stringify(window)}`)
+        }
+        res.json(insights.projection(req.params.centreId, window === undefined ? undefined : parseInt(window, 10)))
+    })
+
     return router
 }
