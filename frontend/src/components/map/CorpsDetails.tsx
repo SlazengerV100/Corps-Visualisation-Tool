@@ -85,6 +85,10 @@ const confidenceColour = (similarity: number) => `hsl(${Math.min(Math.max((simil
 
 const financialYearLabel = (year: number) => `${year - 1}/${year.toString().slice(-2)}`
 
+// Outside FUTURE the chart gets these same empty arrays whatever the slider loads, so moving it doesn't redraw the chart
+const noProjection: ChartPoint[] = []
+const noMatchLines: MatchLine[] = []
+
 const projectedPoints = (projection: Projection | null | undefined, metric: string): ChartPoint[] =>
   (projection?.metrics[metric]?.points ?? []).map(point => ({ ...point, financialYear: financialYearLabel(point.year), isProjected: true }))
 
@@ -287,13 +291,13 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
   }, [corps, overallWindow, windowYears])
 
   const projected = useMemo(
-    () => effectiveRange === 'future' ? projectedPoints(projection, selectedMetric) : [],
+    () => effectiveRange === 'future' ? projectedPoints(projection, selectedMetric) : noProjection,
     [effectiveRange, projection, selectedMetric]
   )
 
   const metricMatches = useMemo(() => projection?.metrics[selectedMetric]?.matches ?? [], [projection, selectedMetric])
 
-  const matchLines = useMemo((): MatchLine[] => effectiveRange !== 'future' || firstYear === undefined ? [] : metricMatches.map((match, i) => ({
+  const matchLines = useMemo((): MatchLine[] => effectiveRange !== 'future' || firstYear === undefined ? noMatchLines : metricMatches.map((match, i) => ({
     colour: matchColours[i % matchColours.length],
     points: match.points
       .filter(point => point.year >= firstYear)
