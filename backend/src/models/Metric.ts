@@ -12,5 +12,6 @@ export interface MetricDefinition {
     label: string
     unit: Unit
     granularities: Granularity[]
+    projected: boolean
     years: FinancialYear[]
 }

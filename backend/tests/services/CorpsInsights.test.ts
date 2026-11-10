@@ -66,7 +66,7 @@ const insights = new CorpsInsights(
 
 describe('CorpsInsights', () => {
     describe('catalogue', () => {
-        test('should list every metric with its granularities and the years it has data', () => {
+        test('should list every metric with its granularities, the years it has data and whether it is projected', () => {
             const metrics = insights.catalogue().metrics
             expect(metrics.map(m => m.name)).toEqual([
                 'congregationalWorship', 'firstTimeDecisions', 'kidsChurch', 'youthDiscipleship', 'tithing', 'surplusDeficit'
@@ -76,9 +76,10 @@ describe('CorpsInsights', () => {
                 label: 'Congregational Worship',
                 unit: 'people',
                 granularities: ['year', 'month'],
-                years: [2023, 2024]
+                years: [2023, 2024],
+                projected: true
             })
-            expect(metrics[1]).toMatchObject({ granularities: ['year'], years: [2022, 2023, 2024] })
+            expect(metrics[1]).toMatchObject({ granularities: ['year'], years: [2022, 2023, 2024], projected: false })
             expect(metrics[5]).toMatchObject({ unit: 'dollars', granularities: ['year'], years: [2024] })
         })
 
@@ -88,6 +89,21 @@ describe('CorpsInsights', () => {
 
         test('should list each directory region once, in order, with the Pacific countries as one', () => {
             expect(insights.catalogue().regions).toEqual(['New Zealand', 'Pacific'])
+        })
+
+        test('should list the projection window lengths and the default', () => {
+            expect(insights.catalogue().projection).toEqual({ windows: [5], defaultWindow: 5 })
+        })
+    })
+
+    describe('projection', () => {
+        test('should reject a window length not offered', () => {
+            expect(() => insights.projection(alpha.id, 2)).toThrow(InvalidQueryError)
+        })
+
+        test('should report a corps without worship in every year of its latest window as not found', () => {
+            expect(() => insights.projection(alpha.id)).toThrow(NotFoundError)
+            expect(() => insights.projection('999999')).toThrow(NotFoundError)
         })
     })
 

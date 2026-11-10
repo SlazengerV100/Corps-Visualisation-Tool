@@ -13,6 +13,7 @@
 
 - Both exports contain summary rows (`Growth%` in the year column, `TOTAL`/`TOTxx` period codes).
 - Yearly worship, kids church and youth figures are the average of the monthly values. First-time decisions count only in years with worship above zero, and default to 0.
+- A zero can't be told apart from a figure left blank, so matching similar corps for projections treats every SAMIS zero as missing.
 
 ### TechOne
 
