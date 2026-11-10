@@ -48,6 +48,13 @@ export interface ChartPoint {
   metric: number
   financialYear?: string
   isProjected?: boolean
+  low?: number
+  high?: number
+}
+
+export interface MatchLine {
+  colour: string
+  points: ChartPoint[]
 }
 
 interface Match {
@@ -68,18 +75,28 @@ interface Projection {
   metrics: Record<string, { matches: MetricMatch[], points: { year: number, metric: number, low: number, high: number }[] }>
 }
 
+// The projection keeps the chart's purple; each match gets its own colour
+const projectionColour = '#8884d8'
+const matchColours = ['#f28e2b', '#59a14f', '#e15759']
+
 // Red at the lowest similarity a match can have, 50, through to green at 100, dark enough to read as text
 const confidenceColour = (similarity: number) => `hsl(${Math.min(Math.max((similarity - 50) / 50, 0), 1) * 120}, 75%, 40%)`
 
 const financialYearLabel = (year: number) => `${year - 1}/${year.toString().slice(-2)}`
 
-// How many financial years each range covers, counting back from the latest; FUTURE projects as many again
-const rangeYears: Record<Exclude<TimeRange, 'allTime'>, number> = {
+// Outside FUTURE the chart gets these same empty arrays whatever projection loads, so loading one doesn't redraw the chart
+const noProjection: ChartPoint[] = []
+const noMatchLines: MatchLine[] = []
+
+const projectedPoints = (projection: Projection | null | undefined, metric: string): ChartPoint[] =>
+  (projection?.metrics[metric]?.points ?? []).map(point => ({ ...point, financialYear: financialYearLabel(point.year), isProjected: true }))
+
+// How many financial years each range covers, counting back from the latest; FUTURE covers the projection's window back and as many years ahead
+const rangeYears: Record<Exclude<TimeRange, 'allTime' | 'future'>, number> = {
   pastYear: 1,
   pastTwoYears: 2,
   pastFiveYears: 5,
   pastTenYears: 10,
-  future: 5,
 }
 
 /**
@@ -136,7 +153,7 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
   const [isLoading, setIsLoading] = useState(false)
   const [metrics, setMetrics] = useState<MetricDefinition[]>([])
   const [explaining, setExplaining] = useState<'overall' | 'metric' | null>(null)
-  // How many years similar corps are matched on
+  // How many years similar corps are matched on and projected ahead
   const [windowYears, setWindowYears] = useState<number | null>(null)
   const [loadedProjection, setLoadedProjection] = useState<{ corpsId: string, projection: Projection | null } | null>(null)
   // Undefined while this corps' projection loads, null when the corps can't be matched
@@ -164,10 +181,11 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
   const latestYear = definition?.years[definition.years.length - 1]
   const monthlyRanges: TimeRange[] = ['pastYear', 'pastTwoYears']
   const projectable = definition?.projected ?? false
-  const effectiveRange = supportsMonthly || !monthlyRanges.includes(timeRange) ? timeRange : 'allTime'
+  const effectiveRange = !supportsMonthly && monthlyRanges.includes(timeRange) ? 'allTime' : !projectable && timeRange === 'future' ? 'pastFiveYears' : timeRange
   // The chart spans these financial years whether or not the corps has a figure for each
-  const firstYear = latestYear === undefined || effectiveRange === 'allTime' ? definition?.years[0] : latestYear - rangeYears[effectiveRange] + 1
-  const lastYear = latestYear !== undefined && effectiveRange === 'future' ? latestYear + rangeYears.future : latestYear
+  const rangeLength = effectiveRange === 'future' ? windowYears : effectiveRange === 'allTime' ? null : rangeYears[effectiveRange]
+  const firstYear = latestYear === undefined || effectiveRange === 'allTime' ? definition?.years[0] : rangeLength === null ? undefined : latestYear - rangeLength + 1
+  const lastYear = latestYear !== undefined && effectiveRange === 'future' ? (windowYears === null ? undefined : latestYear + windowYears) : latestYear
 
   useEffect(() => {
     const fetchMonthlyData = async (year: number): Promise<ChartPoint[]> => {
@@ -193,7 +211,7 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
         const data: ChartPoint[] = await response.json()
         return data.map(item => ({
           ...item,
-          financialYear: `${item.year - 1}/${item.year.toString().slice(-2)}`,
+          financialYear: financialYearLabel(item.year),
           year: item.year
         }))
       } catch {
@@ -210,59 +228,9 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
         let data: ChartPoint[] = []
         const currentYear = latestYear
 
-        // Use yearly data for 5Y, 10Y, and ALL TIME selections
-        if (range === 'pastFiveYears' || range === 'pastTenYears' || range === 'allTime') {
+        // Use yearly data for 5Y, 10Y, ALL TIME and FUTURE selections
+        if (range === 'pastFiveYears' || range === 'pastTenYears' || range === 'allTime' || range === 'future') {
           data = (await fetchYearlyData()).filter(item => item.year >= firstYear)
-        } else if (range === 'future') {
-          // Get the last 5 years of data for trend analysis
-          const lastFiveYears = (await fetchYearlyData()).filter(item => item.year >= firstYear)
-
-          // Check if there's a data point for the current year
-          if (!lastFiveYears.some(item => item.year === currentYear)) {
-            // No current year data available, return empty array
-            data = []
-          } else {
-            if (lastFiveYears.length >= 2) {
-            // Calculate linear changes between consecutive years
-            const linearChanges: number[] = []
-            for (let i = 1; i < lastFiveYears.length; i++) {
-              const prevValue = lastFiveYears[i - 1].metric
-              const currentValue = lastFiveYears[i].metric
-
-              const linearChange = currentValue - prevValue
-              linearChanges.push(linearChange)
-            }
-
-            // Calculate average linear change
-            const avgLinearChange = linearChanges.length > 0
-              ? linearChanges.reduce((sum, change) => sum + change, 0) / linearChanges.length
-              : 0
-
-            // Get the latest value from the last 5 years
-            const latestValue = lastFiveYears[lastFiveYears.length - 1].metric
-
-            // Project 5 future data points using linear growth
-            const futureData: ChartPoint[] = []
-            for (let i = 1; i <= rangeYears.future; i++) {
-              const futureYear = currentYear + i
-              const projectedValue = latestValue + (avgLinearChange * i)
-
-              futureData.push({
-                year: futureYear,
-                metric: Math.round(projectedValue * 100) / 100, // Round to 2 decimal places
-                financialYear: `${futureYear - 1}/${futureYear.toString().slice(-2)}`,
-                isProjected: true
-              })
-            }
-
-            // Combine historical data with projected future data
-            data = [...lastFiveYears, ...futureData]
-            } else {
-              // If not enough historical data, just return the available data
-              data = lastFiveYears
-            }
-          }
-
         } else if (range === 'pastYear' || range === 'pastTwoYears') {
           const fetchPromises: Promise<ChartPoint[]>[] = []
 
@@ -312,7 +280,19 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
     void fetchProjection()
   }, [corps])
 
+  const projected = useMemo(
+    () => effectiveRange === 'future' ? projectedPoints(projection, selectedMetric) : noProjection,
+    [effectiveRange, projection, selectedMetric]
+  )
+
   const metricMatches = useMemo(() => projection?.metrics[selectedMetric]?.matches ?? [], [projection, selectedMetric])
+
+  const matchLines = useMemo((): MatchLine[] => effectiveRange !== 'future' || firstYear === undefined ? noMatchLines : metricMatches.map((match, i) => ({
+    colour: matchColours[i % matchColours.length],
+    points: match.points
+      .filter(point => point.year >= firstYear)
+      .map(point => ({ ...point, financialYear: financialYearLabel(point.year) }))
+  })), [effectiveRange, metricMatches, firstYear])
 
   const handleTimeRangeChange = (event: React.MouseEvent<HTMLElement>, newTimeRange: TimeRange | null) => {
     if (newTimeRange !== null) {
@@ -383,7 +363,7 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
 
       {!projectable ? (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {definition?.label ?? 'This metric'} helps find similar corps but isn't matched on its own.
+          {definition?.label ?? 'This metric'} helps find similar corps but isn't matched or projected on its own.
         </Typography>
       ) : projection === undefined ? (
         <CircularProgress size={24} sx={{ mb: 2 }} />
@@ -415,7 +395,7 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
         <ToggleButton value="pastFiveYears">5Y</ToggleButton>
         <ToggleButton value="pastTenYears">10Y</ToggleButton>
         <ToggleButton value="allTime">ALL TIME</ToggleButton>
-        <ToggleButton value="future">FUTURE</ToggleButton>
+        {projectable && <ToggleButton value="future">FUTURE</ToggleButton>}
       </ToggleButtonGroup>
 
       <Box sx={{ height: 300, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -424,6 +404,8 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
         ) : (
           <MetricChart
             data={metricData}
+            projected={projected}
+            matches={matchLines}
             timeRange={effectiveRange}
             selectedMetric={selectedMetric}
             unit={definition.unit}
@@ -433,10 +415,21 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
           />
         )}
       </Box>
-      {effectiveRange === 'future' && (
-        <Typography variant="caption" color="text.secondary">
-          The dotted line projects the next five years by continuing the average yearly change over the last five. It is a trend, not a forecast.
-        </Typography>
+      {effectiveRange === 'future' && !isLoading && (projected.length > 0 || metricMatches.length > 0) && (
+        <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', columnGap: 3, rowGap: 0.5 }}>
+          {projected.length > 0 && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ width: 24, height: 10, bgcolor: `${projectionColour}33`, borderTop: `2px dashed ${projectionColour}` }} />
+              <Typography variant="body2">Projection and spread</Typography>
+            </Box>
+          )}
+          {metricMatches.map((match, i) => (
+            <Box key={match.id} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ width: 24, borderTop: `2px solid ${matchLines[i]?.colour}` }} />
+              <Typography variant="body2">{match.name}</Typography>
+            </Box>
+          ))}
+        </Box>
       )}
       <SimilarCorpsExplanationDialog
         open={explaining !== null}
