@@ -330,12 +330,6 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
 
       <ExplainedHeading variant="h6" title="Similar Corps" onExplain={() => setExplaining('overall')} />
 
-      {overallWindow !== null && (
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          Matched on every metric over the last {overallWindow} years
-        </Typography>
-      )}
-
       {overall === undefined ? (
         <CircularProgress size={24} />
       ) : !overall ? (
@@ -375,10 +369,8 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
 
       {projectable && windowYears !== null && (
         <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" gutterBottom>
-            Match on the last {windowYears} years and project {windowYears} years ahead
-          </Typography>
           <Slider
+            aria-label="Years to match on and project ahead"
             value={windowYears}
             min={windowOptions[0]}
             max={windowOptions[windowOptions.length - 1]}
@@ -460,7 +452,12 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
           ))}
         </Box>
       )}
-      <SimilarCorpsExplanationDialog open={explaining !== null} onClose={() => setExplaining(null)} perMetric={explaining === 'metric'} />
+      <SimilarCorpsExplanationDialog
+        open={explaining !== null}
+        onClose={() => setExplaining(null)}
+        perMetric={explaining === 'metric'}
+        years={explaining === 'metric' ? windowYears : overallWindow}
+      />
     </Paper>
   );
 };

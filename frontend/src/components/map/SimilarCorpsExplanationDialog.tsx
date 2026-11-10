@@ -34,27 +34,27 @@ const shared = (
     </>
 )
 
-const overallExplanation = (
+const overallExplanation = (years: number) => (
     <>
         <Typography variant="subtitle1" component="h3">Across every metric</Typography>
         <Typography>
-            These corps are compared on all six metrics together over the last five years, so they are the closest overall. Each
-            metric in Metrics History also has its own similar corps.
+            These corps are compared on all six metrics together over the last {years} years, so they are the closest overall.
+            Each metric in Metrics History also has its own similar corps.
         </Typography>
     </>
 )
 
-const perMetricExplanation = (
+const perMetricExplanation = (years: number) => (
     <>
         <Typography variant="subtitle1" component="h3">On the selected metric</Typography>
         <Typography sx={{ mb: 2 }}>
-            These corps are compared on the selected metric alone, over the number of years chosen on the slider, so they can
+            These corps are compared on the selected metric alone, over the last {years} years as chosen on the slider, so they can
             differ from the similar corps across every metric. Both corps need a figure for the metric in every one of those years.
             First-time decisions only count towards the similar corps across every metric.
         </Typography>
         <Typography variant="subtitle1" component="h3">The projection</Typography>
         <Typography sx={{ mb: 2 }}>
-            FUTURE projects as many years ahead as the slider compares. Each similar corps went up or down by some proportion in
+            FUTURE projects as many years ahead as the slider compares, {years} for now. Each similar corps went up or down by some proportion in
             the years after the run it matched, and the dotted line applies those changes to this corps' latest figure, giving
             closer corps more say. The shaded band shows how much the similar corps disagree, and each one's own path is drawn
             alongside. Surplus/deficit follows the similar corps' surplus or deficit per worshipper, applied to the projected
@@ -70,9 +70,9 @@ const perMetricExplanation = (
 )
 
 /**
- * Popup explaining how similar corps are found, then either the overall match across every metric or the per-metric match and its projection
+ * Popup explaining how similar corps are found, then either the overall match across every metric or the per-metric match and its projection, over the given years
  */
-export default function SimilarCorpsExplanationDialog({ open, onClose, perMetric }: { open: boolean, onClose: () => void, perMetric: boolean }) {
+export default function SimilarCorpsExplanationDialog({ open, onClose, perMetric, years }: { open: boolean, onClose: () => void, perMetric: boolean, years: number | null }) {
     return (
         <Dialog open={open} onClose={onClose} maxWidth="md">
             <DialogTitle variant="h5" sx={{ pr: 6, fontWeight: 'bold' }}>How similar corps are found</DialogTitle>
@@ -82,7 +82,7 @@ export default function SimilarCorpsExplanationDialog({ open, onClose, perMetric
             <DialogContent sx={{ '& h3': { fontWeight: 'bold' } }}>
                 {shared}
                 <Divider sx={{ my: 2 }} />
-                {perMetric ? perMetricExplanation : overallExplanation}
+                {years !== null && (perMetric ? perMetricExplanation(years) : overallExplanation(years))}
             </DialogContent>
         </Dialog>
     )
