@@ -61,23 +61,22 @@ const perMetricExplanation = (years: number) => (
         </Typography>
         <Typography variant="subtitle1" component="h3">The projection</Typography>
         <Typography sx={{ mb: 2 }}>
-            FUTURE projects {years} years ahead. Each similar corps went up or down against the national trend in the years
-            after the run it matched, and the dotted line applies those changes to this corps' latest figure, giving closer
-            corps more say. The national trend then carries on at its average yearly change over the last {years} years. Each
-            similar corps' own path is drawn alongside.
-            Surplus/deficit follows the similar corps' surplus or deficit per worshipper, applied to the projected worship. A
-            year is only projected when at least two similar corps have a figure for it.
+            FUTURE carries this corps' own trend {years} years ahead: a straight line fitted through its last {years} years, by
+            proportion, continued from its latest figure. The similar corps don't change it; their paths are drawn alongside for
+            comparison. Surplus/deficit follows the trend in this corps' surplus or deficit per worshipper, applied to the
+            projected worship. A metric is only projected with a figure in every one of those years.
         </Typography>
         <Typography variant="subtitle1" component="h3">The shaded band</Typography>
         <Typography sx={{ mb: 2 }}>
-            The same projection was run for every corps as at each past year, and compared with what then happened. The band
-            holds the middle 80% of those outcomes for each year ahead, so it widens the further ahead it goes. It leans
-            downward because past projections ran high: corps more often ended up smaller than projected.
+            The band is the fitted line's 80% prediction interval: if this corps keeps moving around its trend as it has, each
+            year should land inside it four times in five. A corps that has moved steadily gets a narrow band, an erratic one a
+            wide band, and it widens the further ahead it goes. With only {years} years to go on, it can't allow for a sudden
+            change like COVID.
         </Typography>
         <Typography variant="subtitle1" component="h3">COVID</Typography>
         <Typography>
-            COVID cut attendance across the territory, most of all in 2021/22, so it falls in this corps' recent years and can
-            fall in a similar corps' years or what followed them.
+            COVID cut attendance across the territory, most of all in 2021/22, so it falls in this corps' recent years and
+            pulls its trend and band with it.
         </Typography>
     </>
 )

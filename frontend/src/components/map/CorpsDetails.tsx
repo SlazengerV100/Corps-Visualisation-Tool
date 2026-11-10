@@ -415,7 +415,7 @@ const CorpsDetails = ({ corps, onClose }: { corps: Corps, onClose: () => void })
           />
         )}
       </Box>
-      {effectiveRange === 'future' && !isLoading && metricMatches.length > 0 && (
+      {effectiveRange === 'future' && !isLoading && (projected.length > 0 || metricMatches.length > 0) && (
         <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', columnGap: 3, rowGap: 0.5 }}>
           {projected.length > 0 && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
