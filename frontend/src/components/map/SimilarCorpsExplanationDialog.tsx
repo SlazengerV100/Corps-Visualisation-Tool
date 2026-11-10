@@ -54,16 +54,35 @@ const overallExplanation = (years: number) => (
 const perMetricExplanation = (years: number) => (
     <>
         <Typography variant="subtitle1" component="h3">On the selected metric</Typography>
-        <Typography>
+        <Typography sx={{ mb: 2 }}>
             These corps are compared on the selected metric alone, over the last {years} years, so they can
             differ from the similar corps across every metric. Both corps need a figure for the metric in every one of those years.
             First-time decisions only count towards the similar corps across every metric.
+        </Typography>
+        <Typography variant="subtitle1" component="h3">The projection</Typography>
+        <Typography sx={{ mb: 2 }}>
+            FUTURE carries this corps' own trend {years} years ahead: a straight line fitted through its last {years} years, by
+            proportion, continued from its latest figure. The similar corps don't change it; their paths are drawn alongside for
+            comparison. Surplus/deficit follows the trend in this corps' surplus or deficit per worshipper, applied to the
+            projected worship. A metric is only projected with a figure in every one of those years.
+        </Typography>
+        <Typography variant="subtitle1" component="h3">The shaded band</Typography>
+        <Typography sx={{ mb: 2 }}>
+            The band is the fitted line's 80% prediction interval: if this corps keeps moving around its trend as it has, each
+            year should land inside it four times in five. A corps that has moved steadily gets a narrow band, an erratic one a
+            wide band, and it widens the further ahead it goes. With only {years} years to go on, it can't allow for a sudden
+            change like COVID.
+        </Typography>
+        <Typography variant="subtitle1" component="h3">COVID</Typography>
+        <Typography>
+            COVID cut attendance across the territory, most of all in 2021/22, so it falls in this corps' recent years and
+            pulls its trend and band with it.
         </Typography>
     </>
 )
 
 /**
- * Popup explaining how similar corps are found, then either the overall match across every metric or the per-metric match, over the given years
+ * Popup explaining how similar corps are found, then either the overall match across every metric or the per-metric match and its projection, over the given years
  */
 export default function SimilarCorpsExplanationDialog({ open, onClose, perMetric, years }: { open: boolean, onClose: () => void, perMetric: boolean, years: number | null }) {
     return (

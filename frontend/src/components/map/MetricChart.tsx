@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import type { ChartPoint, TimeRange, Unit } from './CorpsDetails.tsx';
+import type { ChartPoint, MatchLine, TimeRange, Unit } from './CorpsDetails.tsx';
 
 const count = new Intl.NumberFormat('en-NZ', { maximumFractionDigits: 1 });
 const dollars = new Intl.NumberFormat('en-NZ', { style: 'currency', currency: 'NZD', maximumFractionDigits: 0 });
@@ -12,11 +12,21 @@ const unitFormats: Record<Unit, { title: string, tick: (value: d3.NumberValue) =
   dollars: { title: 'Dollars', tick: d3.format('$~s'), figure: value => dollars.format(value) },
 };
 
+interface DrawnChart {
+  projectionLayer: d3.Selection<SVGGElement, unknown, null, undefined>
+  xOf: (d: ChartPoint) => number
+  y: d3.ScaleLinear<number, number>
+  floored: (d: ChartPoint) => number
+  addDots: (parent: d3.Selection<SVGGElement, unknown, null, undefined>, points: ChartPoint[]) => d3.Selection<SVGCircleElement, ChartPoint, SVGGElement, unknown>
+}
+
 /**
- * Line chart of a metric across a fixed span of financial years, leaving out the years or months with no figure
+ * Line chart of a metric across a fixed span of financial years, leaving out the years or months with no figure, followed by any dotted projection and the similar corps it came from
  */
-const MetricChart = ({ data, timeRange, selectedMetric, unit, firstYear, lastYear, height = 300 }: {
+const MetricChart = ({ data, projected, matches, timeRange, selectedMetric, unit, firstYear, lastYear, height = 300 }: {
   data: ChartPoint[]
+  projected: ChartPoint[]
+  matches: MatchLine[]
   timeRange: TimeRange
   selectedMetric: string
   unit: Unit
@@ -25,9 +35,11 @@ const MetricChart = ({ data, timeRange, selectedMetric, unit, firstYear, lastYea
   height?: number
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  const chartRef = useRef<DrawnChart | null>(null);
 
   useEffect(() => {
     const svgElement = svgRef.current
+    chartRef.current = null
     if (!svgElement || !data || data.length === 0) return undefined
 
     // Clear any existing chart
@@ -52,8 +64,9 @@ const MetricChart = ({ data, timeRange, selectedMetric, unit, firstYear, lastYea
     const canBeNegative = selectedMetric === 'surplusDeficit'
     const floored = (d: ChartPoint) => canBeNegative ? d.metric : Math.max(d.metric, 0)
 
-    const minMetric = d3.min(data, d => d.metric) ?? 0
-    const maxMetric = d3.max(data, d => d.metric) ?? 0
+    const scaled = [...data, ...projected, ...matches.flatMap(m => m.points)]
+    const minMetric = d3.min(scaled, d => Math.min(d.metric, d.low ?? d.metric)) ?? 0
+    const maxMetric = d3.max(scaled, d => Math.max(d.metric, d.high ?? d.metric)) ?? 0
     const y = d3.scaleLinear()
       .domain(canBeNegative ? [minMetric, maxMetric] : [0, maxMetric])
       .nice()
@@ -154,59 +167,23 @@ const MetricChart = ({ data, timeRange, selectedMetric, unit, firstYear, lastYea
       .attr('font-weight', 'bold')
       .text(format.title);
 
-    // Create a custom line that changes from solid to dotted at the first projected point
-    const futureStartIndex = data.findIndex(d => d.isProjected);
+    // The projection draws into its own layer, beneath the history
+    const projectionLayer = g.append('g');
 
-    if (futureStartIndex === -1) {
-      // No future data, draw solid line
-      g.append('path')
-        .datum(data)
-        .attr('fill', 'none')
-        .attr('stroke', '#8884d8')
-        .attr('stroke-width', 2)
-        .attr('d', line);
-    } else {
-      // Draw historical line (solid)
-      const historicalData = data.slice(0, futureStartIndex);
-      if (historicalData.length > 0) {
-        g.append('path')
-          .datum(historicalData)
-          .attr('fill', 'none')
-          .attr('stroke', '#8884d8')
-          .attr('stroke-width', 2)
-          .attr('d', line);
-      }
-
-      // Create a custom line generator for future data
-      const futureLine = d3.line<ChartPoint>()
-        .x(xOf)
-        .y(d => y(floored(d)))
-        .curve(d3.curveMonotoneX);
-
-      // Draw future line (dotted) starting from the last historical point
-      const futureData = data.slice(futureStartIndex - 1); // Include last historical point for connection
-      g.append('path')
-        .datum(futureData)
-        .attr('fill', 'none')
-        .attr('stroke', '#8884d8')
-        .attr('stroke-width', 2)
-        .attr('stroke-dasharray', '5,5')
-        .attr('d', futureLine);
-    }
-
-    // Add dots (ensure they're above the line)
-    const dots = g.selectAll('.dot')
-      .data(data)
-      .enter()
-      .append('circle')
-      .attr('class', 'dot')
-      .attr('cx', xOf)
-      .attr('cy', d => y(floored(d)))
-      .attr('r', 6)
-      .attr('fill', '#8884d8')
-      .attr('stroke', 'white')
+    // Draw the history with a line that draws itself in
+    const historyPath = g.append('path')
+      .datum(data)
+      .attr('fill', 'none')
+      .attr('stroke', '#8884d8')
       .attr('stroke-width', 2)
-      .style('cursor', 'pointer');
+      .attr('d', line);
+    const pathLength = historyPath.node()?.getTotalLength() ?? 0;
+    historyPath
+      .attr('stroke-dasharray', pathLength)
+      .attr('stroke-dashoffset', pathLength)
+      .transition()
+      .duration(1000)
+      .attr('stroke-dashoffset', 0);
 
     // Add tooltip functionality
     const tooltip = d3.select('body')
@@ -224,125 +201,171 @@ const MetricChart = ({ data, timeRange, selectedMetric, unit, firstYear, lastYea
       .style('pointer-events', 'none')
       .style('z-index', 1000);
 
-    // Add hover effects to dots
-    dots.on('mouseenter', function() {
-      d3.select(this)
-        .transition()
-        .duration(150)
-        .attr('r', 8)
-        .attr('fill', '#5a67d8');
-    })
-    .on('mouseleave', function() {
-      d3.select(this)
-        .transition()
-        .duration(150)
-        .attr('r', 6)
-        .attr('fill', '#8884d8');
-    })
-    .on('mouseover', (event: MouseEvent, d) => {
-      const metricTextValue = `${format.figure(floored(d))}${d.isProjected ? ' (projected)' : ''}`
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const tooltipTextContent = isMonthlyData
-        ? `${monthNames[(d.month ?? 1) - 1]} ${d.year}: ${metricTextValue}`
-        : `${d.financialYear}: ${metricTextValue}`;
-
-      // Set tooltip text
-      tooltip.html(tooltipTextContent);
-
-      // Get tooltip dimensions after setting content
-      const tooltipNode = tooltip.node();
-      if (!tooltipNode) return;
-      const tooltipRect = tooltipNode.getBoundingClientRect();
-
-      // Get chart container dimensions
-      const chartRect = svgElement.getBoundingClientRect();
-
-      // Calculate smart positioning
-      let left = event.pageX + 10;
-      let top = event.pageY - 28;
-
-      // Check if tooltip would extend beyond right edge of chart
-      if (left + tooltipRect.width > chartRect.right) {
-        left = event.pageX - tooltipRect.width - 10;
-      }
-
-      // Check if tooltip would extend beyond left edge of chart
-      if (left < chartRect.left) {
-        left = chartRect.left + 10;
-      }
-
-      // Check if tooltip would extend beyond top edge of chart
-      if (top < chartRect.top) {
-        top = event.pageY + 10;
-      }
-
-      // Check if tooltip would extend beyond bottom edge of chart
-      if (top + tooltipRect.height > chartRect.bottom) {
-        top = event.pageY - tooltipRect.height - 10;
-      }
-
-      // Position tooltip
-      tooltip
-        .style('left', left + 'px')
-        .style('top', top + 'px')
-        .style('width', 'auto')
-        .style('height', 'auto');
-
-      // Show tooltip
-      tooltip.transition()
-        .duration(200)
-        .style('opacity', .9);
-    })
-    .on('mouseout', () => {
-      tooltip.transition()
-        .duration(500)
-        .style('opacity', 0)
-        .on('end', () => {
-          // Reset dimensions after opacity transition completes
-          tooltip
-            .style('width', '0px')
-            .style('height', '0px');
-        });
-    });
-
-    // Animation for the lines
-    const paths = g.selectAll<SVGPathElement, unknown>('path');
-
-    paths.each(function() {
-      const pathElement = d3.select(this);
-      const pathLength = this.getTotalLength();
-
-      if (pathElement.attr('stroke-dasharray') === '5,5') {
-        // Future line (already dotted) - fade in
-        pathElement
-          .attr('opacity', 0)
+    const addDots = (parent: d3.Selection<SVGGElement, unknown, null, undefined>, points: ChartPoint[]) => parent.selectAll<SVGCircleElement, ChartPoint>('.dot')
+      .data(points)
+      .enter()
+      .append('circle')
+      .attr('class', 'dot')
+      .attr('cx', xOf)
+      .attr('cy', d => y(floored(d)))
+      .attr('r', 6)
+      .attr('fill', '#8884d8')
+      .attr('stroke', 'white')
+      .attr('stroke-width', 2)
+      .style('cursor', 'pointer')
+      // Add hover effects to dots
+      .on('mouseenter', function() {
+        d3.select(this)
           .transition()
-          .duration(1000)
-          .delay(500)
-          .attr('opacity', 1);
-      } else {
-        // Historical line (solid) - draw animation
-        pathElement
-          .attr('stroke-dasharray', pathLength)
-          .attr('stroke-dashoffset', pathLength)
+          .duration(150)
+          .attr('r', 8)
+          .attr('fill', '#5a67d8');
+      })
+      .on('mouseleave', function() {
+        d3.select(this)
           .transition()
-          .duration(1000)
-          .attr('stroke-dashoffset', 0);
-      }
-    });
+          .duration(150)
+          .attr('r', 6)
+          .attr('fill', '#8884d8');
+      })
+      .on('mouseover', (event: MouseEvent, d) => {
+        const range = d.low !== undefined && d.high !== undefined ? `, ${format.figure(d.low)} to ${format.figure(d.high)}` : ''
+        const metricTextValue = `${format.figure(floored(d))}${d.isProjected ? ` (projected${range})` : ''}`
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const tooltipTextContent = isMonthlyData
+          ? `${monthNames[(d.month ?? 1) - 1]} ${d.year}: ${metricTextValue}`
+          : `${d.financialYear}: ${metricTextValue}`;
 
-    dots
+        // Set tooltip text
+        tooltip.html(tooltipTextContent);
+
+        // Get tooltip dimensions after setting content
+        const tooltipNode = tooltip.node();
+        if (!tooltipNode) return;
+        const tooltipRect = tooltipNode.getBoundingClientRect();
+
+        // Get chart container dimensions
+        const chartRect = svgElement.getBoundingClientRect();
+
+        // Calculate smart positioning
+        let left = event.pageX + 10;
+        let top = event.pageY - 28;
+
+        // Check if tooltip would extend beyond right edge of chart
+        if (left + tooltipRect.width > chartRect.right) {
+          left = event.pageX - tooltipRect.width - 10;
+        }
+
+        // Check if tooltip would extend beyond left edge of chart
+        if (left < chartRect.left) {
+          left = chartRect.left + 10;
+        }
+
+        // Check if tooltip would extend beyond top edge of chart
+        if (top < chartRect.top) {
+          top = event.pageY + 10;
+        }
+
+        // Check if tooltip would extend beyond bottom edge of chart
+        if (top + tooltipRect.height > chartRect.bottom) {
+          top = event.pageY - tooltipRect.height - 10;
+        }
+
+        // Position tooltip
+        tooltip
+          .style('left', left + 'px')
+          .style('top', top + 'px')
+          .style('width', 'auto')
+          .style('height', 'auto');
+
+        // Show tooltip
+        tooltip.transition()
+          .duration(200)
+          .style('opacity', .9);
+      })
+      .on('mouseout', () => {
+        tooltip.transition()
+          .duration(500)
+          .style('opacity', 0)
+          .on('end', () => {
+            // Reset dimensions after opacity transition completes
+            tooltip
+              .style('width', '0px')
+              .style('height', '0px');
+          });
+      });
+
+    // Add dots (ensure they're above the line)
+    addDots(g, data)
       .attr('opacity', 0)
       .transition()
       .duration(1000)
       .attr('opacity', 1);
 
+    chartRef.current = { projectionLayer, xOf, y, floored, addDots }
+
     // Cleanup function
     return () => {
       d3.select('body').selectAll('.tooltip').remove();
     };
-  }, [data, timeRange, selectedMetric, unit, firstYear, lastYear, height]);
+  }, [data, projected, matches, timeRange, selectedMetric, unit, firstYear, lastYear, height]);
+
+  // Draw the similar corps and the projection into their layer once the chart above has drawn
+  useEffect(() => {
+    const chart = chartRef.current
+    if (!chart) return
+    const { projectionLayer, xOf, y, floored, addDots } = chart
+    projectionLayer.selectAll('*').remove()
+    projectionLayer
+      .attr('opacity', 0)
+      .transition()
+      .duration(500)
+      .attr('opacity', 1);
+
+    // Each similar corps' path, beneath the projection drawn from them
+    for (const match of matches) {
+      projectionLayer.append('path')
+        .datum(match.points)
+        .attr('fill', 'none')
+        .attr('stroke', match.colour)
+        .attr('stroke-width', 1.5)
+        .attr('opacity', 0.8)
+        .attr('d', d3.line<ChartPoint>()
+          .x(xOf)
+          .y(d => y(floored(d)))
+          .curve(d3.curveMonotoneX));
+    }
+    if (projected.length === 0) return
+
+    // Start from the last recorded point so the projection joins the history
+    const last = data[data.length - 1]
+    const joined = last && last.year < projected[0].year ? [last, ...projected] : projected
+
+    // Shade the projection's margin for error, widening from the last recorded point
+    projectionLayer.append('path')
+      .datum(joined)
+      .attr('fill', '#8884d8')
+      .attr('opacity', 0.2)
+      .attr('d', d3.area<ChartPoint>()
+        .x(xOf)
+        .y0(d => y(d.low ?? d.metric))
+        .y1(d => y(d.high ?? d.metric))
+        .curve(d3.curveMonotoneX));
+
+    projectionLayer.append('path')
+      .datum(joined)
+      .attr('fill', 'none')
+      .attr('stroke', '#8884d8')
+      .attr('stroke-width', 2)
+      .attr('stroke-dasharray', '5,5')
+      .attr('d', d3.line<ChartPoint>()
+        .x(xOf)
+        .y(d => y(floored(d)))
+        .curve(d3.curveMonotoneX));
+
+    addDots(projectionLayer, projected)
+  }, [projected, matches, data, timeRange, selectedMetric, unit, firstYear, lastYear, height]);
 
   if (!data || data.length === 0) return <p>No data available for this metric in the selected time period.</p>
 
