@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest'
-import { backtestErrors, projectFromSimilarCorps, trendIndex, withBacktestCones } from '../../src/services/similarCorps.ts'
+import { projectFromSimilarCorps, trendIndex } from '../../src/services/similarCorps.ts'
 import type { TrendIndex } from '../../src/services/similarCorps.ts'
 import type { MetricName } from '../../src/models/Metric.ts'
-import type { ProjectedPoint, Projection } from '../../src/models/Projection.ts'
+import type { ProjectedPoint } from '../../src/models/Projection.ts'
 import type { YearlyPoint } from '../../src/models/YearlyPoint.ts'
 
 type History = Partial<Record<MetricName, Record<number, number>>>
@@ -20,17 +20,12 @@ const yearlyByMetric = (corps: Record<string, History>) => new Map(metricNames.m
     })
 )]))
 
-// No national trend, so the matching and projection tests see figures as recorded
+// No national trend, so the matching tests see figures as recorded
 const flat: TrendIndex = new Map()
-
-const nextYear = (metric: number) => [{ year: 2026, metric, low: metric - 1, high: metric + 1 }]
 
 const inNewZealand =(ids: string[]) => new Map(ids.map(id => [id, { name: `${id} Corps`, region: 'New Zealand' }]))
 
 const rounded = (points: ProjectedPoint[]) => points.map(p => ({ year: p.year, metric: Math.round(p.metric), low: Math.round(p.low), high: Math.round(p.high) }))
-
-// A three-year window projects three years ahead
-const steady = (metric: number) => [2026, 2027, 2028].map(year => ({ year, metric, low: metric, high: metric }))
 
 // Johnsonville's latest three years mirror Hamilton's and Napier's earlier ones, after which both doubled
 const history: Record<string, History> = {
@@ -91,10 +86,54 @@ describe('projectFromSimilarCorps', () => {
         expect(projection?.matches).toHaveLength(3)
     })
 
-    test('should project each metric but first-time decisions by the ratio its matches moved by', () => {
-        expect(rounded(projection?.metrics.congregationalWorship.points ?? [])).toEqual(steady(140))
-        expect(rounded(projection?.metrics.tithing.points ?? [])).toEqual(steady(28000))
+    test('should project each metric but first-time decisions from the corps\' own trend, whatever its matches did', () => {
+        // Tauranga grew 25% a year, in a perfectly straight line on a log scale, so its band has no width
+        const tauranga = {
+            congregationalWorship: run(2023, [40, 50, 62.5]),
+            tithing: run(2023, [8000, 10000, 12500])
+        }
+        const metrics = projectFromSimilarCorps(yearlyByMetric({ ...history, tauranga }), new Map([...names, ...inNewZealand(['tauranga'])]), 3, flat).get('tauranga')?.metrics
+        expect(rounded(metrics?.congregationalWorship.points ?? [])).toEqual([
+            { year: 2026, metric: 78, low: 78, high: 78 },
+            { year: 2027, metric: 98, low: 98, high: 98 },
+            { year: 2028, metric: 122, low: 122, high: 122 }
+        ])
+        expect(rounded(metrics?.tithing.points ?? []).map(p => p.metric)).toEqual([15625, 19531, 24414])
         expect(projection?.metrics).not.toHaveProperty('firstTimeDecisions')
+    })
+
+    test('should band each year by the fit\'s 80% prediction interval, widening the further ahead', () => {
+        const uneven = { congregationalWorship: run(2023, [100, 80, 110]) }
+        const points = projectFromSimilarCorps(yearlyByMetric({ uneven }), inNewZealand(['uneven']), 3, flat).get('uneven')?.metrics.congregationalWorship.points ?? []
+        const widths = points.map(p => Math.log(p.high / p.low))
+        expect(points).toHaveLength(3)
+        expect(points.every(p => p.low < p.metric && p.metric < p.high)).toBe(true)
+        expect(widths).toEqual(widths.toSorted((a, b) => a - b))
+        expect(widths[0]).toBeLessThan(widths[2])
+    })
+
+    test('should still project from the corps\' own trend when no corps matches closely enough', () => {
+        const auckland = projectFromSimilarCorps(yearlyByMetric(history), names, 3, flat).get('auckland')
+        expect(auckland?.matches).toEqual([])
+        expect(auckland?.metrics.congregationalWorship.points).toHaveLength(3)
+    })
+
+    test('should project surplus/deficit from its trend per worshipper, applied to the projected worship', () => {
+        // Kerikeri's worship holds at 100 while its deficit per worshipper deepens by $1 a year
+        const kerikeri = { congregationalWorship: run(2023, [100, 100, 100]), surplusDeficit: run(2023, [-1000, -1100, -1200]) }
+        const points = projectFromSimilarCorps(yearlyByMetric({ kerikeri }), inNewZealand(['kerikeri']), 3, flat).get('kerikeri')?.metrics.surplusDeficit.points ?? []
+        expect(rounded(points)).toEqual([
+            { year: 2026, metric: -1300, low: -1300, high: -1300 },
+            { year: 2027, metric: -1400, low: -1400, high: -1400 },
+            { year: 2028, metric: -1500, low: -1500, high: -1500 }
+        ])
+    })
+
+    test('should project a metric only with a figure in every year of the window', () => {
+        const kaikohe = { congregationalWorship: run(2023, [50, 60, 70]), tithing: { 2023: 10000, 2025: 14000 } }
+        const metrics = projectFromSimilarCorps(yearlyByMetric({ kaikohe }), inNewZealand(['kaikohe']), 3, flat).get('kaikohe')?.metrics
+        expect(metrics?.tithing.points).toEqual([])
+        expect(metrics?.congregationalWorship.points).toHaveLength(3)
     })
 
     test('should match each metric on its own history, in every year of the window', () => {
@@ -122,14 +161,8 @@ describe('projectFromSimilarCorps', () => {
         expect(surplusDeficit?.points.map(p => Math.round(p.metric))).toEqual([-503, -601, -700, ...repeat(-1400, 3)])
     })
 
-    test('should project surplus/deficit per worshipper of the projected worship', () => {
-        expect(rounded(projection?.metrics.surplusDeficit.points ?? [])).toEqual(steady(-1400))
-    })
-
     test('should treat a SAMIS zero as missing, neither matching, mismatching nor projecting', () => {
         expect(projection?.metrics.kidsChurch).toEqual({ matches: [], points: [] })
-        // Only Napier has youth figures after its window, Hamilton's are blank, and one figure gives no margin for error
-        expect(projection?.metrics.youthDiscipleship.points).toEqual([])
     })
 
     test('should match only corps in the same region', () => {
@@ -167,45 +200,28 @@ describe('projectFromSimilarCorps', () => {
         expect(matches?.map(m => m.id).toSorted()).toEqual(['hamilton', 'napier', 'wellington'])
     })
 
-    test('should project nothing when no corps matches closely enough', () => {
-        const auckland = projectFromSimilarCorps(yearlyByMetric(history), names, 3, flat).get('auckland')
-        expect(auckland?.matches).toEqual([])
-        expect(Object.values(auckland?.metrics ?? {}).flatMap(m => [...m.matches, ...m.points])).toEqual([])
-    })
-
     test('should leave out a corps without worship in every year of its latest window', () => {
         const projections = projectFromSimilarCorps(yearlyByMetric(history), names, 5, flat)
         expect(projections.has('johnsonville')).toBe(false)
         expect(projections.get('hamilton')?.window).toBe(5)
     })
 
-    test('should continue the region\'s average yearly change over the window into the projection', () => {
-        // Everyone has fallen 10% a year since 2020, so Porirua, level with the matches against that, doubles then keeps falling
-        const falling = {
-            porirua: { congregationalWorship: run(2023, [50 * 0.9 ** 3, 60 * 0.9 ** 4, 70 * 0.9 ** 5]) },
-            masterton: { congregationalWorship: run(2013, [50, 60, 70, 140, 140, 140]) },
-            levin: { congregationalWorship: run(2013, [50, 60, 70, 140, 140, 140]) }
-        }
-        const index: TrendIndex = new Map([['New Zealand', new Map([['congregationalWorship', new Map(
-            Array.from({ length: 20 }, (_, i) => [2010 + i, 0.9 ** Math.max(2010 + i - 2020, 0)])
-        )]])]])
-        const worship = projectFromSimilarCorps(yearlyByMetric(falling), inNewZealand(Object.keys(falling)), 3, index).get('porirua')?.metrics.congregationalWorship
-        expect(worship?.points.map(p => Math.round(p.metric))).toEqual([74, 67, 60])
-    })
-
-    test('should count only how far a match moved relative to its region\'s index', () => {
-        // Both matches doubled when everyone did, so Porirua, already at the doubled level, is projected to hold steady
+    test('should match corps on how they stood against their region\'s index, leaving the projection to the corps\' own trend', () => {
+        // Everyone doubled from 2016, so Porirua today stands against the nation as Masterton did before then
         const doubled = {
             porirua: { congregationalWorship: run(2023, [100, 120, 140]) },
-            masterton: { congregationalWorship: run(2013, [50, 60, 70, 140, 140, 140]) },
-            levin: { congregationalWorship: run(2013, [50, 60, 70, 140, 140, 140]) }
+            masterton: { congregationalWorship: run(2013, [50, 60, 70, 140, 140, 140]) }
         }
         const index: TrendIndex = new Map([['New Zealand', new Map([['congregationalWorship', new Map(
             Array.from({ length: 20 }, (_, i) => [2010 + i, 2010 + i >= 2016 ? 2 : 1])
         )]])]])
-        const worship = projectFromSimilarCorps(yearlyByMetric(doubled), inNewZealand(Object.keys(doubled)), 3, index).get('porirua')?.metrics.congregationalWorship
-        expect(rounded(worship?.points ?? [])).toEqual(steady(140))
-        expect(worship?.matches[0].points.map(p => Math.round(p.metric))).toEqual([100, 120, 140, 140, 140, 140])
+        const corps = inNewZealand(Object.keys(doubled))
+        const against = projectFromSimilarCorps(yearlyByMetric(doubled), corps, 3, index).get('porirua')?.metrics.congregationalWorship
+        const asRecorded = projectFromSimilarCorps(yearlyByMetric(doubled), corps, 3, flat).get('porirua')?.metrics.congregationalWorship
+        expect(against?.matches[0]).toMatchObject({ id: 'masterton', similarity: 100 })
+        expect(asRecorded?.matches[0]?.similarity ?? 0).toBeLessThan(100)
+        expect(against?.matches[0].points.map(p => Math.round(p.metric))).toEqual([100, 120, 140, 280, 280, 280])
+        expect(against?.points).toEqual(asRecorded?.points)
     })
 })
 
@@ -222,45 +238,5 @@ describe('trendIndex', () => {
         const worship = index?.get('congregationalWorship')
         expect([...worship ?? []].map(([year, level]) => [year, Math.round(level * 1000) / 1000])).toEqual([[2020, 1], [2021, 1], [2022, 0.9]])
         expect(index?.has('surplusDeficit')).toBe(false)
-    })
-})
-
-describe('backtestErrors', () => {
-    test('should record how far each past projection was from what happened, by years ahead', () => {
-        // As of 2018, Ashhurst looked like Bulls and Marton before they doubled, but it held steady instead
-        const past = {
-            ashhurst: { congregationalWorship: run(2016, [50, 60, 70, 70, 70, 70]) },
-            bulls: { congregationalWorship: run(2010, [50, 60, 70, 140, 140, 140]) },
-            marton: { congregationalWorship: run(2010, [50, 60, 70, 140, 140, 140]) }
-        }
-        const worship = backtestErrors(yearlyByMetric(past), inNewZealand(Object.keys(past)), 3, flat).get('congregationalWorship')
-        for (const ahead of [1, 2, 3]) {
-            expect(worship?.get(ahead)).toContainEqual(expect.closeTo(Math.log(0.5)))
-        }
-    })
-})
-
-describe('withBacktestCones', () => {
-    test('should widen each year to the middle 80% of past misses, per worshipper for surplus/deficit, and keep the spread without misses', () => {
-        const projection: Projection = {
-            window: 3,
-            year: 2025,
-            matches: [],
-            metrics: {
-                congregationalWorship: { matches: [], points: nextYear(100) },
-                kidsChurch: { matches: [], points: nextYear(10) },
-                youthDiscipleship: { matches: [], points: [] },
-                tithing: { matches: [], points: [] },
-                surplusDeficit: { matches: [], points: nextYear(-500) }
-            }
-        }
-        const errors = new Map([
-            ['congregationalWorship' as const, new Map([[1, [Math.log(0.5), 0, Math.log(2)]]])],
-            ['surplusDeficit' as const, new Map([[1, [-10, 0, 10]]])]
-        ])
-        const metrics = withBacktestCones(new Map([['otaki', projection]]), errors).get('otaki')?.metrics
-        expect(rounded(metrics?.congregationalWorship.points ?? [])).toEqual([{ year: 2026, metric: 100, low: 50, high: 200 }])
-        expect(rounded(metrics?.surplusDeficit.points ?? [])).toEqual([{ year: 2026, metric: -500, low: -1500, high: 500 }])
-        expect(metrics?.kidsChurch.points).toEqual(nextYear(10))
     })
 })

@@ -3,20 +3,17 @@ import type { MetricName } from '../models/Metric.ts'
 import type { Match, MetricProjection, ProjectedMetricName, ProjectedPoint, Projection } from '../models/Projection.ts'
 import type { YearlyPoint } from '../models/YearlyPoint.ts'
 
-// A window of years is matched on, and projected as many years ahead
+// A window of years is matched on, fitted, and projected as many years ahead
 export const windowYearOptions = [5]
 export const defaultWindowYears = 5
 const maxMatches = 3
 // A placeholder until the threshold is tuned against real matches
 const minSimilarity = 50
-// A projection averages at least two matches' figures
-const minFigures = 2
 // SAMIS cannot tell a figure left blank from a real zero, so its zeros count as missing
 const samisMetrics = new Set<MetricName>(['congregationalWorship', 'firstTimeDecisions', 'kidsChurch', 'youthDiscipleship'])
-// Projected by the ratio their matches moved by; surplus/deficit can be zero or negative, so it follows worship instead
-const ratioMetrics = ['congregationalWorship', 'kidsChurch', 'youthDiscipleship', 'tithing'] as const
-// The cone holds the middle 80% of how far past projections were from what happened
-const coneQuantiles = { low: 0.1, high: 0.9 }
+// Student's t 90th percentile by degrees of freedom, for an 80% prediction interval; the normal distribution's beyond the table
+const tFor80 = new Map([[1, 3.078], [2, 1.886], [3, 1.638], [4, 1.533], [5, 1.476], [6, 1.440], [7, 1.415], [8, 1.397]])
+const zFor80 = 1.282
 
 /**
  * Whether a metric is projected; first-time decisions only inform the overall matches.
@@ -28,8 +25,6 @@ type Figures = Map<MetricName, Map<string, Map<FinancialYear, number>>>
 type Corps = Map<string, { name: string, region: string | null }>
 
 export type TrendIndex = Map<string, Map<MetricName, Map<FinancialYear, number>>>
-
-export type BacktestErrors = Map<ProjectedMetricName, Map<number, number[]>>
 
 interface Window {
     id: string
@@ -46,6 +41,26 @@ const recorded = (yearlyByMetric: Map<MetricName, Map<string, YearlyPoint[]>>): 
         id,
         new Map(points.filter(p => !(samisMetrics.has(name) && p.metric === 0)).map(p => [p.year, p.metric]))
     ]))]))
+
+/**
+ * Fit a straight line by least squares.
+ * @returns The slope, and the half-width of the 80% prediction interval at a given x, which is zero from fewer than three points
+ */
+const fitLine = (points: { x: number, y: number }[]) => {
+    const n = points.length
+    const meanX = points.reduce((sum, p) => sum + p.x, 0) / n
+    const meanY = points.reduce((sum, p) => sum + p.y, 0) / n
+    const sxx = points.reduce((sum, p) => sum + (p.x - meanX) ** 2, 0)
+    const slope = points.reduce((sum, p) => sum + (p.x - meanX) * (p.y - meanY), 0) / sxx
+    const intercept = meanY - slope * meanX
+    const degrees = n - 2
+    const scatter = degrees > 0 ? Math.sqrt(points.reduce((sum, p) => sum + (p.y - intercept - slope * p.x) ** 2, 0) / degrees) : 0
+    const t = tFor80.get(degrees) ?? zFor80
+    return {
+        slope,
+        halfWidth: (x: number) => t * scatter * Math.sqrt(1 + 1 / n + (x - meanX) ** 2 / sxx)
+    }
+}
 
 /**
  * Index each region's figures year on year by the change in their total across the corps recorded in both years, so corps opening or closing don't move it.
@@ -83,21 +98,20 @@ export function trendIndex(yearlyByMetric: Map<MetricName, Map<string, YearlyPoi
 }
 
 /**
- * Match each corps' latest window of years to the closest earlier windows, its own included, across all metrics and on each metric alone, and project each metric by what followed its own matches.
- * Figures are compared and moved relative to their region's index, which continues its average yearly change over the window into the future.
+ * Project each metric from the trend of the corps' own latest window of years, and find the corps whose earlier windows most resemble it, across all metrics and on each metric alone.
+ * Similar corps are compared against their region's index, so a year counts by how a corps stood against everyone else then, and are shown alongside rather than used in the projection.
  * @param yearlyByMetric - Each metric's yearly figures by centre code
  * @param corps - Each corps' name and region by centre code; a corps only matches corps in its own region
  * @param windowYears - How many years a window covers, ending in the corps' latest year of worship, and how many years ahead to project
  * @param index - Each region's index, from trendIndex; a year or metric missing from it counts as 1
- * @returns A projection for each corps with worship in every year of its latest window, with no points for a metric nothing matched closely enough on, banded by the matches' weighted spread
+ * @returns A projection for each corps with worship in every year of its latest window, with no points for a metric missing from any year of it
  */
 export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<string, YearlyPoint[]>>, corps: Corps, windowYears: number, index: TrendIndex): Map<string, Projection> {
     const figures = recorded(yearlyByMetric)
     const figure = (name: MetricName, id: string, year: FinancialYear) => figures.get(name)?.get(id)?.get(year) ?? null
-    const indexAt = (name: MetricName, id: string, year: FinancialYear) => index.get(corps.get(id)?.region ?? '')?.get(name)?.get(year) ?? 1
     const indexed = (name: MetricName, id: string, year: FinancialYear) => {
         const value = figure(name, id, year)
-        return value === null ? null : value / indexAt(name, id, year)
+        return value === null ? null : value / (index.get(corps.get(id)?.region ?? '')?.get(name)?.get(year) ?? 1)
     }
     const metricNames = [...figures.keys()]
 
@@ -143,24 +157,6 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
         return count >= Math.max(minShared, 1) ? Math.sqrt(sum / count) : null
     }
 
-    const project = (matches: WeightedMatch[], target: Window, sample: (match: WeightedMatch, year: FinancialYear) => number | null, canBeNegative: boolean): ProjectedPoint[] => {
-        const points: ProjectedPoint[] = []
-        for (let ahead = 1; ahead <= windowYears; ahead++) {
-            const samples = matches.flatMap(match => {
-                const value = sample(match, match.end + ahead)
-                return value === null ? [] : [{ weight: match.weight, value }]
-            })
-            if (samples.length < minFigures) {
-                continue
-            }
-            const total = samples.reduce((sum, s) => sum + s.weight, 0)
-            const mean = samples.reduce((sum, s) => sum + s.weight * s.value, 0) / total
-            const spread = Math.sqrt(samples.reduce((sum, s) => sum + s.weight * (s.value - mean) ** 2, 0) / total)
-            points.push({ year: target.end + ahead, metric: mean, low: canBeNegative ? mean - spread : Math.max(mean - spread, 0), high: mean + spread })
-        }
-        return points
-    }
-
     // Only a window followed by worship in each of as many years as it covers shows what followed for the whole projection; this also keeps a corps' own from overlapping its latest
     const followedThrough = windows.filter(w => Array.from({ length: windowYears }, (_, i) => w.end + 1 + i).every(year => worship.get(w.id)?.has(year)))
 
@@ -171,6 +167,7 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
         const candidates = region === null ? [] : followedThrough.filter(candidate =>
             candidate.end < target.end && corps.get(candidate.id)?.region === region
         )
+        const windowOf = (name: MetricName) => Array.from({ length: windowYears }, (_, i) => target.end - windowYears + 1 + i).map(year => ({ x: year, value: figure(name, target.id, year) }))
 
         // Across all metrics, worship guarantees a full window of shared figures; on one metric alone, both windows need it in every year
         const closestOn = (names: MetricName[]) => {
@@ -188,27 +185,11 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
 
         const describe = (match: WeightedMatch): Match => ({ id: match.id, name: corps.get(match.id)?.name ?? match.id, year: match.end, similarity: Math.round(match.weight) })
 
-        // How far a match moved relative to its region's index, from the end of its window to a year ahead or behind it
-        const relativeChange = (name: MetricName, match: WeightedMatch, year: FinancialYear) => {
-            const from = indexed(name, match.id, match.end)
-            const to = indexed(name, match.id, year)
-            return from === null || from <= 0 || to === null ? null : to / from
-        }
-
-        // The target's region's index a year ahead or behind its latest, relative to its latest; ahead, it continues the window's average yearly change
-        const targetIndex = (name: MetricName, ahead: number) => {
-            const latest = indexAt(name, target.id, target.end)
-            if (ahead <= 0) {
-                return indexAt(name, target.id, target.end + ahead) / latest
-            }
-            return (latest / indexAt(name, target.id, target.end - windowYears)) ** (ahead / windowYears)
-        }
-
-        // A match's window and what followed, moved onto the target's years and its region's index, and scaled to its level; surplus/deficit scales by worship
+        // A match's window and what followed, moved onto the target's years and scaled to its level at the end of the window; surplus/deficit scales by worship
         const followed = (match: WeightedMatch, name: ProjectedMetricName): YearlyPoint[] => {
             const scaleBy = name === 'surplusDeficit' ? 'congregationalWorship' : name
             const base = figure(scaleBy, target.id, target.end)
-            const from = indexed(scaleBy, match.id, match.end)
+            const from = figure(scaleBy, match.id, match.end)
             if (base === null || from === null || from <= 0) {
                 return []
             }
@@ -216,36 +197,45 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
             for (let ahead = 1 - windowYears; ahead <= windowYears; ahead++) {
                 const value = figure(name, match.id, match.end + ahead)
                 if (value !== null) {
-                    points.push({ year: target.end + ahead, metric: value / indexAt(scaleBy, match.id, match.end + ahead) / from * base * targetIndex(scaleBy, ahead) })
+                    points.push({ year: target.end + ahead, metric: value * base / from })
                 }
             }
             return points
         }
+        const matchedOn = (name: ProjectedMetricName) => closestOn([name]).map(m => ({ ...describe(m), points: followed(m, name) }))
 
-        // Each metric is matched on its own history and moves by the ratio its matches moved by against the index, which continues its trend; first-time decisions only inform the overall matches
-        const byRatio = (name: ProjectedMetricName): MetricProjection => {
-            const matches = closestOn([name])
-            const base = figure(name, target.id, target.end)
-            return {
-                matches: matches.map(m => ({ ...describe(m), points: followed(m, name) })),
-                points: base === null ? [] : project(matches, target, (match, year) => {
-                    const change = relativeChange(name, match, year)
-                    return change === null ? null : base * change * targetIndex(name, year - match.end)
-                }, false)
+        // A line through the log of the corps' figure in every year of its window, carried on from its latest figure, banded by the fit's prediction interval
+        const proportional = (name: ProjectedMetricName): ProjectedPoint[] => {
+            const window = windowOf(name)
+            const latest = window[window.length - 1].value
+            if (latest === null || window.some(p => p.value === null || p.value <= 0)) {
+                return []
             }
+            const fit = fitLine(window.map(p => ({ x: p.x, y: Math.log(p.value ?? 1) })))
+            return Array.from({ length: windowYears }, (_, i) => {
+                const year = target.end + 1 + i
+                const metric = latest * Math.exp(fit.slope * (year - target.end))
+                const margin = fit.halfWidth(year)
+                return { year, metric, low: metric * Math.exp(-margin), high: metric * Math.exp(margin) }
+            })
         }
 
-        // Surplus/deficit follows its matches' figure per worshipper, applied to the projected worship
-        const projectedWorship = byRatio('congregationalWorship')
-        const surplusDeficitMatches = closestOn(['surplusDeficit'])
-        const surplusDeficit: MetricProjection = {
-            matches: surplusDeficitMatches.map(m => ({ ...describe(m), points: followed(m, 'surplusDeficit') })),
-            points: project(surplusDeficitMatches, target, (match, year) => {
-                const figureThen = figure('surplusDeficit', match.id, year)
-                const matchWorship = figure('congregationalWorship', match.id, year)
-                const targetWorship = projectedWorship.points.find(p => p.year === year - match.end + target.end)
-                return figureThen === null || matchWorship === null || !targetWorship ? null : figureThen / matchWorship * targetWorship.metric
-            }, true)
+        // Surplus/deficit per worshipper, fitted as is since it can be zero or negative, applied to the projected worship
+        const worshipPoints = proportional('congregationalWorship')
+        const perWorshipper = (): ProjectedPoint[] => {
+            const surplusDeficits = windowOf('surplusDeficit')
+            const worshippers = windowOf('congregationalWorship')
+            const window = surplusDeficits.map((p, i) => ({ x: p.x, value: p.value === null || worshippers[i].value === null ? null : p.value / (worshippers[i].value ?? 1) }))
+            const latest = window[window.length - 1].value
+            if (latest === null || window.some(p => p.value === null)) {
+                return []
+            }
+            const fit = fitLine(window.map(p => ({ x: p.x, y: p.value ?? 0 })))
+            return worshipPoints.map(({ year, metric: worshippersThen }) => {
+                const metric = (latest + fit.slope * (year - target.end)) * worshippersThen
+                const margin = fit.halfWidth(year) * worshippersThen
+                return { year, metric, low: metric - margin, high: metric + margin }
+            })
         }
 
         projections.set(target.id, {
@@ -253,95 +243,13 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
             year: target.end,
             matches: closestOn(metricNames).map(describe),
             metrics: {
-                congregationalWorship: projectedWorship,
-                kidsChurch: byRatio('kidsChurch'),
-                youthDiscipleship: byRatio('youthDiscipleship'),
-                tithing: byRatio('tithing'),
-                surplusDeficit
-            }
+                congregationalWorship: { matches: matchedOn('congregationalWorship'), points: worshipPoints },
+                kidsChurch: { matches: matchedOn('kidsChurch'), points: proportional('kidsChurch') },
+                youthDiscipleship: { matches: matchedOn('youthDiscipleship'), points: proportional('youthDiscipleship') },
+                tithing: { matches: matchedOn('tithing'), points: proportional('tithing') },
+                surplusDeficit: { matches: matchedOn('surplusDeficit'), points: perWorshipper() }
+            } satisfies Record<ProjectedMetricName, MetricProjection>
         })
     }
     return projections
-}
-
-/**
- * Project from the data as it stood at the end of each past year, and record how far each projection was from what happened.
- * @returns Every miss by metric and years ahead; worship-type figures as the log of actual over projected, surplus/deficit as the difference per projected worshipper
- */
-export function backtestErrors(yearlyByMetric: Map<MetricName, Map<string, YearlyPoint[]>>, corps: Corps, windowYears: number, index: TrendIndex): BacktestErrors {
-    const figures = recorded(yearlyByMetric)
-    const figure = (name: MetricName, id: string, year: FinancialYear) => figures.get(name)?.get(id)?.get(year) ?? null
-    const years = [...figures.get('congregationalWorship')?.values() ?? []].flatMap(byYear => [...byYear.keys()])
-    const errors: BacktestErrors = new Map()
-    const record = (name: ProjectedMetricName, ahead: number, error: number) => {
-        const byAhead = errors.get(name) ?? new Map<number, number[]>()
-        byAhead.set(ahead, [...byAhead.get(ahead) ?? [], error])
-        errors.set(name, byAhead)
-    }
-    if (!years.length) {
-        return errors
-    }
-
-    for (let asOf = Math.min(...years); asOf < Math.max(...years); asOf++) {
-        const knownThen = new Map([...yearlyByMetric].map(([name, byCorps]) => [name, new Map([...byCorps].map(([id, points]) => [id, points.filter(p => p.year <= asOf)]))]))
-        for (const [id, projection] of projectFromSimilarCorps(knownThen, corps, windowYears, index)) {
-            if (projection.year !== asOf) {
-                continue
-            }
-            for (const name of ratioMetrics) {
-                for (const point of projection.metrics[name].points) {
-                    const actual = figure(name, id, point.year)
-                    if (actual !== null && actual > 0 && point.metric > 0) {
-                        record(name, point.year - asOf, Math.log(actual / point.metric))
-                    }
-                }
-            }
-            for (const point of projection.metrics.surplusDeficit.points) {
-                const actual = figure('surplusDeficit', id, point.year)
-                const worshippers = projection.metrics.congregationalWorship.points.find(p => p.year === point.year)?.metric
-                if (actual !== null && worshippers) {
-                    record('surplusDeficit', point.year - asOf, (actual - point.metric) / worshippers)
-                }
-            }
-        }
-    }
-    return errors
-}
-
-/**
- * Widen each projected year to the middle 80% of how far past projections that many years ahead were from what happened.
- * @returns The projections with each band replaced where the backtest has misses for that metric and year ahead, and left as the matches' spread where it has none
- */
-export function withBacktestCones(projections: Map<string, Projection>, errors: BacktestErrors): Map<string, Projection> {
-    const sorted = new Map([...errors].map(([name, byAhead]) => [name, new Map([...byAhead].map(([ahead, misses]) => [ahead, misses.toSorted((a, b) => a - b)]))]))
-
-    return new Map([...projections].map(([id, projection]) => {
-        const worshipAt = (year: FinancialYear) => projection.metrics.congregationalWorship.points.find(p => p.year === year)?.metric
-        const cone = (name: ProjectedMetricName, point: ProjectedPoint): ProjectedPoint => {
-            const misses = sorted.get(name)?.get(point.year - projection.year)
-            if (!misses?.length) {
-                return point
-            }
-            const [low, high] = [coneQuantiles.low, coneQuantiles.high].map(q => misses[Math.round(q * (misses.length - 1))])
-            if (name !== 'surplusDeficit') {
-                return { ...point, low: point.metric * Math.exp(low), high: point.metric * Math.exp(high) }
-            }
-            const worshippers = worshipAt(point.year)
-            return worshippers === undefined ? point : { ...point, low: point.metric + low * worshippers, high: point.metric + high * worshippers }
-        }
-        const coned = (name: ProjectedMetricName): MetricProjection => ({
-            ...projection.metrics[name],
-            points: projection.metrics[name].points.map(point => cone(name, point))
-        })
-        return [id, {
-            ...projection,
-            metrics: {
-                congregationalWorship: coned('congregationalWorship'),
-                kidsChurch: coned('kidsChurch'),
-                youthDiscipleship: coned('youthDiscipleship'),
-                tithing: coned('tithing'),
-                surplusDeficit: coned('surplusDeficit')
-            }
-        }]
-    }))
 }
