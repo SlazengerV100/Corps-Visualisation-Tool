@@ -1,7 +1,7 @@
 import { calculateGrowth, calculateSustainability } from '../utils/calculations.ts'
 import { InvalidQueryError } from './InvalidQueryError.ts'
 import { NotFoundError } from './NotFoundError.ts'
-import { defaultWindowYears, isProjected, projectFromSimilarCorps, windowYearOptions } from './similarCorps.ts'
+import { backtestErrors, defaultWindowYears, isProjected, projectFromSimilarCorps, trendIndex, windowYearOptions, withBacktestCones } from './similarCorps.ts'
 import type { MissionRepository } from '../repositories/mission/MissionRepository.ts'
 import type { FinanceRepository } from '../repositories/finance/FinanceRepository.ts'
 import type { CorpsDirectoryRepository } from '../repositories/directory/CorpsDirectoryRepository.ts'
@@ -137,7 +137,11 @@ export class CorpsInsights {
 
         const yearlyByMetric = new Map([...this.metrics.values()].map(m => [m.definition.name, m.yearlyByCorps]))
         const projectedCorps = new Map([...mission.corps(), ...finance.corps()].map(c => [c.id, { name: c.name, region: regionById.get(c.id) ?? null }]))
-        this.projectionsByWindow = new Map(windowYearOptions.map(window => [window, projectFromSimilarCorps(yearlyByMetric, projectedCorps, window)]))
+        const index = trendIndex(yearlyByMetric, projectedCorps)
+        this.projectionsByWindow = new Map(windowYearOptions.map(window => [window, withBacktestCones(
+            projectFromSimilarCorps(yearlyByMetric, projectedCorps, window, index),
+            backtestErrors(yearlyByMetric, projectedCorps, window, index)
+        )]))
 
         this.snapshotsByYear = new Map()
         for (const year of mission.years()) {
