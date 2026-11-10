@@ -91,24 +91,19 @@ describe('CorpsInsights', () => {
             expect(insights.catalogue().regions).toEqual(['New Zealand', 'Pacific'])
         })
 
-        test('should list the projection window lengths, the default and the overall window', () => {
-            expect(insights.catalogue().projection).toEqual({ windows: [2, 4, 6, 8, 10], defaultWindow: 4, overallWindow: 5 })
+        test('should list the projection window lengths and the default', () => {
+            expect(insights.catalogue().projection).toEqual({ windows: [5], defaultWindow: 5 })
         })
     })
 
     describe('projection', () => {
-        test('should project from the corps\' latest window of the chosen length', () => {
-            expect(insights.projection(alpha.id, 2)).toMatchObject({ window: 2, year: 2024 })
-        })
-
         test('should reject a window length not offered', () => {
-            expect(() => insights.projection(alpha.id, 9)).toThrow(InvalidQueryError)
+            expect(() => insights.projection(alpha.id, 2)).toThrow(InvalidQueryError)
         })
 
         test('should report a corps without worship in every year of its latest window as not found', () => {
-            expect(() => insights.projection(alpha.id, 4)).toThrow(NotFoundError)
-            expect(() => insights.projection(alpha.id, 5)).toThrow(NotFoundError)
-            expect(() => insights.projection('999999', 2)).toThrow(NotFoundError)
+            expect(() => insights.projection(alpha.id)).toThrow(NotFoundError)
+            expect(() => insights.projection('999999')).toThrow(NotFoundError)
         })
     })
 

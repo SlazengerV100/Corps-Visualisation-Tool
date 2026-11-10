@@ -84,9 +84,9 @@ describe('API', () => {
 
     describe('GET /api/corps/:centreId/projection', () => {
         test('should look up the chosen window, which the test data has too few years of worship for', async () => {
-            const res = await request(app).get('/api/corps/100001/projection?window=2')
+            const res = await request(app).get('/api/corps/100001/projection?window=5')
             expect(res.status).toBe(404)
-            expect(res.body.error).toContain('2-year')
+            expect(res.body.error).toContain('5-year')
         })
 
         test.each([

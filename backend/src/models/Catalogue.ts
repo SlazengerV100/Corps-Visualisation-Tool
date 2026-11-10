@@ -5,5 +5,5 @@ export interface Catalogue {
     metrics: MetricDefinition[]
     snapshots: { years: FinancialYear[], scoredYears: FinancialYear[] }
     regions: string[]
-    projection: { windows: number[], defaultWindow: number, overallWindow: number }
+    projection: { windows: number[], defaultWindow: number }
 }
