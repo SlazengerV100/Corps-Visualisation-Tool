@@ -63,7 +63,8 @@ const perMetricExplanation = (years: number) => (
         <Typography sx={{ mb: 2 }}>
             FUTURE projects {years} years ahead. Each similar corps went up or down against the national trend in the years
             after the run it matched, and the dotted line applies those changes to this corps' latest figure, giving closer
-            corps more say, with the national trend held where it is now. Each similar corps' own path is drawn alongside.
+            corps more say. The national trend then carries on at its average yearly change over the last {years} years. Each
+            similar corps' own path is drawn alongside.
             Surplus/deficit follows the similar corps' surplus or deficit per worshipper, applied to the projected worship. A
             year is only projected when at least two similar corps have a figure for it.
         </Typography>

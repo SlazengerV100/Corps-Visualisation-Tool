@@ -179,7 +179,21 @@ describe('projectFromSimilarCorps', () => {
         expect(projections.get('hamilton')?.window).toBe(5)
     })
 
-    test('should count only how far a match moved relative to its region\'s index, held at its latest level ahead', () => {
+    test('should continue the region\'s average yearly change over the window into the projection', () => {
+        // Everyone has fallen 10% a year since 2020, so Porirua, level with the matches against that, doubles then keeps falling
+        const falling = {
+            porirua: { congregationalWorship: run(2023, [50 * 0.9 ** 3, 60 * 0.9 ** 4, 70 * 0.9 ** 5]) },
+            masterton: { congregationalWorship: run(2013, [50, 60, 70, 140, 140, 140]) },
+            levin: { congregationalWorship: run(2013, [50, 60, 70, 140, 140, 140]) }
+        }
+        const index: TrendIndex = new Map([['New Zealand', new Map([['congregationalWorship', new Map(
+            Array.from({ length: 20 }, (_, i) => [2010 + i, 0.9 ** Math.max(2010 + i - 2020, 0)])
+        )]])]])
+        const worship = projectFromSimilarCorps(yearlyByMetric(falling), inNewZealand(Object.keys(falling)), 3, index).get('porirua')?.metrics.congregationalWorship
+        expect(worship?.points.map(p => Math.round(p.metric))).toEqual([74, 67, 60])
+    })
+
+    test('should count only how far a match moved relative to its region\'s index', () => {
         // Both matches doubled when everyone did, so Porirua, already at the doubled level, is projected to hold steady
         const doubled = {
             porirua: { congregationalWorship: run(2023, [100, 120, 140]) },

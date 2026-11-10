@@ -84,7 +84,7 @@ export function trendIndex(yearlyByMetric: Map<MetricName, Map<string, YearlyPoi
 
 /**
  * Match each corps' latest window of years to the closest earlier windows, its own included, across all metrics and on each metric alone, and project each metric by what followed its own matches.
- * Figures are compared and moved relative to their region's index, which is held at its latest level into the future.
+ * Figures are compared and moved relative to their region's index, which continues its average yearly change over the window into the future.
  * @param yearlyByMetric - Each metric's yearly figures by centre code
  * @param corps - Each corps' name and region by centre code; a corps only matches corps in its own region
  * @param windowYears - How many years a window covers, ending in the corps' latest year of worship, and how many years ahead to project
@@ -195,7 +195,16 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
             return from === null || from <= 0 || to === null ? null : to / from
         }
 
-        // A match's window and what followed, moved onto the target's years and its region's index, held at its latest level ahead, and scaled to its level; surplus/deficit scales by worship
+        // The target's region's index a year ahead or behind its latest, relative to its latest; ahead, it continues the window's average yearly change
+        const targetIndex = (name: MetricName, ahead: number) => {
+            const latest = indexAt(name, target.id, target.end)
+            if (ahead <= 0) {
+                return indexAt(name, target.id, target.end + ahead) / latest
+            }
+            return (latest / indexAt(name, target.id, target.end - windowYears)) ** (ahead / windowYears)
+        }
+
+        // A match's window and what followed, moved onto the target's years and its region's index, and scaled to its level; surplus/deficit scales by worship
         const followed = (match: WeightedMatch, name: ProjectedMetricName): YearlyPoint[] => {
             const scaleBy = name === 'surplusDeficit' ? 'congregationalWorship' : name
             const base = figure(scaleBy, target.id, target.end)
@@ -207,14 +216,13 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
             for (let ahead = 1 - windowYears; ahead <= windowYears; ahead++) {
                 const value = figure(name, match.id, match.end + ahead)
                 if (value !== null) {
-                    const targetIndex = indexAt(scaleBy, target.id, Math.min(target.end + ahead, target.end)) / indexAt(scaleBy, target.id, target.end)
-                    points.push({ year: target.end + ahead, metric: value / indexAt(scaleBy, match.id, match.end + ahead) / from * base * targetIndex })
+                    points.push({ year: target.end + ahead, metric: value / indexAt(scaleBy, match.id, match.end + ahead) / from * base * targetIndex(scaleBy, ahead) })
                 }
             }
             return points
         }
 
-        // Each metric is matched on its own history and moves by the ratio its matches moved by; first-time decisions only inform the overall matches
+        // Each metric is matched on its own history and moves by the ratio its matches moved by against the index, which continues its trend; first-time decisions only inform the overall matches
         const byRatio = (name: ProjectedMetricName): MetricProjection => {
             const matches = closestOn([name])
             const base = figure(name, target.id, target.end)
@@ -222,7 +230,7 @@ export function projectFromSimilarCorps(yearlyByMetric: Map<MetricName, Map<stri
                 matches: matches.map(m => ({ ...describe(m), points: followed(m, name) })),
                 points: base === null ? [] : project(matches, target, (match, year) => {
                     const change = relativeChange(name, match, year)
-                    return change === null ? null : base * change
+                    return change === null ? null : base * change * targetIndex(name, year - match.end)
                 }, false)
             }
         }
